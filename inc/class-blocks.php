@@ -27,6 +27,9 @@ class Blocks {
 			'domain-search',
 			'tier-select',
 			'checkout',
+			'login',
+			'dashboard',
+			'account',
 		];
 
 		foreach ( $blocks as $block ) {

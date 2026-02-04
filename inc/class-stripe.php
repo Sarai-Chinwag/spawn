@@ -211,13 +211,32 @@ class Stripe {
 	}
 
 	/**
+	 * Create billing portal session (alias for REST API).
+	 *
+	 * @param string $customer_id Stripe customer ID.
+	 * @param string $return_url  URL to return to after portal.
+	 * @return array|WP_Error Portal data or error.
+	 */
+	public static function create_billing_portal_session( string $customer_id, string $return_url ): array|WP_Error {
+		$result = self::request( '/billing_portal/sessions', 'POST', [
+			'customer'   => $customer_id,
+			'return_url' => $return_url,
+		] );
+
+		return $result;
+	}
+
+	/**
 	 * Cancel a subscription.
 	 *
 	 * @param string $subscription_id Stripe subscription ID.
 	 * @return array|WP_Error Cancellation result or error.
 	 */
 	public static function cancel_subscription( string $subscription_id ): array|WP_Error {
-		return self::request( '/subscriptions/' . $subscription_id, 'DELETE' );
+		// Cancel at period end rather than immediately.
+		return self::request( '/subscriptions/' . $subscription_id, 'POST', [
+			'cancel_at_period_end' => true,
+		] );
 	}
 
 	/**
@@ -231,5 +250,59 @@ class Stripe {
 		return self::request( '/subscriptions/' . $subscription_id, 'POST', [
 			'items' => $items,
 		] );
+	}
+
+	/**
+	 * Update subscription to a new price.
+	 *
+	 * @param string $subscription_id Stripe subscription ID.
+	 * @param string $new_price_id    New Stripe price ID.
+	 * @return array|WP_Error Updated subscription or error.
+	 */
+	public static function update_subscription_price( string $subscription_id, string $new_price_id ): array|WP_Error {
+		// First get the current subscription to find the item ID.
+		$subscription = self::request( '/subscriptions/' . $subscription_id, 'GET' );
+
+		if ( is_wp_error( $subscription ) ) {
+			return $subscription;
+		}
+
+		$item_id = $subscription['items']['data'][0]['id'] ?? '';
+
+		if ( empty( $item_id ) ) {
+			return new WP_Error(
+				'no_subscription_item',
+				__( 'No subscription item found', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Update the subscription item with the new price.
+		return self::request( '/subscriptions/' . $subscription_id, 'POST', [
+			'items' => [
+				[
+					'id'    => $item_id,
+					'price' => $new_price_id,
+				],
+			],
+			'proration_behavior' => 'create_prorations',
+		] );
+	}
+
+	/**
+	 * Get invoices for a customer.
+	 *
+	 * @param string $customer_id Stripe customer ID.
+	 * @param int    $limit       Number of invoices to return.
+	 * @return array|WP_Error Invoices or error.
+	 */
+	public static function get_invoices( string $customer_id, int $limit = 10 ): array|WP_Error {
+		$result = self::request( '/invoices?customer=' . urlencode( $customer_id ) . '&limit=' . $limit, 'GET' );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $result['data'] ?? [];
 	}
 }

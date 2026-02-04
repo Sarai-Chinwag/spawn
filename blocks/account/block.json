@@ -1,0 +1,20 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "spawn/account",
+	"version": "0.1.0",
+	"title": "Account",
+	"category": "widgets",
+	"icon": "admin-users",
+	"description": "Account management for Spawn customers",
+	"keywords": [ "account", "subscription", "spawn" ],
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	},
+	"textdomain": "spawn",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
+}

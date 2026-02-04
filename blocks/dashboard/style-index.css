@@ -1,0 +1,232 @@
+.wp-block-spawn-dashboard {
+	max-width: 900px;
+	margin: 2rem auto;
+	padding: 2rem;
+}
+
+.wp-block-spawn-dashboard__loading {
+	text-align: center;
+	padding: 3rem;
+	color: #666;
+}
+
+.wp-block-spawn-dashboard__container h2 {
+	margin: 0 0 1.5rem;
+	font-size: 1.75rem;
+}
+
+.wp-block-spawn-dashboard__cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.wp-block-spawn-dashboard__card {
+	background: #fff;
+	padding: 1.5rem;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.wp-block-spawn-dashboard__card h3 {
+	margin: 0 0 1rem;
+	font-size: 0.875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #666;
+}
+
+/* Status badges */
+.status-badge {
+	display: inline-block;
+	padding: 0.25rem 0.75rem;
+	border-radius: 999px;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.status-active {
+	background: #dcfce7;
+	color: #166534;
+}
+
+.status-provisioning {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.status-pending {
+	background: #e0e7ff;
+	color: #3730a3;
+}
+
+.status-suspended {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.status-cancelled {
+	background: #f3f4f6;
+	color: #4b5563;
+}
+
+.status-note {
+	margin-top: 0.75rem;
+	font-size: 0.75rem;
+	color: #666;
+}
+
+/* Domain */
+.domain-name {
+	font-size: 1.125rem;
+	font-weight: 500;
+}
+
+.domain-name a {
+	color: #007cba;
+	text-decoration: none;
+}
+
+.domain-name a:hover {
+	text-decoration: underline;
+}
+
+.server-ip {
+	margin-top: 0.5rem;
+	font-size: 0.75rem;
+	color: #666;
+	font-family: monospace;
+}
+
+/* Usage bar */
+.usage-bar {
+	height: 8px;
+	background: #e5e7eb;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 0.5rem;
+}
+
+.usage-fill {
+	height: 100%;
+	border-radius: 4px;
+	transition: width 0.3s ease;
+}
+
+.usage-low .usage-fill {
+	background: #22c55e;
+}
+
+.usage-medium .usage-fill {
+	background: #f59e0b;
+}
+
+.usage-high .usage-fill {
+	background: #ef4444;
+}
+
+.usage-text {
+	font-size: 0.875rem;
+	color: #374151;
+}
+
+.usage-percent {
+	color: #6b7280;
+}
+
+/* Plan */
+.plan-name {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+.plan-link {
+	font-size: 0.875rem;
+	color: #007cba;
+	text-decoration: none;
+}
+
+.plan-link:hover {
+	text-decoration: underline;
+}
+
+/* Actions */
+.wp-block-spawn-dashboard__actions {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.wp-block-spawn-dashboard__btn {
+	display: inline-block;
+	padding: 0.75rem 1.5rem;
+	border-radius: 4px;
+	font-size: 1rem;
+	font-weight: 500;
+	text-decoration: none;
+	cursor: pointer;
+	border: none;
+	transition: all 0.2s;
+}
+
+.btn-billing {
+	background: #007cba;
+	color: #fff;
+}
+
+.btn-billing:hover {
+	background: #005a87;
+}
+
+.btn-billing:disabled {
+	background: #ccc;
+	cursor: not-allowed;
+}
+
+.btn-secondary {
+	background: #f3f4f6;
+	color: #374151;
+	border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+	background: #e5e7eb;
+}
+
+/* Message states */
+.wp-block-spawn-dashboard__message,
+.wp-block-spawn-dashboard__error {
+	text-align: center;
+	padding: 3rem;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.wp-block-spawn-dashboard__message h2,
+.wp-block-spawn-dashboard__error h2 {
+	margin-bottom: 1rem;
+}
+
+.wp-block-spawn-dashboard__message p,
+.wp-block-spawn-dashboard__error p {
+	color: #666;
+	margin-bottom: 1.5rem;
+}
+
+/* Editor preview */
+.wp-block-spawn-dashboard__preview {
+	padding: 1.5rem;
+	background: #f5f5f5;
+	border: 1px dashed #ccc;
+	border-radius: 8px;
+}
+
+.wp-block-spawn-dashboard__preview-note {
+	margin-top: 1rem;
+	font-size: 0.75rem;
+	color: #666;
+	font-style: italic;
+}

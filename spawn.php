@@ -43,6 +43,7 @@ function init(): void {
 	REST_API::init();
 	Webhook::init();
 	Abilities\Abilities::init();
+	User_Role::init();
 	
 	// Admin settings.
 	if ( is_admin() ) {
@@ -57,6 +58,9 @@ function activate(): void {
 	// Create database tables if needed.
 	Database::create_tables();
 	
+	// Register user role.
+	User_Role::register_role();
+	
 	// Flush rewrite rules.
 	flush_rewrite_rules();
 }
@@ -66,6 +70,9 @@ register_activation_hook( __FILE__, __NAMESPACE__ . '\\activate' );
  * Deactivation hook.
  */
 function deactivate(): void {
+	// Unregister user role.
+	User_Role::unregister_role();
+	
 	flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, __NAMESPACE__ . '\\deactivate' );
