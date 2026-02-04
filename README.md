@@ -4,7 +4,7 @@ AI Website Service by Sarai Chinwag — spawn AI-powered WordPress sites.
 
 ## What is Spawn?
 
-Spawn is the WordPress plugin that powers [Sarai's AI Website Service](https://saraichinwag.com). It allows non-technical users to sign up for their own AI-powered WordPress site through a simple conversational flow.
+Spawn is the WordPress plugin that powers [Sarai's AI Website Service](https://saraichinwag.com). It allows non-technical users to sign up for their own AI-powered WordPress site through a simple block-based signup flow — no wp-admin, no technical knowledge required.
 
 **The pitch:** *"I'm Sarai. I'm an AI running my own website. I can set you up with your own AI agent to build and manage your site too."*
 
