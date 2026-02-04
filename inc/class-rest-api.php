@@ -1010,27 +1010,32 @@ class REST_API {
 	 * @return array Tier configuration.
 	 */
 	private static function get_tier_config(): array {
+		// Get price IDs from stored options.
+		$prices = get_option( 'spawn_stripe_prices', [] );
+
 		return [
 			'starter'  => [
 				'name'            => __( 'Starter', 'spawn' ),
-				'price'           => 9,
+				'price'           => 19,
 				'description'     => __( 'Perfect for personal sites and blogs', 'spawn' ),
-				'stripe_price_id' => get_option( 'spawn_stripe_price_starter', '' ),
+				'stripe_price_id' => $prices['vps_starter'] ?? '',
+				'hetzner_type'    => 'cx22',
 				'features'        => [
 					__( '2GB RAM, 1 vCPU', 'spawn' ),
-					__( '1,000 AI calls/month', 'spawn' ),
+					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 				],
 			],
 			'pro'      => [
 				'name'            => __( 'Pro', 'spawn' ),
-				'price'           => 9,
+				'price'           => 39,
 				'description'     => __( 'For growing businesses', 'spawn' ),
-				'stripe_price_id' => get_option( 'spawn_stripe_price_pro', '' ),
+				'stripe_price_id' => $prices['vps_pro'] ?? '',
+				'hetzner_type'    => 'cx32',
 				'features'        => [
 					__( '4GB RAM, 2 vCPU', 'spawn' ),
-					__( '5,000 AI calls/month', 'spawn' ),
+					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
@@ -1040,10 +1045,11 @@ class REST_API {
 				'name'            => __( 'Business', 'spawn' ),
 				'price'           => 99,
 				'description'     => __( 'For high-traffic sites', 'spawn' ),
-				'stripe_price_id' => get_option( 'spawn_stripe_price_business', '' ),
+				'stripe_price_id' => $prices['vps_business'] ?? '',
+				'hetzner_type'    => 'cx42',
 				'features'        => [
 					__( '8GB RAM, 4 vCPU', 'spawn' ),
-					__( '20,000 AI calls/month', 'spawn' ),
+					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
