@@ -14,7 +14,8 @@
 		"format": "wp-scripts format"
 	},
 	"devDependencies": {
-		"@wordpress/scripts": "^27.0.0"
+		"@wordpress/scripts": "^27.0.0",
+		"copy-webpack-plugin": "^13.0.1"
 	},
 	"dependencies": {
 		"@wordpress/block-editor": "^12.0.0",
