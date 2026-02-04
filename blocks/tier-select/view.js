@@ -4,6 +4,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-tier-select' );
 
 	blocks.forEach( function ( block ) {
+		// Clear loading state from PHP render
+		block.innerHTML = '';
+
 		const container = document.createElement( 'div' );
 		container.className = 'wp-block-spawn-tier-select__container';
 
