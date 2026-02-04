@@ -42,6 +42,7 @@ function init(): void {
 	Blocks::init();
 	REST_API::init();
 	Webhook::init();
+	Abilities\Abilities::init();
 	
 	// Admin settings.
 	if ( is_admin() ) {

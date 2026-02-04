@@ -209,4 +209,27 @@ class Stripe {
 
 		return $result['url'] ?? '';
 	}
+
+	/**
+	 * Cancel a subscription.
+	 *
+	 * @param string $subscription_id Stripe subscription ID.
+	 * @return array|WP_Error Cancellation result or error.
+	 */
+	public static function cancel_subscription( string $subscription_id ): array|WP_Error {
+		return self::request( '/subscriptions/' . $subscription_id, 'DELETE' );
+	}
+
+	/**
+	 * Update subscription line items.
+	 *
+	 * @param string $subscription_id Stripe subscription ID.
+	 * @param array  $items           New line items.
+	 * @return array|WP_Error Updated subscription or error.
+	 */
+	public static function update_subscription( string $subscription_id, array $items ): array|WP_Error {
+		return self::request( '/subscriptions/' . $subscription_id, 'POST', [
+			'items' => $items,
+		] );
+	}
 }
