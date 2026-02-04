@@ -205,7 +205,7 @@ class REST_API {
 		return [
 			'starter'  => [
 				'name'            => __( 'Starter', 'spawn' ),
-				'price'           => 29,
+				'price'           => 9,
 				'description'     => __( 'Perfect for personal sites and blogs', 'spawn' ),
 				'stripe_price_id' => get_option( 'spawn_stripe_price_starter', '' ),
 				'features'        => [
@@ -217,7 +217,7 @@ class REST_API {
 			],
 			'pro'      => [
 				'name'            => __( 'Pro', 'spawn' ),
-				'price'           => 79,
+				'price'           => 9,
 				'description'     => __( 'For growing businesses', 'spawn' ),
 				'stripe_price_id' => get_option( 'spawn_stripe_price_pro', '' ),
 				'features'        => [
@@ -230,7 +230,7 @@ class REST_API {
 			],
 			'business' => [
 				'name'            => __( 'Business', 'spawn' ),
-				'price'           => 199,
+				'price'           => 99,
 				'description'     => __( 'For high-traffic sites', 'spawn' ),
 				'stripe_price_id' => get_option( 'spawn_stripe_price_business', '' ),
 				'features'        => [

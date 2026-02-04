@@ -7,10 +7,10 @@
 	"category": "widgets",
 	"icon": "search",
 	"description": "Search for available domain names",
-	"keywords": ["domain", "search", "spawn"],
+	"keywords": [ "domain", "search", "spawn" ],
 	"supports": {
 		"html": false,
-		"align": ["wide", "full"]
+		"align": [ "wide", "full" ]
 	},
 	"textdomain": "spawn",
 	"editorScript": "file:./index.js",

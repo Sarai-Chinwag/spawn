@@ -1,0 +1,75 @@
+document.addEventListener( 'DOMContentLoaded', function () {
+	const blocks = document.querySelectorAll( '.wp-block-spawn-tier-select' );
+
+	blocks.forEach( function ( block ) {
+		const container = document.createElement( 'div' );
+		container.className = 'wp-block-spawn-tier-select__container';
+
+		const loading = document.createElement( 'p' );
+		loading.textContent = 'Loading tiers...';
+		container.appendChild( loading );
+		block.appendChild( container );
+
+		wp.apiFetch( {
+			path: '/spawn/v1/tiers',
+		} )
+			.then( function ( tiers ) {
+				container.innerHTML = '';
+				const cardsContainer = document.createElement( 'div' );
+				cardsContainer.className = 'wp-block-spawn-tier-select__cards';
+
+				tiers.forEach( function ( tier ) {
+					const card = document.createElement( 'div' );
+					card.className = 'tier-card';
+					if ( tier.name === 'Pro' ) {
+						card.classList.add( 'highlighted' );
+					}
+
+					const title = document.createElement( 'h4' );
+					title.textContent = tier.name;
+					card.appendChild( title );
+
+					const price = document.createElement( 'p' );
+					price.className = 'price';
+					price.textContent = `$${ tier.price }`;
+					card.appendChild( price );
+
+					const features = document.createElement( 'ul' );
+					if ( tier.features && tier.features.length > 0 ) {
+						tier.features.forEach( function ( feature ) {
+							const li = document.createElement( 'li' );
+							li.textContent = feature;
+							features.appendChild( li );
+						} );
+					} else {
+						const li = document.createElement( 'li' );
+						li.textContent = 'Features coming soon';
+						features.appendChild( li );
+					}
+					card.appendChild( features );
+
+					const button = document.createElement( 'button' );
+					button.textContent = 'Select';
+					button.className = 'select-btn';
+					button.addEventListener( 'click', function () {
+						const event = new CustomEvent( 'spawn:tier-selected', {
+							detail: {
+								tier: tier.name,
+								price: tier.price,
+							},
+						} );
+						document.dispatchEvent( event );
+					} );
+					card.appendChild( button );
+
+					cardsContainer.appendChild( card );
+				} );
+
+				container.appendChild( cardsContainer );
+			} )
+			.catch( function () {
+				container.innerHTML =
+					'<p>Error loading tiers. Please try again.</p>';
+			} );
+	} );
+} );

@@ -1,0 +1,90 @@
+.wp-block-spawn-tier-select {
+	padding: 20px;
+	text-align: center;
+}
+
+.wp-block-spawn-tier-select__container {
+	max-width: 100%;
+}
+
+.wp-block-spawn-tier-select__cards {
+	display: flex;
+	justify-content: center;
+	gap: 20px;
+	flex-wrap: wrap;
+}
+
+.tier-card {
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	padding: 20px;
+	width: 250px;
+	text-align: center;
+	background: #fff;
+	transition: transform 0.3s, box-shadow 0.3s;
+	cursor: pointer;
+}
+
+.tier-card:hover {
+	transform: translateY(-5px);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.tier-card.highlighted {
+	border-color: #007cba;
+	box-shadow: 0 0 15px rgba(0, 124, 186, 0.3);
+	position: relative;
+}
+
+.tier-card.highlighted::after {
+	content: "Popular";
+	position: absolute;
+	top: -10px;
+	right: 10px;
+	background: #007cba;
+	color: #fff;
+	padding: 5px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.tier-card h4 {
+	margin: 0 0 10px 0;
+	font-size: 20px;
+}
+
+.tier-card .price {
+	font-size: 28px;
+	font-weight: 700;
+	color: #007cba;
+	margin: 10px 0;
+}
+
+.tier-card ul {
+	list-style: none;
+	padding: 0;
+	margin: 15px 0;
+	text-align: left;
+}
+
+.tier-card li {
+	margin-bottom: 5px;
+	font-size: 14px;
+}
+
+.select-btn {
+	padding: 10px 20px;
+	background: #007cba;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background 0.3s;
+	margin-top: 15px;
+}
+
+.select-btn:hover {
+	background: #005a87;
+}

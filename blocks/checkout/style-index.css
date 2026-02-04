@@ -1,0 +1,65 @@
+.wp-block-spawn-checkout {
+	padding: 20px;
+	text-align: center;
+}
+
+.wp-block-spawn-checkout__container {
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+.wp-block-spawn-checkout__waiting {
+	color: #666;
+	font-style: italic;
+}
+
+.wp-block-spawn-checkout__summary {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 15px;
+	margin-bottom: 20px;
+	text-align: left;
+}
+
+.wp-block-spawn-checkout__summary h4 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	color: #333;
+}
+
+.wp-block-spawn-checkout__form {
+	display: inline-flex;
+	align-items: center;
+	margin-bottom: 20px;
+}
+
+.wp-block-spawn-checkout__input {
+	padding: 10px 15px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 16px;
+	margin-right: 10px;
+	min-width: 250px;
+}
+
+.wp-block-spawn-checkout__button {
+	padding: 10px 20px;
+	background: #007cba;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background 0.3s;
+}
+
+.wp-block-spawn-checkout__button:disabled {
+	background: #ccc;
+	cursor: not-allowed;
+}
+
+.wp-block-spawn-checkout__button:hover:not(:disabled) {
+	background: #005a87;
+}
+

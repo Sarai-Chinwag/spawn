@@ -7,10 +7,10 @@
 	"category": "widgets",
 	"icon": "cart",
 	"description": "Stripe checkout form for AI website service",
-	"keywords": ["checkout", "payment", "spawn", "stripe"],
+	"keywords": [ "checkout", "payment", "spawn", "stripe" ],
 	"supports": {
 		"html": false,
-		"align": ["wide", "full"]
+		"align": [ "wide", "full" ]
 	},
 	"textdomain": "spawn",
 	"editorScript": "file:./index.js",

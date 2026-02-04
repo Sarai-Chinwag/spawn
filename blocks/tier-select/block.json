@@ -7,10 +7,10 @@
 	"category": "widgets",
 	"icon": "products",
 	"description": "Display pricing tiers for AI website service",
-	"keywords": ["pricing", "tiers", "spawn"],
+	"keywords": [ "pricing", "tiers", "spawn" ],
 	"supports": {
 		"html": false,
-		"align": ["wide", "full"]
+		"align": [ "wide", "full" ]
 	},
 	"textdomain": "spawn",
 	"editorScript": "file:./index.js",
