@@ -16,8 +16,8 @@ class Abilities {
 	 * Initialize abilities.
 	 */
 	public static function init(): void {
-		add_action( 'init', [ __CLASS__, 'register_category' ] );
-		add_action( 'init', [ __CLASS__, 'register_abilities' ] );
+		add_action( 'wp_abilities_api_categories_init', [ __CLASS__, 'register_category' ] );
+		add_action( 'wp_abilities_api_init', [ __CLASS__, 'register_abilities' ] );
 	}
 
 	/**

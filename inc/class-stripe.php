@@ -25,12 +25,36 @@ class Stripe {
 	 * @return string Secret key.
 	 */
 	private static function get_secret_key(): string {
-		// First check for shared key from sell-my-images.
+		// First check for Spawn-specific key.
 		$key = get_option( 'spawn_stripe_secret_key', '' );
-		if ( empty( $key ) ) {
-			$key = get_option( 'smi_stripe_secret_key', '' );
+		if ( ! empty( $key ) ) {
+			return $key;
 		}
-		return $key;
+
+		// Fall back to sell-my-images keys (respecting test mode).
+		$test_mode = get_option( 'smi_stripe_test_mode', '' );
+		if ( $test_mode ) {
+			return get_option( 'smi_stripe_test_secret_key', '' );
+		}
+		return get_option( 'smi_stripe_live_secret_key', '' );
+	}
+
+	/**
+	 * Get publishable key.
+	 *
+	 * @return string Publishable key.
+	 */
+	public static function get_publishable_key(): string {
+		$key = get_option( 'spawn_stripe_publishable_key', '' );
+		if ( ! empty( $key ) ) {
+			return $key;
+		}
+
+		$test_mode = get_option( 'smi_stripe_test_mode', '' );
+		if ( $test_mode ) {
+			return get_option( 'smi_stripe_test_publishable_key', '' );
+		}
+		return get_option( 'smi_stripe_live_publishable_key', '' );
 	}
 
 	/**
@@ -39,7 +63,11 @@ class Stripe {
 	 * @return string Webhook secret.
 	 */
 	private static function get_webhook_secret(): string {
-		return get_option( 'spawn_stripe_webhook_secret', '' );
+		$secret = get_option( 'spawn_stripe_webhook_secret', '' );
+		if ( ! empty( $secret ) ) {
+			return $secret;
+		}
+		return get_option( 'smi_stripe_webhook_secret', '' );
 	}
 
 	/**
