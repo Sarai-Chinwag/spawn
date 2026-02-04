@@ -1,3 +1,4 @@
+import apiFetch from '@wordpress/api-fetch';
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-account' );
 
@@ -10,7 +11,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	blocks.forEach( function ( block ) {
 		block.innerHTML = '<div class="wp-block-spawn-account__loading">Loading account...</div>';
 
-		wp.apiFetch( { path: '/spawn/v1/customer/me' } )
+		apiFetch( { path: '/spawn/v1/customer/me' } )
 			.then( function ( response ) {
 				if ( ! response.success || ! response.customer ) {
 					renderNotCustomer( block );
@@ -146,7 +147,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				this.textContent = 'Processing...';
 				showStatus( statusDiv, 'Processing plan change...', 'info' );
 
-				wp.apiFetch( {
+				apiFetch( {
 					path: '/spawn/v1/customer/upgrade',
 					method: 'POST',
 					data: { tier: newTier },
@@ -168,7 +169,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			this.disabled = true;
 			this.textContent = 'Loading...';
 
-			wp.apiFetch( { path: '/spawn/v1/customer/invoices' } )
+			apiFetch( { path: '/spawn/v1/customer/invoices' } )
 				.then( function ( response ) {
 					if ( response.invoices && response.invoices.length > 0 ) {
 						renderInvoices( block, response.invoices );
@@ -190,7 +191,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			this.disabled = true;
 			this.textContent = 'Loading...';
 
-			wp.apiFetch( { path: '/spawn/v1/customer/billing-portal' } )
+			apiFetch( { path: '/spawn/v1/customer/billing-portal' } )
 				.then( function ( response ) {
 					if ( response.url ) {
 						window.location.href = response.url;
@@ -213,7 +214,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			this.textContent = 'Cancelling...';
 			showStatus( statusDiv, 'Processing cancellation...', 'info' );
 
-			wp.apiFetch( {
+			apiFetch( {
 				path: '/spawn/v1/customer/cancel',
 				method: 'POST',
 			} )

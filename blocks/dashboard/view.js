@@ -1,3 +1,4 @@
+import apiFetch from '@wordpress/api-fetch';
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-dashboard' );
 
@@ -6,8 +7,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// Fetch customer data and credit balance in parallel.
 		Promise.all( [
-			wp.apiFetch( { path: '/spawn/v1/customer/me' } ),
-			wp.apiFetch( { path: '/spawn/v1/credits/balance' } ).catch( () => null ),
+			apiFetch( { path: '/spawn/v1/customer/me' } ),
+			apiFetch( { path: '/spawn/v1/credits/balance' } ).catch( () => null ),
 		] )
 			.then( function ( [ customerResponse, creditResponse ] ) {
 				if ( ! customerResponse.success || ! customerResponse.customer ) {
@@ -189,7 +190,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			this.disabled = true;
 			this.textContent = 'Loading...';
 
-			wp.apiFetch( { path: '/spawn/v1/customer/billing-portal' } )
+			apiFetch( { path: '/spawn/v1/customer/billing-portal' } )
 				.then( function ( response ) {
 					if ( response.url ) {
 						window.location.href = response.url;
@@ -242,7 +243,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				this.classList.add( 'loading' );
 				this.innerHTML += '<span class="spinner"></span>';
 
-				wp.apiFetch( {
+				apiFetch( {
 					path: '/spawn/v1/credits/purchase',
 					method: 'POST',
 					data: { package: packageType },

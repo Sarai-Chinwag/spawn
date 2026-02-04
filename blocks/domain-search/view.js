@@ -1,3 +1,4 @@
+import apiFetch from '@wordpress/api-fetch';
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-domain-search' );
 
@@ -36,7 +37,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			button.textContent = 'Searching...';
 			results.innerHTML = '';
 
-			wp.apiFetch( {
+			apiFetch( {
 				path:
 					'/spawn/v1/domain/search?domain=' +
 					encodeURIComponent( domain ),

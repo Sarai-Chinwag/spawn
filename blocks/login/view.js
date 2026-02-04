@@ -1,9 +1,10 @@
+import apiFetch from '@wordpress/api-fetch';
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-login' );
 
 	blocks.forEach( function ( block ) {
 		// Check if user is already logged in
-		wp.apiFetch( { path: '/spawn/v1/auth/me' } )
+		apiFetch( { path: '/spawn/v1/auth/me' } )
 			.then( function ( response ) {
 				if ( response.logged_in ) {
 					block.innerHTML = `
@@ -14,7 +15,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						</div>
 					`;
 					block.querySelector( '.wp-block-spawn-login__logout-btn' ).addEventListener( 'click', function () {
-						wp.apiFetch( { path: '/spawn/v1/auth/logout', method: 'POST' } )
+						apiFetch( { path: '/spawn/v1/auth/logout', method: 'POST' } )
 							.then( function () {
 								window.location.reload();
 							} );
@@ -63,7 +64,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			const email = form.querySelector( '#spawn-login-email' ).value;
 			const password = form.querySelector( '#spawn-login-password' ).value;
 
-			wp.apiFetch( {
+			apiFetch( {
 				path: '/spawn/v1/auth/login',
 				method: 'POST',
 				data: { email, password },
@@ -138,7 +139,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			submitBtn.disabled = true;
 			submitBtn.textContent = 'Creating account...';
 
-			wp.apiFetch( {
+			apiFetch( {
 				path: '/spawn/v1/auth/register',
 				method: 'POST',
 				data: { email, password },

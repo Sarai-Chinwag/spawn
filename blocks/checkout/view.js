@@ -1,3 +1,5 @@
+import apiFetch from '@wordpress/api-fetch';
+
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-checkout' );
 
@@ -63,7 +65,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				checkoutButton.disabled = true;
 				checkoutButton.textContent = 'Processing...';
 
-				wp.apiFetch( {
+				apiFetch( {
 					path: '/spawn/v1/checkout/session',
 					method: 'POST',
 					data: {

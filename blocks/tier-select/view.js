@@ -1,3 +1,5 @@
+import apiFetch from '@wordpress/api-fetch';
+
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-tier-select' );
 
@@ -10,7 +12,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		container.appendChild( loading );
 		block.appendChild( container );
 
-		wp.apiFetch( {
+		apiFetch( {
 			path: '/spawn/v1/tiers',
 		} )
 			.then( function ( tiers ) {
