@@ -15,10 +15,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		apiFetch( {
 			path: '/spawn/v1/tiers',
 		} )
-			.then( function ( tiers ) {
+			.then( function ( tiersObj ) {
 				container.innerHTML = '';
 				const cardsContainer = document.createElement( 'div' );
 				cardsContainer.className = 'wp-block-spawn-tier-select__cards';
+
+				// Convert object to array with id
+				const tiers = Object.entries( tiersObj ).map(
+					( [ id, tier ] ) => ( { id, ...tier } )
+				);
 
 				tiers.forEach( function ( tier ) {
 					const card = document.createElement( 'div' );
@@ -54,9 +59,16 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					button.textContent = 'Select';
 					button.className = 'select-btn';
 					button.addEventListener( 'click', function () {
+						// Mark selected
+						cardsContainer
+							.querySelectorAll( '.tier-card' )
+							.forEach( ( c ) => c.classList.remove( 'selected' ) );
+						card.classList.add( 'selected' );
+
 						const event = new CustomEvent( 'spawn:tier-selected', {
 							detail: {
-								tier: tier.name,
+								id: tier.id,
+								name: tier.name,
 								price: tier.price,
 							},
 						} );
