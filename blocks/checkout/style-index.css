@@ -64,7 +64,7 @@
 
 .wp-block-spawn-checkout__button {
 	background-color: var(--color-primary, #1fc5e2);
-	border: 3px solid var(--color-secondary, #ff6eb1);
+	border: 2px solid var(--color-secondary, #ff6eb1);
 	border-radius: 5px;
 	color: var(--color-background, #fff);
 	padding: var(--space-md, 15px) var(--space-lg, 20px);
