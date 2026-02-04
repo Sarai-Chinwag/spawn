@@ -23,7 +23,7 @@ blocks.forEach( ( block ) => {
 	}
 } );
 
-// Copy block.json and CSS files to build directory.
+// Copy block.json, CSS, and PHP files to build directory.
 const copyPatterns = blocks.flatMap( ( block ) => {
 	const patterns = [];
 	const blockDir = path.join( blocksDir, block );
@@ -45,6 +45,14 @@ const copyPatterns = blocks.flatMap( ( block ) => {
 			} );
 		}
 	} );
+
+	// Copy render.php if exists.
+	if ( fs.existsSync( path.join( blockDir, 'render.php' ) ) ) {
+		patterns.push( {
+			from: path.join( blockDir, 'render.php' ),
+			to: path.join( __dirname, 'build/blocks', block, 'render.php' ),
+		} );
+	}
 
 	return patterns;
 } );
