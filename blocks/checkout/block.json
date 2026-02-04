@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "spawn/checkout",
+	"version": "0.1.0",
+	"title": "Checkout",
+	"category": "widgets",
+	"icon": "cart",
+	"description": "Stripe checkout form for AI website service",
+	"keywords": ["checkout", "payment", "spawn", "stripe"],
+	"supports": {
+		"html": false,
+		"align": ["wide", "full"]
+	},
+	"textdomain": "spawn",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js",
+	"attributes": {
+		"buttonText": {
+			"type": "string",
+			"default": "Get Started"
+		},
+		"showOrderSummary": {
+			"type": "boolean",
+			"default": true
+		}
+	}
+}
