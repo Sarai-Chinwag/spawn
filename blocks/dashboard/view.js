@@ -4,13 +4,17 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	blocks.forEach( function ( block ) {
 		block.innerHTML = '<div class="wp-block-spawn-dashboard__loading">Loading dashboard...</div>';
 
-		wp.apiFetch( { path: '/spawn/v1/customer/me' } )
-			.then( function ( response ) {
-				if ( ! response.success || ! response.customer ) {
+		// Fetch customer data and credit balance in parallel.
+		Promise.all( [
+			wp.apiFetch( { path: '/spawn/v1/customer/me' } ),
+			wp.apiFetch( { path: '/spawn/v1/credits/balance' } ).catch( () => null ),
+		] )
+			.then( function ( [ customerResponse, creditResponse ] ) {
+				if ( ! customerResponse.success || ! customerResponse.customer ) {
 					renderNotCustomer( block );
 					return;
 				}
-				renderDashboard( block, response.customer );
+				renderDashboard( block, customerResponse.customer, creditResponse );
 			} )
 			.catch( function ( error ) {
 				if ( error.code === 'rest_not_logged_in' ) {
@@ -82,9 +86,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		return tierMap[ vpsTier ] || vpsTier;
 	}
 
-	function renderDashboard( block, customer ) {
+	function renderDashboard( block, customer, creditData ) {
 		const usagePercent = Math.round( ( customer.ai_calls_used / customer.ai_calls_limit ) * 100 );
 		const usageClass = usagePercent > 80 ? 'usage-high' : usagePercent > 50 ? 'usage-medium' : 'usage-low';
+		const creditBalance = creditData ? creditData.balance : 0;
+		const creditClass = creditBalance < 100 ? 'credits-low' : creditBalance < 500 ? 'credits-medium' : 'credits-ok';
 
 		block.innerHTML = `
 			<div class="wp-block-spawn-dashboard__container">
@@ -107,6 +113,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 							</a>
 						</p>
 						${ customer.server_ip ? `<p class="server-ip">IP: ${ customer.server_ip }</p>` : '' }
+					</div>
+					
+					<div class="wp-block-spawn-dashboard__card card-credits ${ creditClass }">
+						<h3>Credit Balance</h3>
+						<p class="credit-balance">${ creditBalance.toLocaleString() } <span class="credit-label">credits</span></p>
+						${ creditBalance < 100 ? '<p class="credit-warning">⚠️ Low balance</p>' : '' }
+						<button type="button" class="wp-block-spawn-dashboard__btn btn-small btn-buy-credits">
+							Buy Credits
+						</button>
 					</div>
 					
 					<div class="wp-block-spawn-dashboard__card">
@@ -136,9 +151,40 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					</a>
 				</div>
 			</div>
+			
+			<!-- Credit Purchase Modal -->
+			<div class="wp-block-spawn-dashboard__modal" id="credit-modal" style="display: none;">
+				<div class="modal-backdrop"></div>
+				<div class="modal-content">
+					<button type="button" class="modal-close">&times;</button>
+					<h3>Buy Credits</h3>
+					<p class="modal-description">Choose a credit package:</p>
+					<div class="credit-packages">
+						<button type="button" class="credit-package" data-package="small">
+							<span class="package-credits">1,000</span>
+							<span class="package-price">$10</span>
+							<span class="package-rate">$0.01/credit</span>
+						</button>
+						<button type="button" class="credit-package package-popular" data-package="medium">
+							<span class="package-badge">Popular</span>
+							<span class="package-credits">3,000</span>
+							<span class="package-price">$25</span>
+							<span class="package-rate">$0.0083/credit</span>
+							<span class="package-bonus">17% bonus!</span>
+						</button>
+						<button type="button" class="credit-package" data-package="large">
+							<span class="package-badge">Best Value</span>
+							<span class="package-credits">7,500</span>
+							<span class="package-price">$50</span>
+							<span class="package-rate">$0.0067/credit</span>
+							<span class="package-bonus">50% bonus!</span>
+						</button>
+					</div>
+				</div>
+			</div>
 		`;
 
-		// Handle billing portal button
+		// Handle billing portal button.
 		block.querySelector( '.btn-billing' ).addEventListener( 'click', function () {
 			this.disabled = true;
 			this.textContent = 'Loading...';
@@ -155,5 +201,87 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					this.textContent = 'Manage Billing';
 				}.bind( this ) );
 		} );
+
+		// Credit modal handling.
+		const modal = block.querySelector( '#credit-modal' );
+		const buyButton = block.querySelector( '.btn-buy-credits' );
+		const closeButton = modal.querySelector( '.modal-close' );
+		const backdrop = modal.querySelector( '.modal-backdrop' );
+		const packageButtons = modal.querySelectorAll( '.credit-package' );
+
+		function openModal() {
+			modal.style.display = 'flex';
+			document.body.style.overflow = 'hidden';
+		}
+
+		function closeModal() {
+			modal.style.display = 'none';
+			document.body.style.overflow = '';
+		}
+
+		buyButton.addEventListener( 'click', openModal );
+		closeButton.addEventListener( 'click', closeModal );
+		backdrop.addEventListener( 'click', closeModal );
+
+		// Handle escape key.
+		document.addEventListener( 'keydown', function ( e ) {
+			if ( e.key === 'Escape' && modal.style.display === 'flex' ) {
+				closeModal();
+			}
+		} );
+
+		// Handle credit package selection.
+		packageButtons.forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				const packageType = this.dataset.package;
+				
+				// Disable all buttons and show loading.
+				packageButtons.forEach( ( b ) => {
+					b.disabled = true;
+				} );
+				this.classList.add( 'loading' );
+				this.innerHTML += '<span class="spinner"></span>';
+
+				wp.apiFetch( {
+					path: '/spawn/v1/credits/purchase',
+					method: 'POST',
+					data: { package: packageType },
+				} )
+					.then( function ( response ) {
+						if ( response.checkout_url ) {
+							window.location.href = response.checkout_url;
+						}
+					} )
+					.catch( function ( error ) {
+						alert( error.message || 'Failed to start checkout.' );
+						packageButtons.forEach( ( b ) => {
+							b.disabled = false;
+							b.classList.remove( 'loading' );
+							const spinner = b.querySelector( '.spinner' );
+							if ( spinner ) {
+								spinner.remove();
+							}
+						} );
+					} );
+			} );
+		} );
+
+		// Check for successful purchase redirect.
+		const urlParams = new URLSearchParams( window.location.search );
+		if ( urlParams.get( 'credits_purchased' ) === '1' ) {
+			// Show success message.
+			const successBanner = document.createElement( 'div' );
+			successBanner.className = 'wp-block-spawn-dashboard__success';
+			successBanner.innerHTML = '✓ Credits added to your account!';
+			block.querySelector( '.wp-block-spawn-dashboard__container' ).prepend( successBanner );
+			
+			// Remove query param from URL.
+			window.history.replaceState( {}, '', window.location.pathname );
+			
+			// Auto-dismiss after 5 seconds.
+			setTimeout( () => {
+				successBanner.remove();
+			}, 5000 );
+		}
 	}
 } );

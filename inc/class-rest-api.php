@@ -220,6 +220,96 @@ class REST_API {
 				'permission_callback' => 'is_user_logged_in',
 			]
 		);
+
+		// Credits: Get balance.
+		register_rest_route(
+			self::NAMESPACE,
+			'/credits/balance',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_credit_balance' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Credits: Purchase credits.
+		register_rest_route(
+			self::NAMESPACE,
+			'/credits/purchase',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'purchase_credits' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'package' => [
+						'required' => true,
+						'type'     => 'string',
+						'enum'     => [ 'small', 'medium', 'large' ],
+					],
+				],
+			]
+		);
+
+		// Credits: Deduct credits (internal/callback use).
+		register_rest_route(
+			self::NAMESPACE,
+			'/credits/deduct',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'deduct_credits' ],
+				'permission_callback' => [ __CLASS__, 'verify_internal_request' ],
+				'args'                => [
+					'customer_id' => [
+						'required' => true,
+						'type'     => 'integer',
+					],
+					'amount'      => [
+						'required' => true,
+						'type'     => 'number',
+					],
+					'reason'      => [
+						'type'    => 'string',
+						'default' => 'api_call',
+					],
+				],
+			]
+		);
+
+		// Credits: Get available packages.
+		register_rest_route(
+			self::NAMESPACE,
+			'/credits/packages',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_credit_packages' ],
+				'permission_callback' => '__return_true',
+			]
+		);
+
+		// Credits: Update auto-refill settings.
+		register_rest_route(
+			self::NAMESPACE,
+			'/credits/auto-refill',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'update_auto_refill' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'enabled'   => [
+						'required' => true,
+						'type'     => 'boolean',
+					],
+					'threshold' => [
+						'type'    => 'integer',
+						'default' => 100,
+					],
+					'amount'    => [
+						'type'    => 'integer',
+						'default' => 1000,
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -633,6 +723,285 @@ class REST_API {
 		return new WP_REST_Response( [
 			'invoices' => $invoices,
 		] );
+	}
+
+	/**
+	 * Get current customer's credit balance.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_credit_balance(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$auto_refill = Database::get_auto_refill_settings( (int) $customer['id'] );
+
+		return new WP_REST_Response( [
+			'balance'     => (float) $customer['credit_balance'],
+			'auto_refill' => $auto_refill,
+		] );
+	}
+
+	/**
+	 * Purchase credits (create Stripe checkout session).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function purchase_credits( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+		$package  = $request->get_param( 'package' );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$packages = self::get_credit_packages_config();
+		if ( ! isset( $packages[ $package ] ) ) {
+			return new WP_Error(
+				'invalid_package',
+				__( 'Invalid credit package.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$pkg = $packages[ $package ];
+
+		// Create Stripe checkout session for one-time payment.
+		$session = Stripe::create_credit_checkout_session( [
+			'customer_id' => $customer['stripe_customer'] ?? null,
+			'customer_email' => $customer['email'],
+			'amount'      => $pkg['price'] * 100, // Stripe uses cents.
+			'credits'     => $pkg['credits'],
+			'package'     => $package,
+			'spawn_customer_id' => $customer['id'],
+		] );
+
+		if ( is_wp_error( $session ) ) {
+			return $session;
+		}
+
+		return new WP_REST_Response( [
+			'session_id'   => $session['id'],
+			'checkout_url' => $session['url'],
+		] );
+	}
+
+	/**
+	 * Deduct credits from a customer (internal endpoint for LiteLLM callback).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function deduct_credits( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$customer_id = (int) $request->get_param( 'customer_id' );
+		$amount      = (float) $request->get_param( 'amount' );
+		$reason      = sanitize_text_field( $request->get_param( 'reason' ) );
+
+		$customer = Database::get_customer( $customer_id );
+		if ( ! $customer ) {
+			return new WP_Error(
+				'customer_not_found',
+				__( 'Customer not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$current_balance = (float) $customer['credit_balance'];
+
+		// Check if deduction would go negative.
+		if ( $current_balance < $amount ) {
+			return new WP_Error(
+				'insufficient_credits',
+				__( 'Insufficient credits.', 'spawn' ),
+				[
+					'status'   => 402,
+					'balance'  => $current_balance,
+					'required' => $amount,
+				]
+			);
+		}
+
+		$success = Database::deduct_credits( $customer_id, $amount );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'deduction_failed',
+				__( 'Failed to deduct credits.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$new_balance = Database::get_credit_balance( $customer_id );
+
+		// Check if auto-refill is needed.
+		$auto_refill = Database::get_auto_refill_settings( $customer_id );
+		$refill_triggered = false;
+		if ( $auto_refill && $auto_refill['enabled'] && $new_balance < $auto_refill['threshold'] ) {
+			// Trigger auto-refill (this would typically queue a Stripe charge).
+			do_action( 'spawn_credits_auto_refill_needed', $customer_id, $auto_refill );
+			$refill_triggered = true;
+		}
+
+		return new WP_REST_Response( [
+			'success'          => true,
+			'previous_balance' => $current_balance,
+			'deducted'         => $amount,
+			'new_balance'      => $new_balance,
+			'reason'           => $reason,
+			'refill_triggered' => $refill_triggered,
+		] );
+	}
+
+	/**
+	 * Get available credit packages.
+	 *
+	 * @return WP_REST_Response Response.
+	 */
+	public static function get_credit_packages(): WP_REST_Response {
+		return new WP_REST_Response( self::get_credit_packages_config() );
+	}
+
+	/**
+	 * Update auto-refill settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function update_auto_refill( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$enabled   = (bool) $request->get_param( 'enabled' );
+		$threshold = (int) $request->get_param( 'threshold' );
+		$amount    = (int) $request->get_param( 'amount' );
+
+		// Validate threshold and amount.
+		if ( $threshold < 0 || $threshold > 10000 ) {
+			return new WP_Error(
+				'invalid_threshold',
+				__( 'Threshold must be between 0 and 10,000.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Amount must match a valid package.
+		$valid_amounts = [ 1000, 3000, 7500 ];
+		if ( ! in_array( $amount, $valid_amounts, true ) ) {
+			return new WP_Error(
+				'invalid_amount',
+				__( 'Amount must be 1000, 3000, or 7500 credits.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$success = Database::update_auto_refill(
+			(int) $customer['id'],
+			$enabled,
+			$threshold,
+			$amount
+		);
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update auto-refill settings.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [
+			'success'  => true,
+			'settings' => [
+				'enabled'   => $enabled,
+				'threshold' => $threshold,
+				'amount'    => $amount,
+			],
+		] );
+	}
+
+	/**
+	 * Verify internal request (for deduct endpoint).
+	 * Checks for internal API key.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error True if valid, error otherwise.
+	 */
+	public static function verify_internal_request( WP_REST_Request $request ): bool|WP_Error {
+		$api_key = $request->get_header( 'X-Spawn-Internal-Key' );
+		$expected_key = get_option( 'spawn_internal_api_key', '' );
+
+		if ( empty( $expected_key ) ) {
+			return new WP_Error(
+				'not_configured',
+				__( 'Internal API key not configured.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		if ( ! hash_equals( $expected_key, $api_key ?? '' ) ) {
+			return new WP_Error(
+				'unauthorized',
+				__( 'Invalid internal API key.', 'spawn' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get credit packages configuration.
+	 *
+	 * @return array Credit packages.
+	 */
+	private static function get_credit_packages_config(): array {
+		return [
+			'small'  => [
+				'name'        => __( 'Small', 'spawn' ),
+				'credits'     => 1000,
+				'price'       => 10,
+				'description' => __( '1,000 credits for $10', 'spawn' ),
+				'per_credit'  => 0.01,
+			],
+			'medium' => [
+				'name'        => __( 'Medium', 'spawn' ),
+				'credits'     => 3000,
+				'price'       => 25,
+				'description' => __( '3,000 credits for $25 (17% bonus)', 'spawn' ),
+				'per_credit'  => 0.0083,
+				'bonus'       => '17%',
+			],
+			'large'  => [
+				'name'        => __( 'Large', 'spawn' ),
+				'credits'     => 7500,
+				'price'       => 50,
+				'description' => __( '7,500 credits for $50 (50% bonus)', 'spawn' ),
+				'per_credit'  => 0.0067,
+				'bonus'       => '50%',
+			],
+		];
 	}
 
 	/**

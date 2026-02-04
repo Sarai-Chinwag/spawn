@@ -129,6 +129,97 @@ class Stripe {
 	}
 
 	/**
+	 * Create checkout session for credit purchase (one-time payment).
+	 *
+	 * @param array $params Parameters including customer_email, amount, credits, package, spawn_customer_id.
+	 * @return array|WP_Error Session data or error.
+	 */
+	public static function create_credit_checkout_session( array $params ): array|WP_Error {
+		$session_params = [
+			'mode'         => 'payment',
+			'success_url'  => home_url( '/spawn/dashboard/?credits_purchased=1&session_id={CHECKOUT_SESSION_ID}' ),
+			'cancel_url'   => home_url( '/spawn/dashboard/' ),
+			'line_items'   => [
+				[
+					'price_data' => [
+						'currency'     => 'usd',
+						'unit_amount'  => (int) $params['amount'],
+						'product_data' => [
+							'name'        => sprintf(
+								/* translators: %d: number of credits */
+								__( '%d Spawn Credits', 'spawn' ),
+								$params['credits']
+							),
+							'description' => sprintf(
+								/* translators: %s: package name */
+								__( '%s credit package', 'spawn' ),
+								ucfirst( $params['package'] )
+							),
+						],
+					],
+					'quantity' => 1,
+				],
+			],
+			'metadata'     => [
+				'type'              => 'credit_purchase',
+				'credits'           => $params['credits'],
+				'package'           => $params['package'],
+				'spawn_customer_id' => $params['spawn_customer_id'],
+			],
+		];
+
+		// Use existing Stripe customer if available.
+		if ( ! empty( $params['customer_id'] ) ) {
+			$session_params['customer'] = $params['customer_id'];
+		} else {
+			$session_params['customer_email'] = $params['customer_email'];
+		}
+
+		return self::request( '/checkout/sessions', 'POST', $session_params );
+	}
+
+	/**
+	 * Handle credit purchase webhook event.
+	 *
+	 * @param array $event Stripe event data.
+	 * @return bool|WP_Error True on success, error on failure.
+	 */
+	public static function handle_credit_purchase( array $event ): bool|WP_Error {
+		$session = $event['data']['object'] ?? [];
+
+		// Verify this is a credit purchase.
+		$metadata = $session['metadata'] ?? [];
+		if ( ( $metadata['type'] ?? '' ) !== 'credit_purchase' ) {
+			return true; // Not a credit purchase, skip.
+		}
+
+		$spawn_customer_id = (int) ( $metadata['spawn_customer_id'] ?? 0 );
+		$credits           = (int) ( $metadata['credits'] ?? 0 );
+
+		if ( ! $spawn_customer_id || ! $credits ) {
+			return new WP_Error(
+				'invalid_metadata',
+				__( 'Invalid credit purchase metadata.', 'spawn' )
+			);
+		}
+
+		// Add credits to customer.
+		$success = \Spawn\Database::add_credits( $spawn_customer_id, $credits );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'credit_add_failed',
+				__( 'Failed to add credits to customer.', 'spawn' )
+			);
+		}
+
+		// Log the purchase.
+		do_action( 'spawn_credits_purchased', $spawn_customer_id, $credits, $session );
+
+		return true;
+	}
+
+	/**
 	 * Verify webhook signature.
 	 *
 	 * @param string $payload   Raw webhook payload.

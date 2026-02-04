@@ -49,6 +49,10 @@ class Database {
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
 			cancelled_at datetime DEFAULT NULL,
+			credit_balance decimal(10,2) NOT NULL DEFAULT 0.00,
+			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
+			auto_refill_threshold int(11) NOT NULL DEFAULT 100,
+			auto_refill_amount int(11) NOT NULL DEFAULT 1000,
 			PRIMARY KEY (id),
 			KEY user_id (user_id),
 			KEY email (email),
@@ -286,5 +290,117 @@ class Database {
 	 */
 	public static function reset_ai_calls( int $id ): bool {
 		return self::update_customer( $id, [ 'ai_calls_used' => 0 ] );
+	}
+
+	/**
+	 * Get credit balance for a customer.
+	 *
+	 * @param int $id Customer ID.
+	 * @return float|null Credit balance or null if customer not found.
+	 */
+	public static function get_credit_balance( int $id ): ?float {
+		$customer = self::get_customer( $id );
+		return $customer ? (float) $customer['credit_balance'] : null;
+	}
+
+	/**
+	 * Add credits to a customer's balance.
+	 *
+	 * @param int   $id     Customer ID.
+	 * @param float $amount Amount of credits to add.
+	 * @return bool Success.
+	 */
+	public static function add_credits( int $id, float $amount ): bool {
+		global $wpdb;
+
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET credit_balance = credit_balance + %f WHERE id = %d",
+				self::get_table_name(),
+				$amount,
+				$id
+			)
+		);
+
+		return $result !== false;
+	}
+
+	/**
+	 * Deduct credits from a customer's balance.
+	 *
+	 * @param int   $id     Customer ID.
+	 * @param float $amount Amount of credits to deduct.
+	 * @return bool Success. Returns false if insufficient balance.
+	 */
+	public static function deduct_credits( int $id, float $amount ): bool {
+		global $wpdb;
+
+		// Use atomic update to prevent race conditions and ensure sufficient balance.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET credit_balance = credit_balance - %f WHERE id = %d AND credit_balance >= %f",
+				self::get_table_name(),
+				$amount,
+				$id,
+				$amount
+			)
+		);
+
+		return $result > 0;
+	}
+
+	/**
+	 * Update auto-refill settings for a customer.
+	 *
+	 * @param int  $id        Customer ID.
+	 * @param bool $enabled   Whether auto-refill is enabled.
+	 * @param int  $threshold Refill when balance falls below this.
+	 * @param int  $amount    Number of credits to add when refilling.
+	 * @return bool Success.
+	 */
+	public static function update_auto_refill( int $id, bool $enabled, int $threshold = 100, int $amount = 1000 ): bool {
+		return self::update_customer( $id, [
+			'auto_refill_enabled'   => $enabled ? 1 : 0,
+			'auto_refill_threshold' => $threshold,
+			'auto_refill_amount'    => $amount,
+		] );
+	}
+
+	/**
+	 * Get auto-refill settings for a customer.
+	 *
+	 * @param int $id Customer ID.
+	 * @return array|null Auto-refill settings or null if customer not found.
+	 */
+	public static function get_auto_refill_settings( int $id ): ?array {
+		$customer = self::get_customer( $id );
+		if ( ! $customer ) {
+			return null;
+		}
+
+		return [
+			'enabled'   => (bool) $customer['auto_refill_enabled'],
+			'threshold' => (int) $customer['auto_refill_threshold'],
+			'amount'    => (int) $customer['auto_refill_amount'],
+		];
+	}
+
+	/**
+	 * Get customers needing auto-refill.
+	 *
+	 * @return array Customers with balance below threshold and auto-refill enabled.
+	 */
+	public static function get_customers_needing_refill(): array {
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE auto_refill_enabled = 1 AND credit_balance < auto_refill_threshold AND status = 'active'",
+				self::get_table_name()
+			),
+			ARRAY_A
+		);
+
+		return $results ?: [];
 	}
 }
