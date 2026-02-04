@@ -1,65 +1,91 @@
+/* Checkout Block - Uses theme design system */
 .wp-block-spawn-checkout {
-	padding: 20px;
-	text-align: center;
+	max-width: 600px;
+	margin: var(--space-xl, 30px) auto;
+	padding: var(--space-lg, 20px);
 }
 
 .wp-block-spawn-checkout__container {
-	max-width: 600px;
-	margin: 0 auto;
+	background: var(--color-background, #fff);
+	border: 3px solid var(--color-border, #ddd);
+	border-radius: 8px;
+	padding: var(--space-lg, 20px);
 }
 
 .wp-block-spawn-checkout__waiting {
-	color: #666;
+	text-align: center;
+	color: var(--color-text-light, #666);
+	padding: var(--space-lg, 20px);
 	font-style: italic;
 }
 
 .wp-block-spawn-checkout__summary {
-	background: #f9f9f9;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	padding: 15px;
-	margin-bottom: 20px;
-	text-align: left;
+	margin-bottom: var(--space-lg, 20px);
+	padding-bottom: var(--space-md, 15px);
+	border-bottom: 2px dashed var(--color-border, #ddd);
 }
 
 .wp-block-spawn-checkout__summary h4 {
-	margin-top: 0;
-	margin-bottom: 10px;
-	color: #333;
+	font-family: var(--font-heading, 'Gluten', sans-serif);
+	text-transform: uppercase;
+	margin: 0 0 var(--space-sm, 10px);
+}
+
+.wp-block-spawn-checkout__summary p {
+	margin: var(--space-xs, 5px) 0;
+	color: var(--color-text-light, #666);
+}
+
+.wp-block-spawn-checkout__summary p:last-child {
+	font-weight: 700;
+	font-size: 1.2em;
+	color: var(--color-primary, #1fc5e2);
 }
 
 .wp-block-spawn-checkout__form {
-	display: inline-flex;
-	align-items: center;
-	margin-bottom: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md, 15px);
 }
 
 .wp-block-spawn-checkout__input {
-	padding: 10px 15px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	font-size: 16px;
-	margin-right: 10px;
-	min-width: 250px;
+	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 5px;
+	font-size: inherit;
+	font-family: inherit;
+	transition: border-color 0.2s;
+}
+
+.wp-block-spawn-checkout__input:focus {
+	outline: none;
+	border-color: var(--color-primary, #1fc5e2);
 }
 
 .wp-block-spawn-checkout__button {
-	padding: 10px 20px;
-	background: #007cba;
-	color: #fff;
-	border: none;
-	border-radius: 4px;
-	font-size: 16px;
+	background-color: var(--color-primary, #1fc5e2);
+	border: 3px solid var(--color-secondary, #ff6eb1);
+	border-radius: 5px;
+	color: var(--color-background, #fff);
+	padding: var(--space-md, 15px) var(--space-lg, 20px);
 	cursor: pointer;
-	transition: background 0.3s;
+	font-size: 1.1em;
+	font-weight: 600;
+	transition: background-color 0.2s;
+}
+
+.wp-block-spawn-checkout__button:hover {
+	background-color: var(--color-secondary, #ff6eb1);
 }
 
 .wp-block-spawn-checkout__button:disabled {
-	background: #ccc;
+	opacity: 0.6;
 	cursor: not-allowed;
 }
 
-.wp-block-spawn-checkout__button:hover:not(:disabled) {
-	background: #005a87;
+/* Loading state */
+.wp-block-spawn-checkout__loading {
+	text-align: center;
+	padding: var(--space-lg, 20px);
+	color: var(--color-text-light, #666);
 }
-

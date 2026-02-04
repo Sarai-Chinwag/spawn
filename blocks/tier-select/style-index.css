@@ -1,90 +1,136 @@
+/* Tier Select Block - Uses theme design system */
 .wp-block-spawn-tier-select {
-	padding: 20px;
-	text-align: center;
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: var(--space-lg, 20px);
 }
 
 .wp-block-spawn-tier-select__container {
-	max-width: 100%;
+	width: 100%;
 }
 
 .wp-block-spawn-tier-select__cards {
-	display: flex;
-	justify-content: center;
-	gap: 20px;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-lg, 20px);
 }
 
-.tier-card {
-	border: 1px solid #ddd;
+/* Desktop: 3 columns */
+@media (min-width: 768px) {
+	.wp-block-spawn-tier-select__cards {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.wp-block-spawn-tier-select .tier-card {
+	background: var(--color-background, #fff);
+	border: 3px solid var(--color-border, #ddd);
 	border-radius: 8px;
-	padding: 20px;
-	width: 250px;
+	padding: var(--space-lg, 20px);
 	text-align: center;
-	background: #fff;
-	transition: transform 0.3s, box-shadow 0.3s;
-	cursor: pointer;
+	transition: transform 0.2s, border-color 0.2s;
 }
 
-.tier-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.wp-block-spawn-tier-select .tier-card:hover {
+	transform: translateY(-4px);
+	border-color: var(--color-primary, #1fc5e2);
 }
 
-.tier-card.highlighted {
-	border-color: #007cba;
-	box-shadow: 0 0 15px rgba(0, 124, 186, 0.3);
+.wp-block-spawn-tier-select .tier-card.highlighted {
+	border-color: var(--color-secondary, #ff6eb1);
 	position: relative;
 }
 
-.tier-card.highlighted::after {
-	content: "Popular";
+.wp-block-spawn-tier-select .tier-card.highlighted::before {
+	content: "Most Popular";
 	position: absolute;
-	top: -10px;
-	right: 10px;
-	background: #007cba;
-	color: #fff;
-	padding: 5px 10px;
-	border-radius: 4px;
-	font-size: 12px;
+	top: -12px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: var(--color-secondary, #ff6eb1);
+	color: var(--color-background, #fff);
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: var(--font-size-small, 0.85em);
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.wp-block-spawn-tier-select .tier-card.selected {
+	border-color: var(--color-primary, #1fc5e2);
+	box-shadow: 0 0 0 3px rgba(31, 197, 226, 0.2);
+}
+
+.wp-block-spawn-tier-select .tier-card h4 {
+	font-family: var(--font-heading, 'Gluten', sans-serif);
+	font-size: var(--font-size-h2, 1.38em);
+	margin: 0 0 var(--space-sm, 10px);
+	text-transform: uppercase;
+}
+
+.wp-block-spawn-tier-select .tier-card .price {
+	font-size: 2.5em;
 	font-weight: 700;
+	color: var(--color-primary, #1fc5e2);
+	margin: var(--space-sm, 10px) 0;
+	line-height: 1;
 }
 
-.tier-card h4 {
-	margin: 0 0 10px 0;
-	font-size: 20px;
+.wp-block-spawn-tier-select .tier-card .price::after {
+	content: "/mo";
+	font-size: 0.4em;
+	color: var(--color-text-light, #666);
+	font-weight: 400;
 }
 
-.tier-card .price {
-	font-size: 28px;
-	font-weight: 700;
-	color: #007cba;
-	margin: 10px 0;
-}
-
-.tier-card ul {
+.wp-block-spawn-tier-select .tier-card ul {
 	list-style: none;
 	padding: 0;
-	margin: 15px 0;
+	margin: var(--space-md, 15px) 0;
 	text-align: left;
 }
 
-.tier-card li {
-	margin-bottom: 5px;
-	font-size: 14px;
+.wp-block-spawn-tier-select .tier-card li {
+	padding: var(--space-xs, 5px) 0;
+	border-bottom: 1px dashed var(--color-border, #ddd);
+	font-size: var(--font-size-small, 0.85em);
 }
 
-.select-btn {
-	padding: 10px 20px;
-	background: #007cba;
-	color: #fff;
-	border: none;
-	border-radius: 4px;
-	font-size: 16px;
+.wp-block-spawn-tier-select .tier-card li:last-child {
+	border-bottom: none;
+}
+
+.wp-block-spawn-tier-select .tier-card li::before {
+	content: "✓ ";
+	color: var(--color-primary, #1fc5e2);
+	font-weight: bold;
+}
+
+.wp-block-spawn-tier-select .tier-card .select-btn {
+	background-color: var(--color-primary, #1fc5e2);
+	border: 3px solid var(--color-secondary, #ff6eb1);
+	border-radius: 5px;
+	color: var(--color-background, #fff);
+	padding: var(--space-sm, 10px) var(--space-lg, 20px);
 	cursor: pointer;
-	transition: background 0.3s;
-	margin-top: 15px;
+	font-size: inherit;
+	font-weight: 600;
+	width: 100%;
+	margin-top: var(--space-md, 15px);
+	transition: background-color 0.2s;
 }
 
-.select-btn:hover {
-	background: #005a87;
+.wp-block-spawn-tier-select .tier-card .select-btn:hover {
+	background-color: var(--color-secondary, #ff6eb1);
+}
+
+.wp-block-spawn-tier-select .tier-card.selected .select-btn {
+	background-color: var(--color-secondary, #ff6eb1);
+}
+
+/* Loading state */
+.wp-block-spawn-tier-select__loading {
+	text-align: center;
+	padding: var(--space-xl, 30px);
+	color: var(--color-text-light, #666);
 }
