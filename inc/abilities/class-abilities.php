@@ -212,6 +212,67 @@ class Abilities {
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
 		] );
+
+		// Get Domain Renewal Info
+		wp_register_ability( 'spawn_get_domain_renewal_info', [
+			'label'       => __( 'Get Domain Renewal Info', 'spawn' ),
+			'description' => __( 'Get domain expiration info and renewal pricing', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Get_Domain_Renewal_Info::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'renewable'           => [ 'type' => 'boolean' ],
+					'domain'              => [ 'type' => 'string' ],
+					'domain_type'         => [ 'type' => 'string' ],
+					'expires_at'          => [ 'type' => 'string' ],
+					'expires_formatted'   => [ 'type' => 'string' ],
+					'days_until_expiry'   => [ 'type' => 'integer' ],
+					'renewal_price'       => [ 'type' => 'number' ],
+					'is_expired'          => [ 'type' => 'boolean' ],
+					'is_expiring_soon'    => [ 'type' => 'boolean' ],
+					'auto_renew_enabled'  => [ 'type' => 'boolean' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Renew Domain
+		wp_register_ability( 'spawn_renew_domain', [
+			'label'       => __( 'Renew Domain', 'spawn' ),
+			'description' => __( 'Initiate domain renewal checkout', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Renew_Domain::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'       => [ 'type' => 'boolean' ],
+					'checkout_url'  => [ 'type' => 'string' ],
+					'session_id'    => [ 'type' => 'string' ],
+					'domain'        => [ 'type' => 'string' ],
+					'renewal_price' => [ 'type' => 'number' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
 	}
 
 	/**

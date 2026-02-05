@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## Unreleased
+
+- Add domain renewal abilities (spawn_get_domain_renewal_info, spawn_renew_domain)
+
 ## [0.2.0] - 2025-02-09
 
 ### Changed
