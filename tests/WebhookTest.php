@@ -46,10 +46,12 @@ class WebhookTest extends WP_UnitTestCase {
 			'customer'       => 'cus_test123',
 			'subscription'   => 'sub_test123',
 			'metadata'       => [
-				'source'      => 'spawn',
-				'domain'      => 'newsite.saraichinwag.com',
-				'domain_type' => 'subdomain',
-				'tier'        => 'starter',
+				'source'          => 'spawn',
+				'domain'          => 'newsite.saraichinwag.com',
+				'domain_type'     => 'subdomain',
+				'tier'            => 'starter',
+				'wants_website'   => 'true',
+				'customer_region' => 'us',
 			],
 		];
 
@@ -71,12 +73,14 @@ class WebhookTest extends WP_UnitTestCase {
 
 	/**
 	 * Test checkout with correct tier sets correct credits.
+	 *
+	 * Credits are now in dollars: $5 / $10 / $40
 	 */
 	public function test_checkout_sets_correct_credits(): void {
 		$test_cases = [
-			'starter'  => 1000,
-			'pro'      => 2000,
-			'business' => 4000,
+			'starter'  => 5.00,
+			'pro'      => 10.00,
+			'business' => 40.00,
 		];
 
 		foreach ( $test_cases as $tier => $expected_credits ) {
@@ -89,10 +93,12 @@ class WebhookTest extends WP_UnitTestCase {
 				'customer'       => "cus_{$tier}",
 				'subscription'   => "sub_{$tier}",
 				'metadata'       => [
-					'source'      => 'spawn',
-					'domain'      => "{$tier}.saraichinwag.com",
-					'domain_type' => 'subdomain',
-					'tier'        => $tier,
+					'source'          => 'spawn',
+					'domain'          => "{$tier}.saraichinwag.com",
+					'domain_type'     => 'subdomain',
+					'tier'            => $tier,
+					'wants_website'   => 'true',
+					'customer_region' => 'us',
 				],
 			];
 
@@ -104,10 +110,102 @@ class WebhookTest extends WP_UnitTestCase {
 			$this->assertNotNull( $customer, "Customer for $tier should exist" );
 			$this->assertEquals(
 				$expected_credits,
-				(int) $customer['credit_balance'],
-				"Tier $tier should have $expected_credits credits"
+				(float) $customer['credit_balance'],
+				"Tier $tier should have \${$expected_credits} credits"
 			);
 		}
+	}
+
+	/**
+	 * Test checkout with wants_website=true creates customer with website flag.
+	 */
+	public function test_checkout_with_wants_website_true(): void {
+		$session = [
+			'customer_email' => 'website@example.com',
+			'customer'       => 'cus_website',
+			'subscription'   => 'sub_website',
+			'metadata'       => [
+				'source'          => 'spawn',
+				'domain'          => 'withsite.saraichinwag.com',
+				'domain_type'     => 'subdomain',
+				'tier'            => 'starter',
+				'wants_website'   => 'true',
+				'customer_region' => 'us',
+			],
+		];
+
+		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		Webhook::handle_checkout_completed( $session, $event );
+
+		$customer = Database::get_customer_by_domain( 'withsite.saraichinwag.com' );
+
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 1, (int) $customer['wants_website'] );
+	}
+
+	/**
+	 * Test checkout with wants_website=false creates AI-only customer.
+	 */
+	public function test_checkout_with_wants_website_false(): void {
+		$session = [
+			'customer_email' => 'aionly@example.com',
+			'customer'       => 'cus_aionly',
+			'subscription'   => 'sub_aionly',
+			'metadata'       => [
+				'source'          => 'spawn',
+				'domain'          => '',  // No domain for AI-only.
+				'domain_type'     => 'subdomain',
+				'tier'            => 'starter',
+				'wants_website'   => 'false',
+				'customer_region' => 'us',
+			],
+		];
+
+		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		Webhook::handle_checkout_completed( $session, $event );
+
+		// AI-only customers don't have a domain, look up by email.
+		global $wpdb;
+		$customer = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}spawn_customers WHERE email = %s",
+				'aionly@example.com'
+			),
+			ARRAY_A
+		);
+
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 0, (int) $customer['wants_website'] );
+		$this->assertEmpty( $customer['domain'] );
+	}
+
+	/**
+	 * Test checkout respects customer_region for server selection.
+	 */
+	public function test_checkout_customer_region(): void {
+		$session = [
+			'customer_email' => 'eu@example.com',
+			'customer'       => 'cus_eu',
+			'subscription'   => 'sub_eu',
+			'metadata'       => [
+				'source'          => 'spawn',
+				'domain'          => 'eusite.saraichinwag.com',
+				'domain_type'     => 'subdomain',
+				'tier'            => 'starter',
+				'wants_website'   => 'true',
+				'customer_region' => 'eu',
+			],
+		];
+
+		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		Webhook::handle_checkout_completed( $session, $event );
+
+		$customer = Database::get_customer_by_domain( 'eusite.saraichinwag.com' );
+
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 'eu', $customer['customer_region'] );
+		// EU customers get EU server types (cpx22 instead of cpx21).
+		$this->assertEquals( 'cpx22', $customer['hetzner_type'] );
 	}
 
 	/**
@@ -119,11 +217,13 @@ class WebhookTest extends WP_UnitTestCase {
 			'customer'       => 'cus_custom',
 			'subscription'   => 'sub_custom',
 			'metadata'       => [
-				'source'       => 'spawn',
-				'domain'       => 'mycustomsite.com',
-				'domain_type'  => 'custom',
-				'domain_price' => '15.99',
-				'tier'         => 'pro',
+				'source'          => 'spawn',
+				'domain'          => 'mycustomsite.com',
+				'domain_type'     => 'register',
+				'domain_price'    => '15.99',
+				'tier'            => 'pro',
+				'wants_website'   => 'true',
+				'customer_region' => 'us',
 			],
 		];
 
@@ -133,7 +233,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$customer = Database::get_customer_by_domain( 'mycustomsite.com' );
 
 		$this->assertNotNull( $customer );
-		$this->assertEquals( 'custom', $customer['domain_type'] );
+		$this->assertEquals( 'register', $customer['domain_type'] );
 		$this->assertEquals( 15.99, (float) $customer['domain_price'] );
 	}
 
@@ -154,10 +254,12 @@ class WebhookTest extends WP_UnitTestCase {
 			'customer'       => 'cus_new',
 			'subscription'   => 'sub_new',
 			'metadata'       => [
-				'source'      => 'spawn',
-				'domain'      => 'taken.saraichinwag.com',
-				'domain_type' => 'subdomain',
-				'tier'        => 'starter',
+				'source'          => 'spawn',
+				'domain'          => 'taken.saraichinwag.com',
+				'domain_type'     => 'subdomain',
+				'tier'            => 'starter',
+				'wants_website'   => 'true',
+				'customer_region' => 'us',
 			],
 		];
 
@@ -199,7 +301,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'email'           => 'buyer@example.com',
 			'domain'          => 'buyer.saraichinwag.com',
 			'stripe_customer' => 'cus_buyer',
-			'credit_balance'  => 500,
+			'credit_balance'  => 5.00,
 			'status'          => 'active',
 		] );
 
@@ -211,7 +313,7 @@ class WebhookTest extends WP_UnitTestCase {
 				'source'            => 'spawn',
 				'type'              => 'credit_purchase',
 				'spawn_customer_id' => (string) $customer_id,
-				'credits'           => '2000',
+				'credits'           => '20.00', // $20 in credits.
 			],
 		];
 
@@ -219,11 +321,11 @@ class WebhookTest extends WP_UnitTestCase {
 		Webhook::handle_checkout_completed( $session, $event );
 
 		$customer = Database::get_customer( $customer_id );
-		$this->assertEquals( 2500, (int) $customer['credit_balance'] );
+		$this->assertEquals( 25.00, (float) $customer['credit_balance'] );
 	}
 
 	/**
-	 * Test subscription cancelled updates status.
+	 * Test subscription cancelled initiates grace period.
 	 */
 	public function test_subscription_cancelled(): void {
 		Database::create_customer( [
@@ -241,7 +343,8 @@ class WebhookTest extends WP_UnitTestCase {
 		Webhook::handle_subscription_cancelled( $subscription, $event );
 
 		$customer = Database::get_customer_by_domain( 'cancel.saraichinwag.com' );
-		$this->assertEquals( 'cancelled', $customer['status'] );
+		$this->assertEquals( 'cancelling', $customer['status'] );
+		$this->assertNotEmpty( $customer['scheduled_deletion_at'] );
 	}
 
 	/**
@@ -264,5 +367,80 @@ class WebhookTest extends WP_UnitTestCase {
 
 		$customer = Database::get_customer_by_domain( 'fail.saraichinwag.com' );
 		$this->assertEquals( 'payment_failed', $customer['status'] );
+	}
+
+	/**
+	 * Test invoice paid updates status to active.
+	 */
+	public function test_invoice_paid_activates_customer(): void {
+		Database::create_customer( [
+			'email'               => 'renew@example.com',
+			'domain'              => 'renew.saraichinwag.com',
+			'stripe_subscription' => 'sub_renewing',
+			'status'              => 'payment_failed',
+		] );
+
+		$invoice = [
+			'subscription' => 'sub_renewing',
+		];
+
+		$event = (object) [ 'type' => 'invoice.paid' ];
+		Webhook::handle_invoice_paid( $invoice, $event );
+
+		$customer = Database::get_customer_by_domain( 'renew.saraichinwag.com' );
+		$this->assertEquals( 'active', $customer['status'] );
+	}
+
+	/**
+	 * Test wants_website default is true when not specified.
+	 */
+	public function test_wants_website_defaults_to_true(): void {
+		$session = [
+			'customer_email' => 'default@example.com',
+			'customer'       => 'cus_default',
+			'subscription'   => 'sub_default',
+			'metadata'       => [
+				'source'      => 'spawn',
+				'domain'      => 'default.saraichinwag.com',
+				'domain_type' => 'subdomain',
+				'tier'        => 'starter',
+				// Note: wants_website NOT specified.
+			],
+		];
+
+		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		Webhook::handle_checkout_completed( $session, $event );
+
+		$customer = Database::get_customer_by_domain( 'default.saraichinwag.com' );
+
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 1, (int) $customer['wants_website'] );
+	}
+
+	/**
+	 * Test tier defaults to starter when not specified.
+	 */
+	public function test_tier_defaults_to_starter(): void {
+		$session = [
+			'customer_email' => 'notier@example.com',
+			'customer'       => 'cus_notier',
+			'subscription'   => 'sub_notier',
+			'metadata'       => [
+				'source'        => 'spawn',
+				'domain'        => 'notier.saraichinwag.com',
+				'domain_type'   => 'subdomain',
+				'wants_website' => 'true',
+				// Note: tier NOT specified.
+			],
+		];
+
+		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		Webhook::handle_checkout_completed( $session, $event );
+
+		$customer = Database::get_customer_by_domain( 'notier.saraichinwag.com' );
+
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 'starter', $customer['tier'] );
+		$this->assertEquals( 5.00, (float) $customer['credit_balance'] );
 	}
 }
