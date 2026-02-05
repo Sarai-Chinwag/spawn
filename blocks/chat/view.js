@@ -111,6 +111,26 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			return div.innerHTML.replace( /\n/g, '<br>' );
 		}
 
+		function showTypingIndicator() {
+			const indicator = document.createElement( 'div' );
+			indicator.className = 'chat-message chat-message--assistant chat-message--typing';
+			indicator.innerHTML = `<div class="chat-message__content">
+				<span class="typing-dot"></span>
+				<span class="typing-dot"></span>
+				<span class="typing-dot"></span>
+			</div>`;
+			indicator.id = 'typing-indicator';
+			messagesContainer.appendChild( indicator );
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}
+
+		function hideTypingIndicator() {
+			const indicator = document.getElementById( 'typing-indicator' );
+			if ( indicator ) {
+				indicator.remove();
+			}
+		}
+
 		function setLoading( loading ) {
 			isLoading = loading;
 			sendBtn.disabled = loading;
@@ -120,8 +140,10 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 			if ( loading ) {
 				sendBtn.classList.add( 'loading' );
+				showTypingIndicator();
 			} else {
 				sendBtn.classList.remove( 'loading' );
+				hideTypingIndicator();
 			}
 		}
 

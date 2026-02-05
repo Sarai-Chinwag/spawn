@@ -153,6 +153,38 @@
 	to { transform: rotate(360deg); }
 }
 
+/* Typing indicator */
+.chat-message--typing .chat-message__content {
+	display: flex;
+	gap: 4px;
+	padding: 8px 12px;
+}
+
+.typing-dot {
+	width: 8px;
+	height: 8px;
+	background: var(--color-text-light, #999);
+	border-radius: 50%;
+	animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+	animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+	animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+	0%, 60%, 100% {
+		transform: translateY(0);
+	}
+	30% {
+		transform: translateY(-6px);
+	}
+}
+
 .wp-block-spawn-chat__login-required,
 .wp-block-spawn-chat__no-subscription {
 	text-align: center;
