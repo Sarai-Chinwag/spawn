@@ -156,38 +156,14 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		function showWelcomeMessage() {
-			// Welcome message based on context.
-			if ( context.is_admin ) {
-				addMessage(
-					'assistant',
-					"Hey! 👋 What can I help you with?"
-				);
-			} else if ( context.status === 'provisioning' ) {
-				addMessage(
-					'assistant',
-					"Hi! Your website is being set up right now. This usually takes a few minutes. I'll let you know when it's ready!"
-				);
-			} else if ( context.status === 'active' && ! context.has_mobile ) {
-				addMessage(
-					'assistant',
-					`Hi! Your website at ${ context.domain } is live! 🎉\n\nWant to message me from your phone? I can walk you through setting up Telegram or Discord in about 5 minutes.`
-				);
-			} else if ( context.status === 'active' ) {
-				addMessage(
-					'assistant',
-					`Hey! How can I help with ${ context.domain } today?`
-				);
-			} else if ( context.status === 'failed' ) {
+			// Only show system messages for error states, not fake assistant messages
+			if ( context.status === 'failed' ) {
 				addMessage(
 					'system',
 					"There was a problem setting up your website. We're looking into it and will email you shortly."
 				);
-			} else {
-				addMessage(
-					'assistant',
-					"Hi! How can I help you today?"
-				);
 			}
+			// Otherwise start with empty chat - no fake welcome messages
 		}
 
 		// Event listeners.
