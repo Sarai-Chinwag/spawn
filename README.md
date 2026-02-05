@@ -4,7 +4,9 @@ Personal AI assistant in a box. Website optional.
 
 ## What is Spawn?
 
-Spawn provisions personal AI agents that live on dedicated servers. Each customer gets their own VPS running [OpenClaw](https://github.com/openclaw/openclaw) — a full AI assistant they can chat with from anywhere.
+Spawn makes AI-powered personal assistants accessible to everyone. No technical skills required — just sign up and start chatting with your own AI agent running on dedicated hardware.
+
+Each customer gets their own VPS running [OpenClaw](https://github.com/openclaw/openclaw). Your AI lives on your server, not shared infrastructure.
 
 **Want a website too?** Optionally add WordPress and let your AI build and manage it for you. Or skip the website entirely and just use the AI.
 
