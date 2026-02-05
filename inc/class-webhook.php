@@ -113,9 +113,10 @@ class Webhook {
 		}
 
 		$success = Provisioner::handle_completion( [
-			'domain'    => $data['domain'] ?? '',
-			'server_ip' => $data['server_ip'] ?? '',
-			'success'   => true,
+			'domain'         => $data['domain'] ?? '',
+			'server_ip'      => $data['server_ip'] ?? '',
+			'openclaw_token' => $data['openclaw_token'] ?? '',
+			'success'        => true,
 		] );
 
 		if ( ! $success ) {
