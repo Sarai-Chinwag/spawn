@@ -175,11 +175,12 @@ class Provisioner {
 	 * @return bool Success.
 	 */
 	public static function handle_completion( array $data ): bool {
-		$domain         = $data['domain'] ?? '';
-		$server_ip      = $data['server_ip'] ?? $data['vps_ip'] ?? '';
-		$server_id      = $data['server_id'] ?? '';
-		$openclaw_token = $data['openclaw_token'] ?? '';
-		$success        = $data['success'] ?? false;
+		$domain              = $data['domain'] ?? '';
+		$server_ip           = $data['server_ip'] ?? $data['vps_ip'] ?? '';
+		$server_id           = $data['server_id'] ?? '';
+		$openclaw_token      = $data['openclaw_token'] ?? '';
+		$cloudflare_record_id = $data['cloudflare_record_id'] ?? '';
+		$success             = $data['success'] ?? false;
 
 		if ( empty( $domain ) ) {
 			error_log( '[Spawn Provisioner] Completion webhook missing domain' );
@@ -210,10 +211,15 @@ class Provisioner {
 
 			if ( ! empty( $server_id ) ) {
 				$update_data['server_id'] = $server_id;
+				$update_data['hetzner_server_id'] = $server_id;
 			}
 
 			if ( ! empty( $openclaw_token ) ) {
 				$update_data['openclaw_token'] = $openclaw_token;
+			}
+
+			if ( ! empty( $cloudflare_record_id ) ) {
+				$update_data['cloudflare_record_id'] = $cloudflare_record_id;
 			}
 
 			Database::update_customer( (int) $customer['id'], $update_data );
