@@ -12,6 +12,54 @@
 	height: 500px;
 }
 
+/* Fullpage variant */
+.wp-block-spawn-chat--fullpage .wp-block-spawn-chat__container {
+	height: calc(100vh - 200px);
+	min-height: 400px;
+	max-height: 800px;
+}
+
+/* Header with session indicator and new convo button */
+.wp-block-spawn-chat__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	border-bottom: 1px solid var(--color-border, #ddd);
+	background: var(--color-surface, #f9f9f9);
+	border-radius: 5px 5px 0 0;
+}
+
+.wp-block-spawn-chat__session-id {
+	font-size: 0.75em;
+	color: var(--color-text-light, #999);
+	font-family: monospace;
+}
+
+.wp-block-spawn-chat__new-convo {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	background: transparent;
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 6px;
+	color: var(--color-text, #333);
+	font-size: 0.85em;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.wp-block-spawn-chat__new-convo:hover {
+	border-color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary, #1fc5e2);
+}
+
+.wp-block-spawn-chat__new-convo:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .wp-block-spawn-chat__messages {
 	flex: 1;
 	overflow-y: auto;

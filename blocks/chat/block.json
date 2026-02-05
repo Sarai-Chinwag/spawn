@@ -11,6 +11,12 @@
 		"html": false,
 		"align": ["wide", "full"]
 	},
+	"attributes": {
+		"fullpage": {
+			"type": "boolean",
+			"default": false
+		}
+	},
 	"textdomain": "spawn",
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",

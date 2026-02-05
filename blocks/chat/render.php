@@ -9,7 +9,11 @@
  * @package Spawn
  */
 
-$wrapper_attributes = get_block_wrapper_attributes();
+// Check for fullpage attribute.
+$is_fullpage = ! empty( $attributes['fullpage'] );
+$extra_class = $is_fullpage ? 'wp-block-spawn-chat--fullpage' : '';
+
+$wrapper_attributes = get_block_wrapper_attributes( [ 'class' => $extra_class ] );
 
 // Check if user is logged in.
 if ( ! is_user_logged_in() ) {
@@ -60,6 +64,15 @@ if ( $is_admin && ! $customer ) {
 ?>
 <div <?php echo $wrapper_attributes; ?> data-context="<?php echo esc_attr( wp_json_encode( $chat_context ) ); ?>">
 	<div class="wp-block-spawn-chat__container">
+		<div class="wp-block-spawn-chat__header">
+			<span class="wp-block-spawn-chat__session-id"></span>
+			<button class="wp-block-spawn-chat__new-convo" type="button" title="Start new conversation">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 5v14M5 12h14"></path>
+				</svg>
+				New
+			</button>
+		</div>
 		<div class="wp-block-spawn-chat__messages"></div>
 		<div class="wp-block-spawn-chat__input-area">
 			<textarea class="wp-block-spawn-chat__input" placeholder="Message your AI..." rows="1"></textarea>

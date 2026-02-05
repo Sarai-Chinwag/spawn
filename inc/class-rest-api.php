@@ -325,11 +325,15 @@ class REST_API {
 				'callback'            => [ __CLASS__, 'chat_send' ],
 				'permission_callback' => 'is_user_logged_in',
 				'args'                => [
-					'message' => [
+					'message'    => [
 						'required' => true,
 						'type'     => 'string',
 					],
-					'context' => [
+					'sessionKey' => [
+						'type'    => 'string',
+						'default' => '',
+					],
+					'context'    => [
 						'type'    => 'object',
 						'default' => [],
 					],
@@ -1133,13 +1137,14 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function chat_send( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$user_id  = get_current_user_id();
-		$message  = sanitize_textarea_field( $request->get_param( 'message' ) );
-		$context  = $request->get_param( 'context' );
+		$user_id     = get_current_user_id();
+		$message     = sanitize_textarea_field( $request->get_param( 'message' ) );
+		$session_key = sanitize_text_field( $request->get_param( 'sessionKey' ) );
+		$context     = $request->get_param( 'context' );
 
 		// Special case: Admin users chat with the main OpenClaw instance (Sarai).
 		if ( current_user_can( 'manage_options' ) ) {
-			return self::chat_with_sarai( $message, $context );
+			return self::chat_with_sarai( $message, $context, $session_key );
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
@@ -1220,15 +1225,16 @@ class REST_API {
 	/**
 	 * Admin self-chat with Sarai (main OpenClaw instance).
 	 *
-	 * @param string $message User message.
-	 * @param array  $context Chat context.
+	 * @param string $message     User message.
+	 * @param array  $context     Chat context.
+	 * @param string $session_key Optional session key for conversation continuity.
 	 * @return WP_REST_Response Response.
 	 */
-	private static function chat_with_sarai( string $message, array $context ): WP_REST_Response {
+	private static function chat_with_sarai( string $message, array $context, string $session_key = '' ): WP_REST_Response {
 		// Connect to OpenClaw gateway's tools/invoke endpoint.
 		// Default gateway port is 18789 - configurable via spawn_openclaw_gateway_port option.
-		$gateway_port = get_option( 'spawn_openclaw_gateway_port', '18789' );
-		$gateway_url  = 'http://127.0.0.1:' . $gateway_port . '/tools/invoke';
+		$gateway_port  = get_option( 'spawn_openclaw_gateway_port', '18789' );
+		$gateway_url   = 'http://127.0.0.1:' . $gateway_port . '/tools/invoke';
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_token ) ) {
@@ -1237,7 +1243,10 @@ class REST_API {
 			] );
 		}
 
-		// Use sessions_send tool to send message to main session.
+		// Use provided session key or default to main.
+		$target_session = ! empty( $session_key ) ? $session_key : 'main';
+
+		// Use sessions_send tool to send message to the session.
 		$response = wp_remote_post( $gateway_url, [
 			'headers' => [
 				'Content-Type'  => 'application/json',
@@ -1245,10 +1254,10 @@ class REST_API {
 			],
 			'body'    => wp_json_encode( [
 				'tool'       => 'sessions_send',
-				'sessionKey' => 'main',
+				'sessionKey' => $target_session,
 				'args'       => [
 					'message'    => '[Spawn Chat] ' . $message,
-					'sessionKey' => 'main',
+					'sessionKey' => $target_session,
 				],
 			] ),
 			'timeout' => 90,

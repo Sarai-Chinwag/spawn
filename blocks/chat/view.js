@@ -10,6 +10,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		);
 		const input = block.querySelector( '.wp-block-spawn-chat__input' );
 		const sendBtn = block.querySelector( '.wp-block-spawn-chat__send' );
+		const newConvoBtn = block.querySelector( '.wp-block-spawn-chat__new-convo' );
+		const sessionIndicator = block.querySelector( '.wp-block-spawn-chat__session-id' );
 
 		if ( ! messagesContainer || ! input || ! sendBtn ) {
 			return;
@@ -17,6 +19,41 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		let isLoading = false;
 		const messages = [];
+
+		// Session management.
+		const SESSION_KEY_STORAGE = 'spawn_chat_session_key';
+
+		function generateSessionKey() {
+			return 'webchat-' + Date.now() + '-' + Math.random().toString( 36 ).substr( 2, 9 );
+		}
+
+		function getSessionKey() {
+			let key = localStorage.getItem( SESSION_KEY_STORAGE );
+			if ( ! key ) {
+				key = generateSessionKey();
+				localStorage.setItem( SESSION_KEY_STORAGE, key );
+			}
+			return key;
+		}
+
+		function resetSession() {
+			const newKey = generateSessionKey();
+			localStorage.setItem( SESSION_KEY_STORAGE, newKey );
+			messages.length = 0;
+			renderMessages();
+			updateSessionIndicator();
+			showWelcomeMessage();
+		}
+
+		function updateSessionIndicator() {
+			if ( sessionIndicator ) {
+				const key = getSessionKey();
+				sessionIndicator.textContent = 'Session: ' + key.substr( -8 );
+			}
+		}
+
+		let sessionKey = getSessionKey();
+		updateSessionIndicator();
 
 		function addMessage( role, content ) {
 			messages.push( { role, content } );
@@ -47,6 +84,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			isLoading = loading;
 			sendBtn.disabled = loading;
 			input.disabled = loading;
+			if ( newConvoBtn ) {
+				newConvoBtn.disabled = loading;
+			}
 			if ( loading ) {
 				sendBtn.classList.add( 'loading' );
 			} else {
@@ -71,6 +111,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					method: 'POST',
 					data: {
 						message: text,
+						sessionKey: getSessionKey(),
 						context,
 					},
 				} );
@@ -100,8 +141,47 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				Math.min( input.scrollHeight, 150 ) + 'px';
 		}
 
+		function showWelcomeMessage() {
+			// Welcome message based on context.
+			if ( context.is_admin ) {
+				addMessage(
+					'assistant',
+					"Hey! 👋 What can I help you with?"
+				);
+			} else if ( context.status === 'provisioning' ) {
+				addMessage(
+					'assistant',
+					"Hi! Your website is being set up right now. This usually takes a few minutes. I'll let you know when it's ready!"
+				);
+			} else if ( context.status === 'active' && ! context.has_mobile ) {
+				addMessage(
+					'assistant',
+					`Hi! Your website at ${ context.domain } is live! 🎉\n\nWant to message me from your phone? I can walk you through setting up Telegram or Discord in about 5 minutes.`
+				);
+			} else if ( context.status === 'active' ) {
+				addMessage(
+					'assistant',
+					`Hey! How can I help with ${ context.domain } today?`
+				);
+			} else if ( context.status === 'failed' ) {
+				addMessage(
+					'system',
+					"There was a problem setting up your website. We're looking into it and will email you shortly."
+				);
+			} else {
+				addMessage(
+					'assistant',
+					"Hi! How can I help you today?"
+				);
+			}
+		}
+
 		// Event listeners.
 		sendBtn.addEventListener( 'click', sendMessage );
+
+		if ( newConvoBtn ) {
+			newConvoBtn.addEventListener( 'click', resetSession );
+		}
 
 		input.addEventListener( 'keydown', function ( e ) {
 			if ( e.key === 'Enter' && ! e.shiftKey ) {
@@ -112,32 +192,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		input.addEventListener( 'input', autoResizeInput );
 
-		// Welcome message based on context.
-		if ( context.is_admin ) {
-			addMessage(
-				'assistant',
-				"Hey Chubes! 👋 This is the Spawn chat test. Messages here go to me (Sarai). Try it out!"
-			);
-		} else if ( context.status === 'provisioning' ) {
-			addMessage(
-				'assistant',
-				"Hi! Your website is being set up right now. This usually takes a few minutes. I'll let you know when it's ready!"
-			);
-		} else if ( context.status === 'active' && ! context.has_mobile ) {
-			addMessage(
-				'assistant',
-				`Hi! Your website at ${ context.domain } is live! 🎉\n\nWant to message me from your phone? I can walk you through setting up Telegram or Discord in about 5 minutes.`
-			);
-		} else if ( context.status === 'active' ) {
-			addMessage(
-				'assistant',
-				`Hey! How can I help with ${ context.domain } today?`
-			);
-		} else if ( context.status === 'failed' ) {
-			addMessage(
-				'system',
-				"There was a problem setting up your website. We're looking into it and will email you shortly."
-			);
-		}
+		// Show initial welcome.
+		showWelcomeMessage();
 	} );
 } );

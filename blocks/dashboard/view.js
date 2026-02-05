@@ -141,6 +141,14 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						<p class="plan-name">${ getTierLabel( customer.vps_tier ) }</p>
 						<a href="/spawn/account/" class="plan-link">Manage Plan →</a>
 					</div>
+					
+					<div class="wp-block-spawn-dashboard__card card-chat">
+						<h3>💬 Chat with your AI</h3>
+						<p class="chat-description">Ask questions, request changes, get help with your site.</p>
+						<a href="/spawn/chat/" class="wp-block-spawn-dashboard__btn btn-chat">
+							Open Chat →
+						</a>
+					</div>
 				</div>
 				
 				<div class="wp-block-spawn-dashboard__actions">
