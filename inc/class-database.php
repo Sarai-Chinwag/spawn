@@ -35,12 +35,14 @@ class Database {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			user_id bigint(20) unsigned DEFAULT NULL,
 			email varchar(255) NOT NULL,
-			domain varchar(255) NOT NULL,
+			domain varchar(255) DEFAULT NULL,
 			subdomain tinyint(1) NOT NULL DEFAULT 0,
 			domain_type varchar(20) NOT NULL DEFAULT 'subdomain',
 			domain_price decimal(10,2) DEFAULT NULL,
 			domain_expires_at datetime DEFAULT NULL,
-			vps_tier varchar(50) NOT NULL DEFAULT 'cpx21',
+			wants_website tinyint(1) NOT NULL DEFAULT 0,
+			hetzner_type varchar(50) NOT NULL DEFAULT 'cpx22',
+			hetzner_location varchar(50) NOT NULL DEFAULT 'fsn1',
 			stripe_customer varchar(255) DEFAULT NULL,
 			stripe_subscription varchar(255) DEFAULT NULL,
 			stripe_payment_method varchar(255) DEFAULT NULL,
@@ -54,7 +56,7 @@ class Database {
 			scheduled_deletion_at datetime DEFAULT NULL,
 			cloudflare_record_id varchar(255) DEFAULT NULL,
 			hetzner_server_id varchar(255) DEFAULT NULL,
-			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
+			credit_balance decimal(10,2) NOT NULL DEFAULT 0.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
 			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
@@ -82,6 +84,9 @@ class Database {
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
+		$wants_website = ! empty( $data['wants_website'] );
+		$server_config = Config::get_server_config( $wants_website );
+
 		$domain_type = $data['domain_type'] ?? 'subdomain';
 
 		// Set domain expiration to 1 year from now if registering domain.
@@ -95,19 +100,21 @@ class Database {
 			[
 				'user_id'             => $data['user_id'] ?? null,
 				'email'               => $data['email'],
-				'domain'              => $data['domain'],
+				'domain'              => $data['domain'] ?? null,
 				'subdomain'           => 'subdomain' === $domain_type ? 1 : 0,
 				'domain_type'         => $domain_type,
 				'domain_price'        => $data['domain_price'] ?? null,
 				'domain_expires_at'   => $domain_expires,
-				'vps_tier'            => $data['vps_tier'] ?? 'cpx21',
+				'wants_website'       => $wants_website ? 1 : 0,
+				'hetzner_type'        => $server_config['hetzner_type'],
+				'hetzner_location'    => $server_config['location'],
 				'stripe_customer'     => $data['stripe_customer'] ?? null,
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
-				'credit_balance'      => $data['credit_balance'] ?? Config::DEFAULT_STARTER_CREDITS,
+				'credit_balance'      => $data['credit_balance'] ?? 0.00,
 				'created_at'          => current_time( 'mysql' ),
 			],
-			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%s' ]
+			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s' ]
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -285,14 +292,17 @@ class Database {
 	}
 
 	/**
-	 * Update VPS tier for customer.
+	 * Update website preference for customer.
 	 *
-	 * @param int    $id       Customer ID.
-	 * @param string $vps_tier New VPS tier.
+	 * Note: Changing this after provisioning has no effect on the server.
+	 * Server type is determined at creation time.
+	 *
+	 * @param int  $id            Customer ID.
+	 * @param bool $wants_website Whether customer wants a website.
 	 * @return bool Success.
 	 */
-	public static function update_vps_tier( int $id, string $vps_tier ): bool {
-		return self::update_customer( $id, [ 'vps_tier' => $vps_tier ] );
+	public static function update_wants_website( int $id, bool $wants_website ): bool {
+		return self::update_customer( $id, [ 'wants_website' => $wants_website ? 1 : 0 ] );
 	}
 
 	/**

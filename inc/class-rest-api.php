@@ -60,40 +60,39 @@ class REST_API {
 				'callback'            => [ __CLASS__, 'create_checkout_session' ],
 				'permission_callback' => '__return_true',
 				'args'                => [
-					'domain'       => [
+					'email'         => [
+						'required' => true,
+						'type'     => 'string',
+						'format'   => 'email',
+					],
+					'wants_website' => [
+						'type'    => 'boolean',
+						'default' => false,
+					],
+					'domain'        => [
 						'required' => false,
 						'type'     => 'string',
 					],
-					'domain_type'  => [
+					'domain_type'   => [
 						'type'    => 'string',
 						'enum'    => [ 'subdomain', 'register', 'byod' ],
 						'default' => 'subdomain',
 					],
-					'domain_price' => [
+					'domain_price'  => [
 						'type'    => 'number',
 						'default' => 0,
-					],
-					'tier'         => [
-						'required' => true,
-						'type'     => 'string',
-						'enum'     => [ 'starter', 'pro', 'business' ],
-					],
-					'email'        => [
-						'required' => true,
-						'type'     => 'string',
-						'format'   => 'email',
 					],
 				],
 			]
 		);
 
-		// Get tiers/pricing.
+		// Get product info/pricing.
 		register_rest_route(
 			self::NAMESPACE,
-			'/tiers',
+			'/product',
 			[
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_tiers' ],
+				'callback'            => [ __CLASS__, 'get_product_info' ],
 				'permission_callback' => '__return_true',
 			]
 		);
@@ -187,19 +186,19 @@ class REST_API {
 			]
 		);
 
-		// Customer: Upgrade/change plan.
+		// Customer: Toggle website (update wants_website preference).
+		// Note: This doesn't change server specs, just records preference.
 		register_rest_route(
 			self::NAMESPACE,
-			'/customer/upgrade',
+			'/customer/toggle-website',
 			[
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'upgrade_plan' ],
+				'callback'            => [ __CLASS__, 'toggle_website' ],
 				'permission_callback' => 'is_user_logged_in',
 				'args'                => [
-					'tier' => [
+					'wants_website' => [
 						'required' => true,
-						'type'     => 'string',
-						'enum'     => [ 'starter', 'pro', 'business' ],
+						'type'     => 'boolean',
 					],
 				],
 			]
@@ -533,32 +532,32 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function create_checkout_session( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$domain       = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
-		$domain_type  = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
-		$domain_price = (float) $request->get_param( 'domain_price' );
-		$tier         = sanitize_text_field( $request->get_param( 'tier' ) );
-		$email        = sanitize_email( $request->get_param( 'email' ) );
+		$email         = sanitize_email( $request->get_param( 'email' ) );
+		$wants_website = (bool) $request->get_param( 'wants_website' );
+		$domain        = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
+		$domain_type   = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
+		$domain_price  = (float) $request->get_param( 'domain_price' );
 
-		// Get tier pricing.
-		$tier_config = Config::get_tier( $tier );
-		if ( ! $tier_config ) {
+		// Get subscription price ID.
+		$price_id = Config::get_stripe_price_id();
+		if ( empty( $price_id ) ) {
 			return new WP_Error(
-				'invalid_tier',
-				__( 'Invalid tier selected', 'spawn' ),
-				[ 'status' => 400 ]
+				'not_configured',
+				__( 'Stripe subscription price not configured', 'spawn' ),
+				[ 'status' => 500 ]
 			);
 		}
 
 		// Build line items.
 		$line_items = [
 			[
-				'price'    => $tier_config['stripe_price_id'],
+				'price'    => $price_id,
 				'quantity' => 1,
 			],
 		];
 
 		// Add domain registration as one-time fee if applicable.
-		if ( 'register' === $domain_type && $domain_price > 0 ) {
+		if ( $wants_website && 'register' === $domain_type && $domain_price > 0 ) {
 			$line_items[] = [
 				'price_data' => [
 					'currency'     => 'usd',
@@ -581,18 +580,17 @@ class REST_API {
 		$session = StripeClient::create_checkout_session( [
 			'customer_email'    => $email,
 			'metadata'          => [
-				'domain'       => $domain,
-				'domain_type'  => $domain_type,
-				'domain_price' => $domain_price,
-				'tier'         => $tier,
-				'source'       => 'spawn',
+				'wants_website' => $wants_website ? 'true' : 'false',
+				'domain'        => $domain,
+				'domain_type'   => $domain_type,
+				'domain_price'  => $domain_price,
+				'source'        => 'spawn',
 			],
 			'line_items'        => $line_items,
 			'mode'              => 'subscription',
 			'payment_method_collection' => 'always',
 			'subscription_data' => [
 				'metadata' => [
-					'tier'   => $tier,
 					'source' => 'spawn',
 				],
 			],
@@ -610,12 +608,12 @@ class REST_API {
 	}
 
 	/**
-	 * Get available tiers.
+	 * Get product info.
 	 *
-	 * @return WP_REST_Response Tiers response.
+	 * @return WP_REST_Response Product info response.
 	 */
-	public static function get_tiers(): WP_REST_Response {
-		return new WP_REST_Response( Config::get_public_tiers() );
+	public static function get_product_info(): WP_REST_Response {
+		return new WP_REST_Response( Config::get_public_info() );
 	}
 
 	/**
@@ -762,7 +760,8 @@ class REST_API {
 				'id'             => (int) $customer['id'],
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
-				'vps_tier'       => $customer['vps_tier'],
+				'wants_website'  => (bool) $customer['wants_website'],
+				'hetzner_type'   => $customer['hetzner_type'] ?? 'cpx22',
 				'credit_balance' => (float) $customer['credit_balance'],
 				'server_ip'      => $customer['server_ip'],
 				'status'         => $customer['status'],
@@ -803,15 +802,19 @@ class REST_API {
 	}
 
 	/**
-	 * Upgrade/change subscription plan.
+	 * Toggle website preference for customer.
+	 *
+	 * Note: This only updates the preference record. The actual server
+	 * type is determined at creation time and cannot be changed after
+	 * provisioning.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
-	public static function upgrade_plan( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$user_id  = get_current_user_id();
-		$customer = Database::get_customer_by_user_id( $user_id );
-		$new_tier = $request->get_param( 'tier' );
+	public static function toggle_website( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id       = get_current_user_id();
+		$customer      = Database::get_customer_by_user_id( $user_id );
+		$wants_website = (bool) $request->get_param( 'wants_website' );
 
 		if ( ! $customer ) {
 			return new WP_Error(
@@ -821,36 +824,15 @@ class REST_API {
 			);
 		}
 
-		// Get tier config from single source of truth.
-		$tier_config = Config::get_tier( $new_tier );
-		if ( ! $tier_config ) {
-			return new WP_Error(
-				'invalid_tier',
-				__( 'Invalid tier selected.', 'spawn' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$new_price_id = $tier_config['stripe_price_id'] ?? '';
-
-		// Update Stripe subscription if we have a subscription ID and price ID.
-		if ( ! empty( $customer['stripe_subscription'] ) && ! empty( $new_price_id ) ) {
-			$result = Payment_Helpers::update_subscription_price(
-				$customer['stripe_subscription'],
-				$new_price_id
-			);
-
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-		}
-
-		// Update database.
-		Database::update_vps_tier( (int) $customer['id'], $tier_config['hetzner_type'] );
+		// Update preference (note: doesn't change server specs after provisioning).
+		Database::update_wants_website( (int) $customer['id'], $wants_website );
 
 		return new WP_REST_Response( [
-			'success' => true,
-			'tier'    => $new_tier,
+			'success'       => true,
+			'wants_website' => $wants_website,
+			'note'          => $customer['status'] === 'active'
+				? __( 'Preference updated. Server type cannot be changed after provisioning.', 'spawn' )
+				: __( 'Preference updated.', 'spawn' ),
 		] );
 	}
 

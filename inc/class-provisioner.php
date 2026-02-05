@@ -53,14 +53,20 @@ class Provisioner {
 		$stripe_settings = get_option( 'stripe_integration_settings', [] );
 		$is_test_mode    = ! empty( $stripe_settings['test_mode'] );
 
+		// Get server config based on website preference.
+		$wants_website = ! empty( $params['wants_website'] );
+		$server_config = Config::get_server_config( $wants_website );
+
 		// Build the job request.
 		$job_data = [
 			'module_id' => 'vps-provisioner',
 			'inputs'    => [
 				'customer_email'           => $params['customer_email'],
-				'domain'                   => $params['domain'],
+				'domain'                   => $params['domain'] ?? '',
 				'subdomain'                => $is_subdomain,
-				'tier'                     => $params['tier'] ?? 'starter',
+				'wants_website'            => $wants_website,
+				'hetzner_type'             => $server_config['hetzner_type'],
+				'hetzner_location'         => $server_config['location'],
 				'site_title'               => $params['site_title'] ?? '',
 				'skip_domain_registration' => $skip_domain_registration,
 				'dry_run'                  => $is_test_mode,
@@ -72,10 +78,11 @@ class Provisioner {
 		}
 
 		error_log( sprintf(
-			'[Spawn Provisioner] Triggering job for %s (tier: %s, subdomain: %s)',
-			$params['domain'],
-			$params['tier'] ?? 'starter',
-			$is_subdomain ? 'yes' : 'no'
+			'[Spawn Provisioner] Triggering job for %s (wants_website: %s, server: %s @ %s)',
+			$params['domain'] ?? 'no-domain',
+			$wants_website ? 'yes' : 'no',
+			$server_config['hetzner_type'],
+			$server_config['location']
 		) );
 
 		// Make request to Sweatpants API.

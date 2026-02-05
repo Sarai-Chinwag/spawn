@@ -176,53 +176,61 @@ class Webhook {
 	 * @param array $metadata Session metadata.
 	 */
 	private static function process_subscription_checkout( array $session, array $metadata ): void {
-		$domain       = $metadata['domain'] ?? '';
-		$domain_type  = $metadata['domain_type'] ?? 'subdomain';
-		$domain_price = (float) ( $metadata['domain_price'] ?? 0 );
-		$tier         = $metadata['tier'] ?? 'starter';
-		$email        = $session['customer_email'] ?? '';
+		$domain        = $metadata['domain'] ?? '';
+		$domain_type   = $metadata['domain_type'] ?? 'subdomain';
+		$domain_price  = (float) ( $metadata['domain_price'] ?? 0 );
+		$wants_website = filter_var( $metadata['wants_website'] ?? false, FILTER_VALIDATE_BOOLEAN );
+		$email         = $session['customer_email'] ?? '';
 
-		if ( empty( $domain ) || empty( $email ) ) {
-			error_log( '[Spawn] Checkout completed but missing domain or email' );
+		// Email is always required.
+		if ( empty( $email ) ) {
+			error_log( '[Spawn] Checkout completed but missing email' );
 			error_log( sprintf( '[Spawn] Session data: %s', wp_json_encode( $session ) ) );
 			return;
 		}
 
-		$tier_config  = Config::get_tier( $tier ) ?? Config::get_tier( 'starter' );
+		// Domain is only required if customer wants a website.
+		if ( $wants_website && empty( $domain ) ) {
+			error_log( '[Spawn] Checkout completed with wants_website=true but missing domain' );
+			return;
+		}
+
 		$is_subdomain = 'subdomain' === $domain_type;
 
-		$existing = Database::get_customer_by_domain( $domain );
-		if ( $existing ) {
-			error_log( sprintf( '[Spawn] Domain already exists in database: %s', $domain ) );
-			return;
+		// Check for existing customer with same domain (if domain provided).
+		if ( ! empty( $domain ) ) {
+			$existing = Database::get_customer_by_domain( $domain );
+			if ( $existing ) {
+				error_log( sprintf( '[Spawn] Domain already exists in database: %s', $domain ) );
+				return;
+			}
 		}
 
 		$customer_id = Database::create_customer( [
 			'email'               => $email,
-			'domain'              => $domain,
+			'domain'              => $domain ?: null,
 			'domain_type'         => $domain_type,
 			'domain_price'        => $domain_price > 0 ? $domain_price : null,
 			'subdomain'           => $is_subdomain,
-			'vps_tier'            => $tier_config['hetzner_type'],
+			'wants_website'       => $wants_website,
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
 			'status'              => 'provisioning',
-			'credit_balance'      => $tier_config['included_credits'],
 		] );
 
 		if ( ! $customer_id ) {
 			error_log( '[Spawn] Failed to create customer record' );
-			error_log( sprintf( '[Spawn] Attempted data: email=%s, domain=%s, tier=%s', $email, $domain, $tier ) );
+			error_log( sprintf( '[Spawn] Attempted data: email=%s, domain=%s, wants_website=%s', $email, $domain, $wants_website ? 'yes' : 'no' ) );
 			return;
 		}
 
-		error_log( sprintf( '[Spawn] Created customer #%d for %s (%s)', $customer_id, $domain, $email ) );
+		error_log( sprintf( '[Spawn] Created customer #%d for %s (wants_website: %s)', $customer_id, $email, $wants_website ? 'yes' : 'no' ) );
 
 		$result = Provisioner::trigger( [
 			'customer_id'    => $customer_id,
 			'customer_email' => $email,
 			'domain'         => $domain,
-			'tier'           => $tier,
+			'wants_website'  => $wants_website,
 			'subdomain'      => $is_subdomain,
 		] );
 
