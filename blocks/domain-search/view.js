@@ -3,6 +3,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-domain-search' );
 
 	blocks.forEach( function ( block ) {
+		// Clear loading state from PHP render
+		block.innerHTML = '';
+
 		const form = document.createElement( 'form' );
 		form.className = 'wp-block-spawn-domain-search__form';
 
