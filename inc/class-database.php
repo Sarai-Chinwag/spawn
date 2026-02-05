@@ -37,6 +37,9 @@ class Database {
 			email varchar(255) NOT NULL,
 			domain varchar(255) NOT NULL,
 			subdomain tinyint(1) NOT NULL DEFAULT 0,
+			domain_type varchar(20) NOT NULL DEFAULT 'subdomain',
+			domain_price decimal(10,2) DEFAULT NULL,
+			domain_expires_at datetime DEFAULT NULL,
 			vps_tier varchar(50) NOT NULL DEFAULT 'cx22',
 			ai_tier varchar(50) NOT NULL DEFAULT '1k',
 			ai_calls_used int(11) NOT NULL DEFAULT 0,
@@ -58,7 +61,8 @@ class Database {
 			KEY email (email),
 			KEY domain (domain),
 			KEY stripe_subscription (stripe_subscription),
-			KEY status (status)
+			KEY status (status),
+			KEY domain_expires_at (domain_expires_at)
 		) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -83,8 +87,15 @@ class Database {
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
-		$ai_tier = $data['ai_tier'] ?? '1k';
-		$ai_limit = self::AI_TIER_LIMITS[ $ai_tier ] ?? 1000;
+		$ai_tier     = $data['ai_tier'] ?? '1k';
+		$ai_limit    = self::AI_TIER_LIMITS[ $ai_tier ] ?? 1000;
+		$domain_type = $data['domain_type'] ?? 'subdomain';
+
+		// Set domain expiration to 1 year from now if registering domain.
+		$domain_expires = null;
+		if ( 'register' === $domain_type && ! empty( $data['domain_price'] ) ) {
+			$domain_expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 year' ) );
+		}
 
 		$result = $wpdb->insert(
 			self::get_table_name(),
@@ -92,7 +103,10 @@ class Database {
 				'user_id'             => $data['user_id'] ?? null,
 				'email'               => $data['email'],
 				'domain'              => $data['domain'],
-				'subdomain'           => $data['subdomain'] ? 1 : 0,
+				'subdomain'           => 'subdomain' === $domain_type ? 1 : 0,
+				'domain_type'         => $domain_type,
+				'domain_price'        => $data['domain_price'] ?? null,
+				'domain_expires_at'   => $domain_expires,
 				'vps_tier'            => $data['vps_tier'] ?? 'cx22',
 				'ai_tier'             => $ai_tier,
 				'ai_calls_used'       => 0,
@@ -102,7 +116,7 @@ class Database {
 				'status'              => $data['status'] ?? 'pending',
 				'created_at'          => current_time( 'mysql' ),
 			],
-			[ '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' ]
+			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' ]
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -402,5 +416,46 @@ class Database {
 		);
 
 		return $results ?: [];
+	}
+
+	/**
+	 * Get customers with domains expiring within given days.
+	 *
+	 * @param int $days Number of days to look ahead.
+	 * @return array Customers with expiring domains.
+	 */
+	public static function get_expiring_domains( int $days = 30 ): array {
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE domain_type = 'register' AND domain_expires_at IS NOT NULL AND domain_expires_at <= DATE_ADD(NOW(), INTERVAL %d DAY) AND domain_expires_at > NOW() AND status = 'active' ORDER BY domain_expires_at ASC",
+				self::get_table_name(),
+				$days
+			),
+			ARRAY_A
+		);
+
+		return $results ?: [];
+	}
+
+	/**
+	 * Renew domain for a customer (extends expiration by 1 year).
+	 *
+	 * @param int $id Customer ID.
+	 * @return bool Success.
+	 */
+	public static function renew_domain( int $id ): bool {
+		global $wpdb;
+
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET domain_expires_at = DATE_ADD(domain_expires_at, INTERVAL 1 YEAR), renewed_at = NOW() WHERE id = %d AND domain_type = 'register'",
+				self::get_table_name(),
+				$id
+			)
+		);
+
+		return $result !== false;
 	}
 }

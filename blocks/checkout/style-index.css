@@ -2,6 +2,13 @@
 .wp-block-spawn-checkout {
 	max-width: 1000px;
 	margin: var(--space-xl, 30px) auto;
+	padding: 0 15px;
+}
+
+@media (min-width: 768px) {
+	.wp-block-spawn-checkout {
+		padding: 0;
+	}
 }
 
 .wp-block-spawn-checkout__container {
@@ -35,10 +42,29 @@
 	color: var(--color-text-light, #666);
 }
 
-.wp-block-spawn-checkout__summary p:last-child {
+.wp-block-spawn-checkout__summary .summary-line {
+	display: flex;
+	justify-content: space-between;
+	margin: var(--space-xs, 5px) 0;
+	color: var(--color-text-light, #666);
+}
+
+.wp-block-spawn-checkout__summary .summary-divider {
+	border-top: 1px solid var(--color-border, #ddd);
+	margin: var(--space-sm, 10px) 0;
+}
+
+.wp-block-spawn-checkout__summary .summary-total {
 	font-weight: 700;
-	font-size: 1.2em;
+	font-size: 1.1em;
 	color: var(--color-primary, #1fc5e2);
+}
+
+.wp-block-spawn-checkout__summary .summary-note {
+	font-size: var(--font-size-small, 0.85em);
+	color: var(--color-text-light, #666);
+	margin-top: var(--space-sm, 10px);
+	font-style: italic;
 }
 
 .wp-block-spawn-checkout__form {

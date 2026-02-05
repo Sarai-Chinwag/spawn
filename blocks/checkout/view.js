@@ -30,14 +30,43 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			if ( block.dataset.showOrderSummary !== 'false' ) {
 				orderSummary = document.createElement( 'div' );
 				orderSummary.className = 'wp-block-spawn-checkout__summary';
-				const domainText = selectedDomain
-					? selectedDomain.domain
-					: 'Free subdomain (chosen after signup)';
-				orderSummary.innerHTML = `
+
+				let domainText = 'Free subdomain (chosen after signup)';
+				let domainPriceText = '';
+				if ( selectedDomain ) {
+					domainText = selectedDomain.domain;
+					if (
+						selectedDomain.type === 'register' &&
+						selectedDomain.price > 0
+					) {
+						domainPriceText = ` - $${ selectedDomain.price }/year`;
+					} else if ( selectedDomain.type === 'byod' ) {
+						domainPriceText = ' (bring your own)';
+					}
+				}
+
+				const vpsPrice = parseFloat( selectedTier.price );
+				const domainPrice =
+					selectedDomain?.type === 'register'
+						? parseFloat( selectedDomain.price )
+						: 0;
+				const firstPayment = vpsPrice + domainPrice;
+
+				let summaryHtml = `
 					<h4>Order Summary</h4>
-					<p>Domain: ${ domainText }</p>
-					<p>Plan: ${ selectedTier.name } - $${ selectedTier.price }/mo</p>
+					<div class="summary-line"><span>Domain:</span> <span>${ domainText }${ domainPriceText }</span></div>
+					<div class="summary-line"><span>Plan:</span> <span>${ selectedTier.name } - $${ selectedTier.price }/mo</span></div>
 				`;
+
+				if ( domainPrice > 0 ) {
+					summaryHtml += `
+					<div class="summary-divider"></div>
+					<div class="summary-line summary-total"><span>First payment:</span> <span>$${ firstPayment.toFixed( 2 ) }</span></div>
+					<div class="summary-note">Includes one-time domain registration. Renewals are $${ domainPrice }/year.</div>
+					`;
+				}
+
+				orderSummary.innerHTML = summaryHtml;
 				container.appendChild( orderSummary );
 			}
 
@@ -75,6 +104,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					method: 'POST',
 					data: {
 						domain: selectedDomain ? selectedDomain.domain : null,
+						domain_type: selectedDomain
+							? selectedDomain.type
+							: 'subdomain',
+						domain_price:
+							selectedDomain?.type === 'register'
+								? selectedDomain.price
+								: 0,
 						tier: selectedTier.id,
 						email,
 					},

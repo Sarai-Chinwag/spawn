@@ -59,23 +59,28 @@ class REST_API {
 				'callback'            => [ __CLASS__, 'create_checkout_session' ],
 				'permission_callback' => '__return_true',
 				'args'                => [
-					'domain'   => [
-						'required' => true,
+					'domain'       => [
+						'required' => false,
 						'type'     => 'string',
 					],
-					'tier'     => [
+					'domain_type'  => [
+						'type'    => 'string',
+						'enum'    => [ 'subdomain', 'register', 'byod' ],
+						'default' => 'subdomain',
+					],
+					'domain_price' => [
+						'type'    => 'number',
+						'default' => 0,
+					],
+					'tier'         => [
 						'required' => true,
 						'type'     => 'string',
 						'enum'     => [ 'starter', 'pro', 'business' ],
 					],
-					'email'    => [
+					'email'        => [
 						'required' => true,
 						'type'     => 'string',
 						'format'   => 'email',
-					],
-					'subdomain' => [
-						'type'    => 'boolean',
-						'default' => false,
 					],
 				],
 			]
@@ -365,10 +370,11 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function create_checkout_session( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$domain    = sanitize_text_field( $request->get_param( 'domain' ) );
-		$tier      = sanitize_text_field( $request->get_param( 'tier' ) );
-		$email     = sanitize_email( $request->get_param( 'email' ) );
-		$subdomain = (bool) $request->get_param( 'subdomain' );
+		$domain       = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
+		$domain_type  = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
+		$domain_price = (float) $request->get_param( 'domain_price' );
+		$tier         = sanitize_text_field( $request->get_param( 'tier' ) );
+		$email        = sanitize_email( $request->get_param( 'email' ) );
 
 		// Get tier pricing.
 		$tiers = self::get_tier_config();
@@ -382,23 +388,46 @@ class REST_API {
 
 		$tier_config = $tiers[ $tier ];
 
+		// Build line items.
+		$line_items = [
+			[
+				'price'    => $tier_config['stripe_price_id'],
+				'quantity' => 1,
+			],
+		];
+
+		// Add domain registration as one-time fee if applicable.
+		if ( 'register' === $domain_type && $domain_price > 0 ) {
+			$line_items[] = [
+				'price_data' => [
+					'currency'     => 'usd',
+					'unit_amount'  => (int) ( $domain_price * 100 ), // Stripe uses cents.
+					'product_data' => [
+						'name'        => sprintf(
+							/* translators: %s: domain name */
+							__( 'Domain Registration: %s', 'spawn' ),
+							$domain
+						),
+						'description' => __( 'One-time domain registration fee (1 year)', 'spawn' ),
+					],
+				],
+				'quantity'   => 1,
+			];
+		}
+
 		// Create Stripe checkout session.
 		$session = Stripe::create_checkout_session( [
 			'customer_email' => $email,
 			'metadata'       => [
-				'domain'    => $domain,
-				'tier'      => $tier,
-				'subdomain' => $subdomain ? '1' : '0',
+				'domain'       => $domain,
+				'domain_type'  => $domain_type,
+				'domain_price' => $domain_price,
+				'tier'         => $tier,
 			],
-			'line_items'     => [
-				[
-					'price'    => $tier_config['stripe_price_id'],
-					'quantity' => 1,
-				],
-			],
+			'line_items'     => $line_items,
 			'mode'           => 'subscription',
 			'success_url'    => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
-			'cancel_url'     => home_url( '/spawn/pricing' ),
+			'cancel_url'     => home_url( '/spawn/' ),
 		] );
 
 		if ( is_wp_error( $session ) ) {
@@ -406,8 +435,7 @@ class REST_API {
 		}
 
 		return new WP_REST_Response( [
-			'session_id'   => $session['id'],
-			'checkout_url' => $session['url'],
+			'url' => $session['url'],
 		] );
 	}
 

@@ -1,4 +1,8 @@
 import apiFetch from '@wordpress/api-fetch';
+
+const searchIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>';
+const loadingIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+
 document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-domain-search' );
 
@@ -18,8 +22,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		const button = document.createElement( 'button' );
 		button.type = 'submit';
-		button.textContent = 'Search';
+		button.innerHTML = searchIcon;
 		button.className = 'wp-block-spawn-domain-search__button';
+		button.setAttribute( 'aria-label', 'Search' );
 
 		const results = document.createElement( 'div' );
 		results.className = 'wp-block-spawn-domain-search__results';
@@ -29,6 +34,39 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		block.appendChild( form );
 		block.appendChild( results );
 
+		// BYOD (Bring Your Own Domain) section
+		const byodSection = document.createElement( 'div' );
+		byodSection.className = 'wp-block-spawn-domain-search__byod';
+		byodSection.innerHTML = `
+			<p class="byod-label">Already have a domain?</p>
+			<div class="byod-form">
+				<input type="text" placeholder="yourdomain.com" class="byod-input" />
+				<button type="button" class="byod-btn">Use My Domain</button>
+			</div>
+			<p class="byod-note">You'll need to point your domain's DNS to our servers after signup.</p>
+		`;
+		block.appendChild( byodSection );
+
+		const byodInput = byodSection.querySelector( '.byod-input' );
+		const byodBtn = byodSection.querySelector( '.byod-btn' );
+		byodBtn.addEventListener( 'click', function () {
+			const domain = byodInput.value.trim();
+			if ( ! domain ) {
+				return;
+			}
+			block.setAttribute( 'data-selected-domain', domain );
+			const event = new CustomEvent( 'spawn:domain-selected', {
+				detail: {
+					domain,
+					price: 0,
+					type: 'byod',
+				},
+			} );
+			document.dispatchEvent( event );
+			// Visual feedback
+			byodSection.innerHTML = `<p class="byod-selected">✓ Using your domain: <strong>${ domain }</strong></p>`;
+		} );
+
 		form.addEventListener( 'submit', function ( e ) {
 			e.preventDefault();
 			const domain = input.value.trim();
@@ -37,7 +75,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 
 			button.disabled = true;
-			button.textContent = 'Searching...';
+			button.innerHTML = loadingIcon;
 			results.innerHTML = '';
 
 			apiFetch( {
@@ -72,6 +110,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 									detail: {
 										domain,
 										price: response.price,
+										type: 'register',
 									},
 								}
 							);
@@ -96,7 +135,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 							const event = new CustomEvent(
 								'spawn:domain-selected',
 								{
-									detail: { domain: subdomain, price: 0 },
+									detail: {
+										domain: subdomain,
+										price: 0,
+										type: 'subdomain',
+									},
 								}
 							);
 							document.dispatchEvent( event );
@@ -142,13 +185,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					}
 
 					button.disabled = false;
-					button.textContent = 'Search';
+					button.innerHTML = searchIcon;
 				} )
 				.catch( function () {
 					results.innerHTML =
 						'<p>Error searching domain. Please try again.</p>';
 					button.disabled = false;
-					button.textContent = 'Search';
+					button.innerHTML = searchIcon;
 				} );
 		} );
 	} );

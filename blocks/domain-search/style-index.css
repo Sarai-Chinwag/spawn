@@ -2,23 +2,28 @@
 .wp-block-spawn-domain-search {
 	max-width: 1000px;
 	margin: 0 auto var(--space-lg, 20px);
+	padding: 0 15px;
+}
+
+@media (min-width: 768px) {
+	.wp-block-spawn-domain-search {
+		padding: 0;
+	}
 }
 
 .wp-block-spawn-domain-search__form {
 	display: flex;
-	gap: 0;
-	max-width: 500px;
-	margin: 0 auto;
 }
 
 .wp-block-spawn-domain-search__input {
 	flex: 1;
 	padding: var(--space-md, 15px);
 	border: 2px solid var(--color-border, #ddd);
-	border-right: none;
 	border-radius: 5px 0 0 5px;
+	border-right: none;
 	font-size: inherit;
 	font-family: inherit;
+	box-sizing: border-box;
 }
 
 .wp-block-spawn-domain-search__input:focus {
@@ -31,11 +36,12 @@
 	border: 2px solid var(--color-primary, #1fc5e2);
 	border-radius: 0 5px 5px 0;
 	color: var(--color-background, #fff);
-	padding: var(--space-md, 15px) var(--space-xl, 30px);
+	padding: var(--space-md, 15px) var(--space-lg, 20px);
 	cursor: pointer;
-	font-weight: 600;
+	font-size: 1.2em;
 	transition: background-color 0.2s;
-	white-space: nowrap;
+	box-sizing: border-box;
+	margin: 0;
 }
 
 .wp-block-spawn-domain-search__button:hover {
@@ -45,6 +51,19 @@
 .wp-block-spawn-domain-search__button:disabled {
 	opacity: 0.6;
 	cursor: wait;
+}
+
+.wp-block-spawn-domain-search__button svg {
+	display: block;
+}
+
+.wp-block-spawn-domain-search__button svg.spin {
+	animation: spawn-spin 1s linear infinite;
+}
+
+@keyframes spawn-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
 }
 
 .wp-block-spawn-domain-search__results {
@@ -136,4 +155,66 @@
 .wp-block-spawn-domain-search .suggestion-btn:hover {
 	border-color: var(--color-primary, #1fc5e2);
 	color: var(--color-primary, #1fc5e2);
+}
+
+/* BYOD (Bring Your Own Domain) section */
+.wp-block-spawn-domain-search__byod {
+	margin-top: var(--space-lg, 20px);
+	padding-top: var(--space-lg, 20px);
+	border-top: 2px dashed var(--color-border, #ddd);
+	text-align: center;
+}
+
+.wp-block-spawn-domain-search__byod .byod-label {
+	font-weight: 600;
+	margin-bottom: var(--space-sm, 10px);
+}
+
+.wp-block-spawn-domain-search__byod .byod-form {
+	display: flex;
+	gap: var(--space-sm, 10px);
+	max-width: 400px;
+	margin: 0 auto;
+}
+
+.wp-block-spawn-domain-search__byod .byod-input {
+	flex: 1;
+	padding: var(--space-sm, 10px);
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 5px;
+	font-size: inherit;
+	font-family: inherit;
+}
+
+.wp-block-spawn-domain-search__byod .byod-input:focus {
+	outline: none;
+	border-color: var(--color-primary, #1fc5e2);
+}
+
+.wp-block-spawn-domain-search__byod .byod-btn {
+	background-color: transparent;
+	border: 2px solid var(--color-primary, #1fc5e2);
+	border-radius: 5px;
+	color: var(--color-primary, #1fc5e2);
+	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	cursor: pointer;
+	font-weight: 600;
+	white-space: nowrap;
+	transition: background-color 0.2s, color 0.2s;
+}
+
+.wp-block-spawn-domain-search__byod .byod-btn:hover {
+	background-color: var(--color-primary, #1fc5e2);
+	color: var(--color-background, #fff);
+}
+
+.wp-block-spawn-domain-search__byod .byod-note {
+	font-size: var(--font-size-small, 0.85em);
+	color: var(--color-text-light, #666);
+	margin-top: var(--space-sm, 10px);
+}
+
+.wp-block-spawn-domain-search__byod .byod-selected {
+	color: var(--color-primary, #1fc5e2);
+	font-weight: 600;
 }
