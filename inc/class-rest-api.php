@@ -428,6 +428,29 @@ class REST_API {
 			]
 		);
 
+		// Chat: Generate session title via system agent.
+		register_rest_route(
+			self::NAMESPACE,
+			'/chat/generate-title',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'chat_generate_title' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'username' => [
+						'type'              => 'string',
+						'default'           => 'friend',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'wordBank' => [
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
 		// Account: Get domain auto-renew setting.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1505,6 +1528,79 @@ class REST_API {
 		return new WP_REST_Response( [
 			'reply' => $reply,
 		] );
+	}
+
+	/**
+	 * Generate a creative session title using system agent.
+	 *
+	 * Uses word bank + username to generate a fun title without
+	 * accessing user's chat content (privacy-safe).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response with title.
+	 */
+	public static function chat_generate_title( WP_REST_Request $request ): WP_REST_Response {
+		$username  = sanitize_text_field( $request->get_param( 'username' ) ) ?: 'friend';
+		$word_bank = sanitize_text_field( $request->get_param( 'wordBank' ) );
+
+		// Default word bank if not provided.
+		if ( empty( $word_bank ) ) {
+			$word_bank = 'curious, mystical, cosmic, enchanted, wandering, crow, phoenix, bloom, quest, star';
+		}
+
+		// Use control plane OpenClaw for title generation.
+		$gateway_base  = rtrim( get_option( 'spawn_openclaw_gateway_url', '' ), '/' );
+		$gateway_token = get_option( 'spawn_openclaw_token', '' );
+
+		if ( empty( $gateway_base ) || empty( $gateway_token ) ) {
+			// Fallback: simple random combo.
+			$words = explode( ', ', $word_bank );
+			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
+		}
+
+		$prompt = sprintf(
+			"Generate a creative, whimsical chat session title (2-4 words) for a user named '%s'. " .
+			"Be inspired by these vibes: %s. " .
+			"Make it fun and memorable. Return ONLY the title, nothing else.",
+			$username,
+			$word_bank
+		);
+
+		$response = wp_remote_post( $gateway_base . '/v1/chat/completions', [
+			'headers' => [
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $gateway_token,
+			],
+			'body'    => wp_json_encode( [
+				'model'      => 'openclaw:main',
+				'messages'   => [
+					[ 'role' => 'user', 'content' => $prompt ],
+				],
+				'max_tokens' => 20,
+			] ),
+			'timeout' => 15,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			// Fallback on error.
+			$words = explode( ', ', $word_bank );
+			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$title = trim( $body['choices'][0]['message']['content'] ?? '' );
+		$title = trim( $title, '"\'.' );
+
+		if ( empty( $title ) || strlen( $title ) > 50 ) {
+			// Fallback if response is weird.
+			$words = explode( ', ', $word_bank );
+			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
+		}
+
+		return new WP_REST_Response( [ 'title' => $title, 'method' => 'ai' ] );
 	}
 
 	/**

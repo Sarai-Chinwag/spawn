@@ -33,36 +33,52 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		let verbInterval = null;
 		let currentVerbIndex = 0;
 
-		// Fun session name components (Sarai-branded)
-		const sessionAdjectives = [
-			'Curious', 'Mystical', 'Cosmic', 'Enchanted', 'Wandering',
-			'Dreaming', 'Starlit', 'Moonlit', 'Crystal', 'Golden',
-			'Whispering', 'Dancing', 'Glowing', 'Hidden', 'Sacred',
+		// Word bank for session title generation (Sarai vibes)
+		const sessionWordBank = [
+			'curious', 'mystical', 'cosmic', 'enchanted', 'wandering',
+			'dreaming', 'starlit', 'moonlit', 'crystal', 'golden',
+			'whispering', 'dancing', 'glowing', 'hidden', 'sacred',
+			'crow', 'sparrow', 'phoenix', 'butterfly', 'firefly',
+			'musing', 'wonder', 'quest', 'journey', 'vision',
+			'bloom', 'garden', 'river', 'mountain', 'star',
+			'feather', 'sunflower', 'twilight', 'aurora', 'ember',
 		];
-		const sessionNouns = [
-			'Crow', 'Sparrow', 'Phoenix', 'Butterfly', 'Firefly',
-			'Musing', 'Wonder', 'Quest', 'Journey', 'Vision',
-			'Bloom', 'Garden', 'River', 'Mountain', 'Star',
-		];
 
-		function generateSessionName() {
-			// Try to get username from context or page
-			const username = context.username || window.spawnUsername || '';
-			const firstLetter = username.charAt( 0 ).toUpperCase();
+		// Quick fallback while AI generates
+		function generateFallbackName() {
+			const adj = sessionWordBank[ Math.floor( Math.random() * 15 ) ]; // First 15 are adjectives
+			const noun = sessionWordBank[ 15 + Math.floor( Math.random() * 15 ) ]; // Rest are nouns
+			return adj.charAt( 0 ).toUpperCase() + adj.slice( 1 ) + ' ' + noun.charAt( 0 ).toUpperCase() + noun.slice( 1 );
+		}
 
-			// Find adjectives/nouns starting with user's first letter (if possible)
-			let adj = sessionAdjectives.find( ( a ) => a.charAt( 0 ) === firstLetter );
-			let noun = sessionNouns.find( ( n ) => n.charAt( 0 ) === firstLetter );
+		// Generate AI-powered session title via system agent
+		async function generateSessionTitle( sessionKey ) {
+			const username = context.username || 'friend';
+			const wordBankSample = sessionWordBank.sort( () => 0.5 - Math.random() ).slice( 0, 12 ).join( ', ' );
 
-			// Fallback to random if no match
-			if ( ! adj ) {
-				adj = sessionAdjectives[ Math.floor( Math.random() * sessionAdjectives.length ) ];
+			try {
+				const response = await apiFetch( {
+					path: '/spawn/v1/chat/generate-title',
+					method: 'POST',
+					data: {
+						username,
+						wordBank: wordBankSample,
+					},
+				} );
+
+				if ( response.title ) {
+					storeSessionTitle( sessionKey, response.title );
+					renderSessions(); // Update UI
+					return response.title;
+				}
+			} catch ( error ) {
+				console.log( 'Title generation failed, using fallback' );
 			}
-			if ( ! noun ) {
-				noun = sessionNouns[ Math.floor( Math.random() * sessionNouns.length ) ];
-			}
 
-			return `${ adj } ${ noun }`;
+			// Fallback to random combo
+			const fallback = generateFallbackName();
+			storeSessionTitle( sessionKey, fallback );
+			return fallback;
 		}
 
 		// ===== SESSION MANAGEMENT =====
@@ -188,9 +204,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				return storedTitle;
 			}
 
-			// Generate fun name for webchat sessions
+			// Fallback for webchat sessions (AI title will be generated async)
 			if ( key.startsWith( 'webchat-' ) ) {
-				return generateSessionName();
+				return generateFallbackName();
 			}
 
 			return 'Conversation';
@@ -412,11 +428,10 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				updateSessionIndicator();
 			}
 
-			// For new sessions or first message, update title to truncated message
+			// For new sessions, generate AI title (async, doesn't block)
 			const existingTitle = getStoredSessionTitle( currentSessionKey );
 			if ( ! existingTitle ) {
-				const truncatedTitle = text.length > 40 ? text.substring( 0, 40 ) + '...' : text;
-				storeSessionTitle( currentSessionKey, truncatedTitle );
+				generateSessionTitle( currentSessionKey ); // Fire and forget
 			}
 
 			addMessage( 'user', text );
