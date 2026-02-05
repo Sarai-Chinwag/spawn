@@ -1192,24 +1192,6 @@ class REST_API {
 			);
 		}
 
-		// Build system context for the AI.
-		$system_context = sprintf(
-			"[Spawn Dashboard Context]\n" .
-			"Customer: %s\n" .
-			"Site: %s\n" .
-			"Status: %s\n" .
-			"Mobile channel configured: %s\n\n" .
-			"You are this customer's AI assistant for their website. Help them with their site, " .
-			"and if they haven't set up mobile messaging yet, offer to walk them through setting up Telegram or Discord.",
-			$customer['email'],
-			$customer['domain'],
-			$customer['status'],
-			! empty( $context['has_mobile'] ) ? 'yes' : 'no'
-		);
-
-		// Send to customer's OpenClaw instance.
-		$openclaw_url = 'http://' . $customer['server_ip'] . ':3000/api/chat';
-
 		// For now, if no server IP yet (provisioning), use a placeholder response.
 		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
 			return new WP_REST_Response( [
@@ -1217,16 +1199,61 @@ class REST_API {
 			] );
 		}
 
-		// Make request to customer's OpenClaw.
-		$response = wp_remote_post( $openclaw_url, [
-			'headers' => [
-				'Content-Type' => 'application/json',
+		// Build system context for the AI.
+		$system_prompt = sprintf(
+			"[Spawn Web Chat - Bootstrap Interface]\n" .
+			"Platform: WordPress\n" .
+			"Customer: %s\n" .
+			"Site: %s\n" .
+			"Status: %s\n" .
+			"Mobile channel configured: %s\n\n" .
+			"This is the Spawn web chat. Help the user with their WordPress site. " .
+			"If they haven't set up mobile messaging yet, guide them through setting up " .
+			"Telegram, Discord, or Signal for a better experience.",
+			$customer['email'],
+			$customer['domain'],
+			$customer['status'],
+			! empty( $context['has_mobile'] ) ? 'yes' : 'no'
+		);
+
+		// Customer's OpenClaw gateway - uses chat completions endpoint.
+		// Gateway token stored during provisioning.
+		$gateway_url   = 'http://' . $customer['server_ip'] . ':18789/v1/chat/completions';
+		$gateway_token = $customer['openclaw_token'] ?? '';
+
+		if ( empty( $gateway_token ) ) {
+			return new WP_REST_Response( [
+				'reply' => "I'm still getting configured. Try again in a moment!",
+			] );
+		}
+
+		$payload = [
+			'model'    => 'openclaw:main',
+			'messages' => [
+				[
+					'role'    => 'system',
+					'content' => $system_prompt,
+				],
+				[
+					'role'    => 'user',
+					'content' => $message,
+				],
 			],
-			'body'    => wp_json_encode( [
-				'message'        => $message,
-				'system_context' => $system_context,
-			] ),
-			'timeout' => 60,
+		];
+
+		$headers = [
+			'Content-Type'  => 'application/json',
+			'Authorization' => 'Bearer ' . $gateway_token,
+		];
+
+		if ( ! empty( $session_key ) ) {
+			$headers['x-openclaw-session-key'] = $session_key;
+		}
+
+		$response = wp_remote_post( $gateway_url, [
+			'headers' => $headers,
+			'body'    => wp_json_encode( $payload ),
+			'timeout' => 120,
 		] );
 
 		if ( is_wp_error( $response ) ) {
@@ -1238,14 +1265,23 @@ class REST_API {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		$code = wp_remote_retrieve_response_code( $response );
 
-		if ( $code >= 400 || empty( $body['reply'] ) ) {
+		if ( $code >= 400 ) {
+			$error_msg = $body['error']['message'] ?? "HTTP $code";
 			return new WP_REST_Response( [
-				'reply' => "Something went wrong on my end. Let me try again - could you rephrase that?",
+				'reply' => "Something went wrong: $error_msg. Try again in a moment!",
+			] );
+		}
+
+		$reply = $body['choices'][0]['message']['content'] ?? null;
+
+		if ( empty( $reply ) ) {
+			return new WP_REST_Response( [
+				'reply' => "I didn't get a response. Could you try again?",
 			] );
 		}
 
 		return new WP_REST_Response( [
-			'reply' => $body['reply'],
+			'reply' => $reply,
 		] );
 	}
 

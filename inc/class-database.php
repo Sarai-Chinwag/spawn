@@ -49,6 +49,7 @@ class Database {
 			stripe_payment_method varchar(255) DEFAULT NULL,
 			server_id varchar(255) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
+			openclaw_token varchar(255) DEFAULT NULL,
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
