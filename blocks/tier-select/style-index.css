@@ -39,15 +39,14 @@
 .wp-block-spawn-tier-select .tier-card.highlighted {
 	border-color: var(--color-secondary, #ff6eb1);
 	position: relative;
-	margin-top: 12px;
 }
 
 .wp-block-spawn-tier-select .tier-card.highlighted::before {
 	content: "Most Popular";
 	position: absolute;
-	top: -12px;
+	top: 0;
 	left: 50%;
-	transform: translateX(-50%);
+	transform: translate(-50%, -50%);
 	background: var(--color-secondary, #ff6eb1);
 	color: var(--color-background, #fff);
 	padding: 4px 12px;

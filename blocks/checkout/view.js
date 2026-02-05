@@ -8,6 +8,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		let selectedTier = null;
 		let orderSummary = null;
 
+		// Clear loading state
+		block.innerHTML = '';
+
 		const container = document.createElement( 'div' );
 		container.className = 'wp-block-spawn-checkout__container';
 		block.appendChild( container );
@@ -15,11 +18,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		function updateDisplay() {
 			container.innerHTML = '';
 
-			if ( ! selectedDomain || ! selectedTier ) {
+			if ( ! selectedTier ) {
 				const waiting = document.createElement( 'p' );
 				waiting.className = 'wp-block-spawn-checkout__waiting';
 				waiting.textContent =
-					'Please select a domain and tier to proceed with checkout.';
+					'Please select a plan above to proceed.';
 				container.appendChild( waiting );
 				return;
 			}
@@ -27,11 +30,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			if ( block.dataset.showOrderSummary !== 'false' ) {
 				orderSummary = document.createElement( 'div' );
 				orderSummary.className = 'wp-block-spawn-checkout__summary';
+				const domainText = selectedDomain
+					? selectedDomain.domain
+					: 'Free subdomain (chosen after signup)';
 				orderSummary.innerHTML = `
 					<h4>Order Summary</h4>
-					<p>Domain: ${ selectedDomain.domain }</p>
-					<p>Tier: ${ selectedTier.name } - $${ selectedTier.price }</p>
-					<p>Total: $${ selectedTier.price }</p>
+					<p>Domain: ${ domainText }</p>
+					<p>Plan: ${ selectedTier.name } - $${ selectedTier.price }/mo</p>
 				`;
 				container.appendChild( orderSummary );
 			}
@@ -69,7 +74,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					path: '/spawn/v1/checkout/session',
 					method: 'POST',
 					data: {
-						domain: selectedDomain.domain,
+						domain: selectedDomain ? selectedDomain.domain : null,
 						tier: selectedTier.id,
 						email,
 					},
