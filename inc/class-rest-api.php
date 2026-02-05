@@ -1278,15 +1278,9 @@ class REST_API {
 		$site_url     = home_url();
 
 		$system_prompt = sprintf(
-			"You are chatting with the admin of %s (%s) via the Spawn admin chat widget.\n\n" .
-			"User: %s (%s)\n" .
-			"Role: Site Administrator\n\n" .
-			"This is the Spawn control plane chat. The admin can:\n" .
-			"- Ask you to help manage their WordPress site\n" .
-			"- Configure their AI agent settings\n" .
-			"- Get help with Spawn features\n" .
-			"- Ask about their site's status, content, or settings\n\n" .
-			"You have full access to their WordPress installation. Be helpful and direct.",
+			"[Spawn Chat Block]\n" .
+			"Site: %s (%s)\n" .
+			"User: %s <%s>",
 			$site_name,
 			$site_url,
 			$current_user->display_name ?: $current_user->user_login,
