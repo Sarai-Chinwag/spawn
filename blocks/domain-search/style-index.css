@@ -6,14 +6,17 @@
 
 .wp-block-spawn-domain-search__form {
 	display: flex;
-	gap: var(--space-sm, 10px);
+	gap: 0;
+	max-width: 500px;
+	margin: 0 auto;
 }
 
 .wp-block-spawn-domain-search__input {
 	flex: 1;
-	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	padding: var(--space-md, 15px);
 	border: 2px solid var(--color-border, #ddd);
-	border-radius: 5px;
+	border-right: none;
+	border-radius: 5px 0 0 5px;
 	font-size: inherit;
 	font-family: inherit;
 }
@@ -25,13 +28,14 @@
 
 .wp-block-spawn-domain-search__button {
 	background-color: var(--color-primary, #1fc5e2);
-	border: 2px solid var(--color-secondary, #ff6eb1);
-	border-radius: 5px;
+	border: 2px solid var(--color-primary, #1fc5e2);
+	border-radius: 0 5px 5px 0;
 	color: var(--color-background, #fff);
-	padding: var(--space-sm, 10px) var(--space-lg, 20px);
+	padding: var(--space-md, 15px) var(--space-xl, 30px);
 	cursor: pointer;
 	font-weight: 600;
 	transition: background-color 0.2s;
+	white-space: nowrap;
 }
 
 .wp-block-spawn-domain-search__button:hover {

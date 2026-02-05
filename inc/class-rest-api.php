@@ -337,7 +337,25 @@ class REST_API {
 			return $result;
 		}
 
+		// Apply markup to prices.
+		$markup = self::get_domain_markup();
+		if ( isset( $result['price'] ) && $result['price'] ) {
+			$result['price'] = round( $result['price'] * $markup, 2 );
+		}
+		if ( isset( $result['renewal'] ) && $result['renewal'] ) {
+			$result['renewal'] = round( $result['renewal'] * $markup, 2 );
+		}
+
 		return new WP_REST_Response( $result );
+	}
+
+	/**
+	 * Get domain price markup multiplier.
+	 *
+	 * @return float Markup multiplier (e.g., 1.5 = 50% markup).
+	 */
+	private static function get_domain_markup(): float {
+		return (float) get_option( 'spawn_domain_markup', 1.5 );
 	}
 
 	/**
