@@ -55,7 +55,7 @@ class Config {
 				'included_credits' => self::DEFAULT_STARTER_CREDITS,
 				'features'        => [
 					__( '3 vCPU, 4 GB RAM, 80 GB SSD', 'spawn' ),
-					__( '$10 AI credits included', 'spawn' ),
+					__( '1,000 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 				],
@@ -73,7 +73,7 @@ class Config {
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 2,
 				'features'        => [
 					__( '4 vCPU, 8 GB RAM, 160 GB SSD', 'spawn' ),
-					__( '$20 AI credits included', 'spawn' ),
+					__( '2,000 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
@@ -92,7 +92,7 @@ class Config {
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 4,
 				'features'        => [
 					__( '8 vCPU, 16 GB RAM, 240 GB SSD', 'spawn' ),
-					__( '$40 AI credits included', 'spawn' ),
+					__( '4,000 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 					__( 'Priority support', 'spawn' ),

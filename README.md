@@ -219,7 +219,7 @@ We charge a fair price that covers infrastructure + modest margin. Customers own
 
 ## Related Projects
 
-- [wp-openclaw](https://github.com/Sarai-Chinwag/wp-openclaw) — Generic WordPress + OpenClaw setup script
+- [wp-openclaw](https://github.com/openclaw/wp-openclaw) — Generic WordPress + OpenClaw setup script
 - [stripe-integration](https://github.com/Sarai-Chinwag/stripe-integration) — Shared Stripe functionality
 - [Sweatpants](https://github.com/Extra-Chill/sweatpants) — Python automation engine
 
