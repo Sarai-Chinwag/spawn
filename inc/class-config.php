@@ -1,11 +1,9 @@
 <?php
 /**
- * Spawn configuration - Single product model.
+ * Spawn configuration - Single source of truth for tier and server data.
  *
- * $20/month = AI Assistant (core product)
- * Credits = Usage-based (purchased separately)
- * Website = Optional add-on (free, same price)
- * Server = Auto-selected based on wants_website
+ * Tiers determine server SIZE (cpx21/cpx31/cpx41).
+ * wants_website determines server LOCATION (US for websites, EU for AI-only).
  *
  * @package Spawn
  */
@@ -18,94 +16,268 @@ namespace Spawn;
 class Config {
 
 	/**
-	 * Monthly subscription price.
+	 * Default free credits for new customers.
+	 * Starter tier gets this amount, Pro = 2x, Business = 4x.
 	 */
-	public const MONTHLY_PRICE = 20;
+	public const DEFAULT_STARTER_CREDITS = 10.00;
 
 	/**
-	 * Get server configuration based on website preference.
+	 * Get all tier configurations.
 	 *
-	 * - wants_website = true → US server (latency matters for WordPress visitors)
-	 * - wants_website = false → EU server (cheaper, latency irrelevant for chat API)
+	 * This is THE source of truth for tier data. All other code reads from here.
 	 *
-	 * @param bool $wants_website Whether customer wants a website.
-	 * @return array Server configuration.
+	 * VPS specs verified from Hetzner CLI (hcloud server-type describe):
+	 * US (ash):
+	 * - cpx21: 3 vCPU (shared), 4 GB RAM, 80 GB SSD   - $9.99/mo
+	 * - cpx31: 4 vCPU (shared), 8 GB RAM, 160 GB SSD  - $17.99/mo
+	 * - cpx41: 8 vCPU (shared), 16 GB RAM, 240 GB SSD - $33.49/mo
+	 *
+	 * EU (fsn1) - newer generation, slightly different specs:
+	 * - cpx22: 2 vCPU (shared), 4 GB RAM, 80 GB SSD   - $6.99/mo (equiv to cpx21)
+	 * - cpx32: 4 vCPU (shared), 8 GB RAM, 160 GB SSD  - $11.99/mo (equiv to cpx31)
+	 * - cpx42: 8 vCPU (shared), 16 GB RAM, 320 GB SSD - $21.99/mo (equiv to cpx41)
+	 *
+	 * Pricing:
+	 * - Starter: $20 (cpx21/22 + $10 credits)
+	 * - Pro:     $50 (cpx31/32 + $20 credits)
+	 * - Business: $100 (cpx41/42 + $40 credits)
+	 *
+	 * @return array Tier configurations keyed by tier ID.
 	 */
-	public static function get_server_config( bool $wants_website ): array {
-		if ( $wants_website ) {
-			// US server - better latency for WordPress visitors (mostly US-based)
-			return [
-				'hetzner_type' => 'cpx21',
-				'location'     => 'ash', // Ashburn, VA (US East)
-				'vcpu'         => 3,
-				'vcpu_shared'  => true,
-				'ram_gb'       => 4,
-				'disk_gb'      => 80,
-				'monthly_cost' => 9.99,
-			];
-		}
+	public static function get_tiers(): array {
+		// Get Stripe price IDs from stored options.
+		$prices = get_option( 'spawn_stripe_prices', [] );
 
-		// EU server - cheaper, latency doesn't matter for chat API
 		return [
-			'hetzner_type' => 'cpx22',
-			'location'     => 'fsn1', // Falkenstein, Germany
-			'vcpu'         => 2,
-			'vcpu_shared'  => true,
-			'ram_gb'       => 4,
-			'disk_gb'      => 80,
-			'monthly_cost' => 6.99,
-		];
-	}
-
-	/**
-	 * Get the Stripe price ID for the subscription.
-	 *
-	 * @return string Stripe price ID or empty string if not configured.
-	 */
-	public static function get_stripe_price_id(): string {
-		return get_option( 'spawn_stripe_subscription_price_id', '' );
-	}
-
-	/**
-	 * Get public product info (safe for API responses and landing page).
-	 *
-	 * @return array Product information.
-	 */
-	public static function get_public_info(): array {
-		return [
-			'name'        => __( 'Spawn', 'spawn' ),
-			'tagline'     => __( 'Spawn Your Own AI', 'spawn' ),
-			'price'       => self::MONTHLY_PRICE,
-			'description' => __( 'Your personal AI assistant in a box. Add a website if you want one.', 'spawn' ),
-			'features'    => [
-				__( 'Personal AI assistant powered by Claude', 'spawn' ),
-				__( 'Chat from anywhere - phone, computer, anywhere', 'spawn' ),
-				__( 'Your AI learns your preferences over time', 'spawn' ),
-				__( 'Optional WordPress website included free', 'spawn' ),
-				__( 'Full data portability - export anytime', 'spawn' ),
+			'starter'  => [
+				'name'            => __( 'Starter', 'spawn' ),
+				'price'           => 20,
+				'description'     => __( 'Perfect for personal use', 'spawn' ),
+				'stripe_price_id' => $prices['vps_starter'] ?? '',
+				'hetzner_type_us' => 'cpx21',
+				'hetzner_type_eu' => 'cpx22',
+				'vcpu'            => 3, // cpx21 has 3, cpx22 has 2
+				'vcpu_shared'     => true,
+				'ram_gb'          => 4,
+				'disk_gb'         => 80,
+				'included_credits' => self::DEFAULT_STARTER_CREDITS,
+				'features'        => [
+					__( '4 GB RAM, 80 GB SSD', 'spawn' ),
+					__( '$10 AI credits included', 'spawn' ),
+					__( 'Custom domain (optional)', 'spawn' ),
+					__( 'SSL included', 'spawn' ),
+				],
+			],
+			'pro'      => [
+				'name'            => __( 'Pro', 'spawn' ),
+				'price'           => 50,
+				'description'     => __( 'For power users and small teams', 'spawn' ),
+				'stripe_price_id' => $prices['vps_pro'] ?? '',
+				'hetzner_type_us' => 'cpx31',
+				'hetzner_type_eu' => 'cpx32',
+				'vcpu'            => 4,
+				'vcpu_shared'     => true,
+				'ram_gb'          => 8,
+				'disk_gb'         => 160,
+				'included_credits' => self::DEFAULT_STARTER_CREDITS * 2,
+				'features'        => [
+					__( '8 GB RAM, 160 GB SSD', 'spawn' ),
+					__( '$20 AI credits included', 'spawn' ),
+					__( 'Custom domain (optional)', 'spawn' ),
+					__( 'SSL included', 'spawn' ),
+					__( 'Priority support', 'spawn' ),
+				],
+			],
+			'business' => [
+				'name'            => __( 'Business', 'spawn' ),
+				'price'           => 100,
+				'description'     => __( 'For teams and heavy workloads', 'spawn' ),
+				'stripe_price_id' => $prices['vps_business'] ?? '',
+				'hetzner_type_us' => 'cpx41',
+				'hetzner_type_eu' => 'cpx42',
+				'vcpu'            => 8,
+				'vcpu_shared'     => true,
+				'ram_gb'          => 16,
+				'disk_gb'         => 240, // cpx41=240, cpx42=320
+				'included_credits' => self::DEFAULT_STARTER_CREDITS * 4,
+				'features'        => [
+					__( '16 GB RAM, 240+ GB SSD', 'spawn' ),
+					__( '$40 AI credits included', 'spawn' ),
+					__( 'Custom domain (optional)', 'spawn' ),
+					__( 'SSL included', 'spawn' ),
+					__( 'Priority support', 'spawn' ),
+					__( 'Best for coding tasks', 'spawn' ),
+				],
 			],
 		];
 	}
 
 	/**
-	 * Calculate margin for a customer.
+	 * Get a single tier configuration.
 	 *
-	 * @param bool $wants_website Whether customer has a website.
-	 * @return array Margin breakdown.
+	 * @param string $tier_id Tier ID (starter, pro, business).
+	 * @return array|null Tier config or null if not found.
 	 */
-	public static function get_margin_breakdown( bool $wants_website ): array {
-		$server       = self::get_server_config( $wants_website );
-		$stripe_fee   = ( self::MONTHLY_PRICE * 0.029 ) + 0.30; // 2.9% + $0.30
-		$net_received = self::MONTHLY_PRICE - $stripe_fee;
-		$margin       = $net_received - $server['monthly_cost'];
+	public static function get_tier( string $tier_id ): ?array {
+		$tiers = self::get_tiers();
+		return $tiers[ $tier_id ] ?? null;
+	}
+
+	/**
+	 * Get valid tier IDs.
+	 *
+	 * @return array Array of tier IDs.
+	 */
+	public static function get_tier_ids(): array {
+		return array_keys( self::get_tiers() );
+	}
+
+	/**
+	 * Get Hetzner type for a tier based on location preference.
+	 *
+	 * @param string $tier_id       Tier ID.
+	 * @param bool   $wants_website Whether customer wants a website.
+	 * @return string|null Hetzner type or null if tier not found.
+	 */
+	public static function get_hetzner_type( string $tier_id, bool $wants_website = true ): ?string {
+		$tier = self::get_tier( $tier_id );
+		if ( ! $tier ) {
+			return null;
+		}
+
+		// US server for websites (latency matters), EU for AI-only (cheaper).
+		return $wants_website ? $tier['hetzner_type_us'] : $tier['hetzner_type_eu'];
+	}
+
+	/**
+	 * Get server location based on website preference.
+	 *
+	 * @param bool $wants_website Whether customer wants a website.
+	 * @return string Hetzner location code.
+	 */
+	public static function get_server_location( bool $wants_website ): string {
+		// US (Ashburn) for websites, EU (Falkenstein) for AI-only.
+		return $wants_website ? 'ash' : 'fsn1';
+	}
+
+	/**
+	 * Get full server configuration for a tier and website preference.
+	 *
+	 * @param string $tier_id       Tier ID.
+	 * @param bool   $wants_website Whether customer wants a website.
+	 * @return array|null Server configuration or null if tier not found.
+	 */
+	public static function get_server_config( string $tier_id, bool $wants_website ): ?array {
+		$tier = self::get_tier( $tier_id );
+		if ( ! $tier ) {
+			return null;
+		}
+
+		$location = self::get_server_location( $wants_website );
+		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website );
 
 		return [
-			'price'        => self::MONTHLY_PRICE,
+			'tier'         => $tier_id,
+			'hetzner_type' => $hetzner_type,
+			'location'     => $location,
+			'vcpu'         => $tier['vcpu'],
+			'vcpu_shared'  => $tier['vcpu_shared'],
+			'ram_gb'       => $tier['ram_gb'],
+			'disk_gb'      => $tier['disk_gb'],
+		];
+	}
+
+	/**
+	 * Get included credits for a tier.
+	 *
+	 * @param string $tier_id Tier ID.
+	 * @return float Credits amount (defaults to starter credits).
+	 */
+	public static function get_included_credits( string $tier_id ): float {
+		$tier = self::get_tier( $tier_id );
+		return $tier['included_credits'] ?? self::DEFAULT_STARTER_CREDITS;
+	}
+
+	/**
+	 * Get public tier data (safe for API responses).
+	 *
+	 * Excludes internal fields like stripe_price_id and hetzner types.
+	 *
+	 * @return array Public tier data.
+	 */
+	public static function get_public_tiers(): array {
+		$tiers = self::get_tiers();
+		$public = [];
+
+		foreach ( $tiers as $id => $tier ) {
+			$public[ $id ] = [
+				'name'        => $tier['name'],
+				'price'       => $tier['price'],
+				'description' => $tier['description'],
+				'ram_gb'      => $tier['ram_gb'],
+				'disk_gb'     => $tier['disk_gb'],
+				'features'    => $tier['features'],
+			];
+		}
+
+		return $public;
+	}
+
+	/**
+	 * Get tier ID by price.
+	 *
+	 * @param int $price Monthly price.
+	 * @return string|null Tier ID or null if not found.
+	 */
+	public static function get_tier_by_price( int $price ): ?string {
+		foreach ( self::get_tiers() as $tier_id => $tier ) {
+			if ( (int) $tier['price'] === $price ) {
+				return $tier_id;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Calculate margin for a tier and location.
+	 *
+	 * @param string $tier_id       Tier ID.
+	 * @param bool   $wants_website Whether customer wants a website.
+	 * @return array|null Margin breakdown or null if tier not found.
+	 */
+	public static function get_margin_breakdown( string $tier_id, bool $wants_website ): ?array {
+		$tier = self::get_tier( $tier_id );
+		if ( ! $tier ) {
+			return null;
+		}
+
+		// Server costs (approximate).
+		$server_costs = [
+			'cpx21' => 9.99,
+			'cpx22' => 6.99,
+			'cpx31' => 17.99,
+			'cpx32' => 11.99,
+			'cpx41' => 33.49,
+			'cpx42' => 21.99,
+		];
+
+		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website );
+		$server_cost  = $server_costs[ $hetzner_type ] ?? 9.99;
+		$credits_cost = $tier['included_credits']; // $1 = $1 (pass-through).
+		$stripe_fee   = ( $tier['price'] * 0.029 ) + 0.30;
+		$net_received = $tier['price'] - $stripe_fee;
+		$total_cost   = $server_cost + $credits_cost;
+		$margin       = $net_received - $total_cost;
+
+		return [
+			'price'        => $tier['price'],
 			'stripe_fee'   => round( $stripe_fee, 2 ),
 			'net_received' => round( $net_received, 2 ),
-			'server_cost'  => $server['monthly_cost'],
+			'server_cost'  => $server_cost,
+			'credits_cost' => $credits_cost,
+			'total_cost'   => round( $total_cost, 2 ),
 			'margin'       => round( $margin, 2 ),
-			'margin_pct'   => round( ( $margin / self::MONTHLY_PRICE ) * 100, 1 ),
+			'margin_pct'   => round( ( $margin / $tier['price'] ) * 100, 1 ),
 		];
 	}
 }

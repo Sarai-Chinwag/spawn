@@ -179,7 +179,8 @@ class Webhook {
 		$domain        = $metadata['domain'] ?? '';
 		$domain_type   = $metadata['domain_type'] ?? 'subdomain';
 		$domain_price  = (float) ( $metadata['domain_price'] ?? 0 );
-		$wants_website = filter_var( $metadata['wants_website'] ?? false, FILTER_VALIDATE_BOOLEAN );
+		$tier          = $metadata['tier'] ?? 'starter';
+		$wants_website = filter_var( $metadata['wants_website'] ?? true, FILTER_VALIDATE_BOOLEAN );
 		$email         = $session['customer_email'] ?? '';
 
 		// Email is always required.
@@ -212,6 +213,7 @@ class Webhook {
 			'domain_type'         => $domain_type,
 			'domain_price'        => $domain_price > 0 ? $domain_price : null,
 			'subdomain'           => $is_subdomain,
+			'tier'                => $tier,
 			'wants_website'       => $wants_website,
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
@@ -220,16 +222,17 @@ class Webhook {
 
 		if ( ! $customer_id ) {
 			error_log( '[Spawn] Failed to create customer record' );
-			error_log( sprintf( '[Spawn] Attempted data: email=%s, domain=%s, wants_website=%s', $email, $domain, $wants_website ? 'yes' : 'no' ) );
+			error_log( sprintf( '[Spawn] Attempted data: email=%s, domain=%s, tier=%s, wants_website=%s', $email, $domain, $tier, $wants_website ? 'yes' : 'no' ) );
 			return;
 		}
 
-		error_log( sprintf( '[Spawn] Created customer #%d for %s (wants_website: %s)', $customer_id, $email, $wants_website ? 'yes' : 'no' ) );
+		error_log( sprintf( '[Spawn] Created customer #%d for %s (tier: %s, wants_website: %s)', $customer_id, $email, $tier, $wants_website ? 'yes' : 'no' ) );
 
 		$result = Provisioner::trigger( [
 			'customer_id'    => $customer_id,
 			'customer_email' => $email,
 			'domain'         => $domain,
+			'tier'           => $tier,
 			'wants_website'  => $wants_website,
 			'subdomain'      => $is_subdomain,
 		] );

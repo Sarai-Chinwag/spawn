@@ -40,9 +40,10 @@ class Database {
 			domain_type varchar(20) NOT NULL DEFAULT 'subdomain',
 			domain_price decimal(10,2) DEFAULT NULL,
 			domain_expires_at datetime DEFAULT NULL,
-			wants_website tinyint(1) NOT NULL DEFAULT 0,
-			hetzner_type varchar(50) NOT NULL DEFAULT 'cpx22',
-			hetzner_location varchar(50) NOT NULL DEFAULT 'fsn1',
+			tier varchar(50) NOT NULL DEFAULT 'starter',
+			wants_website tinyint(1) NOT NULL DEFAULT 1,
+			hetzner_type varchar(50) NOT NULL DEFAULT 'cpx21',
+			hetzner_location varchar(50) NOT NULL DEFAULT 'ash',
 			stripe_customer varchar(255) DEFAULT NULL,
 			stripe_subscription varchar(255) DEFAULT NULL,
 			stripe_payment_method varchar(255) DEFAULT NULL,
@@ -56,7 +57,7 @@ class Database {
 			scheduled_deletion_at datetime DEFAULT NULL,
 			cloudflare_record_id varchar(255) DEFAULT NULL,
 			hetzner_server_id varchar(255) DEFAULT NULL,
-			credit_balance decimal(10,2) NOT NULL DEFAULT 0.00,
+			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
 			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
@@ -68,7 +69,8 @@ class Database {
 			KEY domain (domain),
 			KEY stripe_subscription (stripe_subscription),
 			KEY status (status),
-			KEY domain_expires_at (domain_expires_at)
+			KEY domain_expires_at (domain_expires_at),
+			KEY tier (tier)
 		) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -84,8 +86,15 @@ class Database {
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
-		$wants_website = ! empty( $data['wants_website'] );
-		$server_config = Config::get_server_config( $wants_website );
+		$tier          = $data['tier'] ?? 'starter';
+		$wants_website = isset( $data['wants_website'] ) ? (bool) $data['wants_website'] : true;
+		$server_config = Config::get_server_config( $tier, $wants_website );
+
+		if ( ! $server_config ) {
+			// Invalid tier, fall back to starter.
+			$tier          = 'starter';
+			$server_config = Config::get_server_config( $tier, $wants_website );
+		}
 
 		$domain_type = $data['domain_type'] ?? 'subdomain';
 
@@ -105,16 +114,17 @@ class Database {
 				'domain_type'         => $domain_type,
 				'domain_price'        => $data['domain_price'] ?? null,
 				'domain_expires_at'   => $domain_expires,
+				'tier'                => $tier,
 				'wants_website'       => $wants_website ? 1 : 0,
 				'hetzner_type'        => $server_config['hetzner_type'],
 				'hetzner_location'    => $server_config['location'],
 				'stripe_customer'     => $data['stripe_customer'] ?? null,
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
-				'credit_balance'      => $data['credit_balance'] ?? 0.00,
+				'credit_balance'      => $data['credit_balance'] ?? Config::get_included_credits( $tier ),
 				'created_at'          => current_time( 'mysql' ),
 			],
-			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s' ]
+			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s' ]
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -289,6 +299,23 @@ class Database {
 		);
 
 		return $result ?: null;
+	}
+
+	/**
+	 * Update tier for customer.
+	 *
+	 * Note: This updates the tier record but does NOT automatically
+	 * resize the server. Server resizing requires separate action.
+	 *
+	 * @param int    $id   Customer ID.
+	 * @param string $tier New tier ID.
+	 * @return bool Success.
+	 */
+	public static function update_tier( int $id, string $tier ): bool {
+		if ( ! in_array( $tier, Config::get_tier_ids(), true ) ) {
+			return false;
+		}
+		return self::update_customer( $id, [ 'tier' => $tier ] );
 	}
 
 	/**

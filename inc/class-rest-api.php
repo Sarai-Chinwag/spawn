@@ -65,9 +65,14 @@ class REST_API {
 						'type'     => 'string',
 						'format'   => 'email',
 					],
+					'tier'          => [
+						'type'    => 'string',
+						'enum'    => [ 'starter', 'pro', 'business' ],
+						'default' => 'starter',
+					],
 					'wants_website' => [
 						'type'    => 'boolean',
-						'default' => false,
+						'default' => true,
 					],
 					'domain'        => [
 						'required' => false,
@@ -86,13 +91,13 @@ class REST_API {
 			]
 		);
 
-		// Get product info/pricing.
+		// Get tiers/pricing.
 		register_rest_route(
 			self::NAMESPACE,
-			'/product',
+			'/tiers',
 			[
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_product_info' ],
+				'callback'            => [ __CLASS__, 'get_tiers' ],
 				'permission_callback' => '__return_true',
 			]
 		);
@@ -219,8 +224,25 @@ class REST_API {
 			]
 		);
 
-		// Customer: Toggle website (update wants_website preference).
-		// Note: This doesn't change server specs, just records preference.
+		// Customer: Upgrade/change plan.
+		register_rest_route(
+			self::NAMESPACE,
+			'/customer/upgrade',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'upgrade_plan' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'tier' => [
+						'required' => true,
+						'type'     => 'string',
+						'enum'     => [ 'starter', 'pro', 'business' ],
+					],
+				],
+			]
+		);
+
+		// Customer: Toggle website preference.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/toggle-website',
@@ -566,25 +588,26 @@ class REST_API {
 	 */
 	public static function create_checkout_session( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$email         = sanitize_email( $request->get_param( 'email' ) );
+		$tier          = sanitize_text_field( $request->get_param( 'tier' ) ?? 'starter' );
 		$wants_website = (bool) $request->get_param( 'wants_website' );
 		$domain        = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
 		$domain_type   = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
 		$domain_price  = (float) $request->get_param( 'domain_price' );
 
-		// Get subscription price ID.
-		$price_id = Config::get_stripe_price_id();
-		if ( empty( $price_id ) ) {
+		// Get tier pricing.
+		$tier_config = Config::get_tier( $tier );
+		if ( ! $tier_config ) {
 			return new WP_Error(
-				'not_configured',
-				__( 'Stripe subscription price not configured', 'spawn' ),
-				[ 'status' => 500 ]
+				'invalid_tier',
+				__( 'Invalid tier selected', 'spawn' ),
+				[ 'status' => 400 ]
 			);
 		}
 
 		// Build line items.
 		$line_items = [
 			[
-				'price'    => $price_id,
+				'price'    => $tier_config['stripe_price_id'],
 				'quantity' => 1,
 			],
 		];
@@ -613,6 +636,7 @@ class REST_API {
 		$session = StripeClient::create_checkout_session( [
 			'customer_email'    => $email,
 			'metadata'          => [
+				'tier'          => $tier,
 				'wants_website' => $wants_website ? 'true' : 'false',
 				'domain'        => $domain,
 				'domain_type'   => $domain_type,
@@ -624,6 +648,7 @@ class REST_API {
 			'payment_method_collection' => 'always',
 			'subscription_data' => [
 				'metadata' => [
+					'tier'   => $tier,
 					'source' => 'spawn',
 				],
 			],
@@ -641,12 +666,12 @@ class REST_API {
 	}
 
 	/**
-	 * Get product info.
+	 * Get available tiers.
 	 *
-	 * @return WP_REST_Response Product info response.
+	 * @return WP_REST_Response Tiers response.
 	 */
-	public static function get_product_info(): WP_REST_Response {
-		return new WP_REST_Response( Config::get_public_info() );
+	public static function get_tiers(): WP_REST_Response {
+		return new WP_REST_Response( Config::get_public_tiers() );
 	}
 
 	/**
@@ -874,8 +899,9 @@ class REST_API {
 				'id'             => (int) $customer['id'],
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
-				'wants_website'  => (bool) $customer['wants_website'],
-				'hetzner_type'   => $customer['hetzner_type'] ?? 'cpx22',
+				'tier'           => $customer['tier'] ?? 'starter',
+				'wants_website'  => (bool) ( $customer['wants_website'] ?? true ),
+				'hetzner_type'   => $customer['hetzner_type'] ?? 'cpx21',
 				'credit_balance' => (float) $customer['credit_balance'],
 				'server_ip'      => $customer['server_ip'],
 				'status'         => $customer['status'],
@@ -912,6 +938,58 @@ class REST_API {
 
 		return new WP_REST_Response( [
 			'url' => $portal['url'],
+		] );
+	}
+
+	/**
+	 * Upgrade/change subscription plan.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function upgrade_plan( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+		$new_tier = $request->get_param( 'tier' );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_subscription',
+				__( 'No active subscription found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Get tier config from single source of truth.
+		$tier_config = Config::get_tier( $new_tier );
+		if ( ! $tier_config ) {
+			return new WP_Error(
+				'invalid_tier',
+				__( 'Invalid tier selected.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$new_price_id = $tier_config['stripe_price_id'] ?? '';
+
+		// Update Stripe subscription if we have a subscription ID and price ID.
+		if ( ! empty( $customer['stripe_subscription'] ) && ! empty( $new_price_id ) ) {
+			$result = Payment_Helpers::update_subscription_price(
+				$customer['stripe_subscription'],
+				$new_price_id
+			);
+
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+
+		// Update database.
+		Database::update_tier( (int) $customer['id'], $new_tier );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'tier'    => $new_tier,
 		] );
 	}
 

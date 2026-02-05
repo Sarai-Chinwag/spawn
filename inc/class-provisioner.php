@@ -53,9 +53,16 @@ class Provisioner {
 		$stripe_settings = get_option( 'stripe_integration_settings', [] );
 		$is_test_mode    = ! empty( $stripe_settings['test_mode'] );
 
-		// Get server config based on website preference.
-		$wants_website = ! empty( $params['wants_website'] );
-		$server_config = Config::get_server_config( $wants_website );
+		// Get server config based on tier and website preference.
+		$tier          = $params['tier'] ?? 'starter';
+		$wants_website = isset( $params['wants_website'] ) ? (bool) $params['wants_website'] : true;
+		$server_config = Config::get_server_config( $tier, $wants_website );
+
+		if ( ! $server_config ) {
+			error_log( sprintf( '[Spawn Provisioner] Invalid tier: %s, falling back to starter', $tier ) );
+			$tier          = 'starter';
+			$server_config = Config::get_server_config( $tier, $wants_website );
+		}
 
 		// Build the job request.
 		$job_data = [
@@ -64,6 +71,7 @@ class Provisioner {
 				'customer_email'           => $params['customer_email'],
 				'domain'                   => $params['domain'] ?? '',
 				'subdomain'                => $is_subdomain,
+				'tier'                     => $tier,
 				'wants_website'            => $wants_website,
 				'hetzner_type'             => $server_config['hetzner_type'],
 				'hetzner_location'         => $server_config['location'],
@@ -78,8 +86,9 @@ class Provisioner {
 		}
 
 		error_log( sprintf(
-			'[Spawn Provisioner] Triggering job for %s (wants_website: %s, server: %s @ %s)',
+			'[Spawn Provisioner] Triggering job for %s (tier: %s, wants_website: %s, server: %s @ %s)',
 			$params['domain'] ?? 'no-domain',
+			$tier,
 			$wants_website ? 'yes' : 'no',
 			$server_config['hetzner_type'],
 			$server_config['location']
