@@ -113,7 +113,7 @@ class Provisioner {
 			);
 		}
 
-		$job_id = $body['job_id'] ?? null;
+		$job_id = $body['job_id'] ?? $body['id'] ?? null;
 
 		// Store job ID with customer record.
 		if ( ! empty( $params['customer_id'] ) && ! empty( $job_id ) ) {
