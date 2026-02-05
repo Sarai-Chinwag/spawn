@@ -52,6 +52,49 @@ function init(): void {
 	if ( is_admin() ) {
 		Admin::init();
 	}
+
+	// Disable Grow widget on Spawn pages (cleaner app experience).
+	add_action( 'wp', __NAMESPACE__ . '\\maybe_disable_grow' );
+}
+
+/**
+ * Disable Grow plugin on Spawn pages for cleaner app experience.
+ */
+function maybe_disable_grow(): void {
+	if ( ! is_page() ) {
+		return;
+	}
+
+	// Check if this is a Spawn page (chat, dashboard, login, or main spawn page).
+	$spawn_slugs = [ 'chat', 'dashboard', 'login', 'spawn' ];
+	$post        = get_post();
+
+	if ( ! $post ) {
+		return;
+	}
+
+	// Check current page or parent page.
+	$is_spawn_page = in_array( $post->post_name, $spawn_slugs, true )
+		|| ( $post->post_parent && in_array( get_post( $post->post_parent )->post_name ?? '', $spawn_slugs, true ) );
+
+	if ( ! $is_spawn_page ) {
+		return;
+	}
+
+	// Remove Grow's scripts at late priority.
+	add_action( 'wp_enqueue_scripts', function () {
+		wp_dequeue_script( 'grow-me-sdk' );
+		wp_dequeue_script( 'grow-sdk' );
+		wp_dequeue_script( 'grow-for-wp' );
+		wp_deregister_script( 'grow-me-sdk' );
+		wp_deregister_script( 'grow-sdk' );
+		wp_deregister_script( 'grow-for-wp' );
+	}, 999 );
+
+	// Hide any Grow elements that might still render via CSS.
+	add_action( 'wp_head', function () {
+		echo '<style>#grow-me-container, .grow-me-widget, [class*="grow-"] { display: none !important; }</style>';
+	}, 999 );
 }
 
 /**
