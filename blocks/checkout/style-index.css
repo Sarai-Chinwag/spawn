@@ -1,8 +1,7 @@
 /* Checkout Block - Uses theme design system */
 .wp-block-spawn-checkout {
-	max-width: 600px;
+	max-width: 1000px;
 	margin: var(--space-xl, 30px) auto;
-	padding: var(--space-lg, 20px);
 }
 
 .wp-block-spawn-checkout__container {

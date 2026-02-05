@@ -1,6 +1,6 @@
 /* Domain Search Block - Uses theme design system */
 .wp-block-spawn-domain-search {
-	max-width: 600px;
+	max-width: 1000px;
 	margin: 0 auto var(--space-lg, 20px);
 }
 
