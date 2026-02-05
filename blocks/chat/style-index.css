@@ -165,3 +165,17 @@
 .wp-block-spawn-chat__no-subscription a {
 	color: var(--color-primary, #1fc5e2);
 }
+
+/* Responsive width - don't go edge-to-edge on mobile */
+.wp-block-spawn-chat {
+    width: 92%;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 992px) {
+    .wp-block-spawn-chat {
+        width: 100%;
+        max-width: 100%;
+    }
+}

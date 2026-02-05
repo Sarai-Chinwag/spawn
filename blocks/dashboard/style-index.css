@@ -549,3 +549,17 @@
 	padding: 0.5rem;
 	font-size: 0.75rem;
 }
+
+/* Responsive width - don't go edge-to-edge on mobile */
+.wp-block-spawn-dashboard {
+    width: 92%;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 992px) {
+    .wp-block-spawn-dashboard {
+        width: 100%;
+        max-width: 100%;
+    }
+}

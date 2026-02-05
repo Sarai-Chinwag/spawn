@@ -128,3 +128,17 @@
 	color: #666;
 	margin-top: 1rem;
 }
+
+/* Responsive width - don't go edge-to-edge on mobile */
+.wp-block-spawn-login {
+    width: 92%;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 992px) {
+    .wp-block-spawn-login {
+        width: 100%;
+        max-width: 100%;
+    }
+}
