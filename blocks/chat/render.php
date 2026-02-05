@@ -67,6 +67,25 @@ if ( $is_admin && ! $customer ) {
 }
 ?>
 <div <?php echo $wrapper_attributes; ?> data-context="<?php echo esc_attr( wp_json_encode( $chat_context ) ); ?>">
+	<!-- Top navigation bar (Spawn branding) - above everything -->
+	<div class="wp-block-spawn-chat__topnav">
+		<button class="wp-block-spawn-chat__sidebar-toggle" type="button" aria-label="Toggle sidebar">
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="3" y1="12" x2="21" y2="12"></line>
+				<line x1="3" y1="6" x2="21" y2="6"></line>
+				<line x1="3" y1="18" x2="21" y2="18"></line>
+			</svg>
+		</button>
+		<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
+			<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+			<span>Spawn <em>by Sarai Chinwag</em></span>
+		</a>
+		<nav class="wp-block-spawn-chat__nav">
+			<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>
+			<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+		</nav>
+	</div>
+
 	<div class="wp-block-spawn-chat__layout">
 		<!-- Sidebar with session list -->
 		<aside class="wp-block-spawn-chat__sidebar">
@@ -88,23 +107,6 @@ if ( $is_admin && ! $customer ) {
 
 		<!-- Main chat area -->
 		<div class="wp-block-spawn-chat__main">
-			<button class="wp-block-spawn-chat__sidebar-toggle" type="button" aria-label="Toggle sidebar">
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<line x1="3" y1="12" x2="21" y2="12"></line>
-					<line x1="3" y1="6" x2="21" y2="6"></line>
-					<line x1="3" y1="18" x2="21" y2="18"></line>
-				</svg>
-			</button>
-			<div class="wp-block-spawn-chat__topnav">
-				<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
-					<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-					<span>Spawn <em>by Sarai Chinwag</em></span>
-				</a>
-				<nav class="wp-block-spawn-chat__nav">
-					<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>
-					<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
-				</nav>
-			</div>
 			<div class="wp-block-spawn-chat__messages"></div>
 			<div class="wp-block-spawn-chat__input-area">
 				<textarea class="wp-block-spawn-chat__input" placeholder="Message your AI..." rows="1"></textarea>
