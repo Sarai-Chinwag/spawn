@@ -69,6 +69,67 @@
 	font-size: 0.875rem;
 }
 
+.wp-block-spawn-login__oauth {
+	margin-bottom: 1.5rem;
+}
+
+.wp-block-spawn-login__google {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	padding: 0.7rem 0.9rem;
+	background: #fff;
+	color: #1f1f1f;
+	border: 1px solid #dadce0;
+	border-radius: 6px;
+	font-size: 1rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.wp-block-spawn-login__google:hover {
+	border-color: #c6c6c6;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.wp-block-spawn-login__google:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.wp-block-spawn-login__google-icon {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+}
+
+.wp-block-spawn-login__divider {
+	position: relative;
+	margin: 1rem 0 0.5rem;
+	text-align: center;
+	color: #777;
+	font-size: 0.875rem;
+}
+
+.wp-block-spawn-login__divider::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	border-top: 1px solid #eee;
+	transform: translateY(-50%);
+}
+
+.wp-block-spawn-login__divider span {
+	position: relative;
+	background: #fff;
+	padding: 0 0.6rem;
+}
+
 .wp-block-spawn-login__register-link {
 	margin-top: 1rem;
 	text-align: center;

@@ -3,7 +3,7 @@
  * Plugin Name: Spawn
  * Plugin URI: https://github.com/Sarai-Chinwag/spawn
  * Description: AI Website Service by Sarai Chinwag - spawn AI-powered WordPress sites
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: Sarai Chinwag
  * Author URI: https://saraichinwag.com
  * License: GPL-2.0-or-later
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SPAWN_VERSION', '0.4.0' );
+define( 'SPAWN_VERSION', '0.5.0' );
 define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );
@@ -43,6 +43,7 @@ function init(): void {
 	Blocks::init();
 	REST_API::init();
 	Webhook::init();
+	Google_OAuth::init();
 	Abilities\Abilities::init();
 	User_Role::init();
 	Cron::init();

@@ -164,6 +164,39 @@ class REST_API {
 			]
 		);
 
+		// Auth: Google OAuth configured.
+		register_rest_route(
+			self::NAMESPACE,
+			'/auth/google/configured',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'auth_google_configured' ],
+				'permission_callback' => '__return_true',
+			]
+		);
+
+		// Auth: Start Google OAuth.
+		register_rest_route(
+			self::NAMESPACE,
+			'/auth/google',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'auth_google_start' ],
+				'permission_callback' => '__return_true',
+			]
+		);
+
+		// Auth: Google OAuth callback.
+		register_rest_route(
+			self::NAMESPACE,
+			'/auth/google/callback',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'auth_google_callback' ],
+				'permission_callback' => '__return_true',
+			]
+		);
+
 		// Customer: Get current customer.
 		register_rest_route(
 			self::NAMESPACE,
@@ -736,6 +769,87 @@ class REST_API {
 		return new WP_REST_Response( [
 			'success' => true,
 		] );
+	}
+
+	/**
+	 * Check if Google OAuth is configured.
+	 *
+	 * @return WP_REST_Response Response.
+	 */
+	public static function auth_google_configured(): WP_REST_Response {
+		return new WP_REST_Response( [
+			'configured' => Google_OAuth::is_configured(),
+		] );
+	}
+
+	/**
+	 * Start Google OAuth flow.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function auth_google_start(): WP_REST_Response|WP_Error {
+		if ( ! Google_OAuth::is_configured() ) {
+			return new WP_Error(
+				'google_oauth_not_configured',
+				__( 'Google OAuth is not configured.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [
+			'auth_url' => Google_OAuth::get_auth_url(),
+		] );
+	}
+
+	/**
+	 * Handle Google OAuth callback.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function auth_google_callback( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$state = $request->get_param( 'state' );
+		$code  = $request->get_param( 'code' );
+
+		$state = sanitize_text_field( wp_unslash( $state ?? '' ) );
+		$code  = sanitize_text_field( wp_unslash( $code ?? '' ) );
+
+		if ( empty( $state ) || ! wp_verify_nonce( $state, 'spawn_google_oauth' ) ) {
+			return new WP_Error(
+				'invalid_state',
+				__( 'Invalid OAuth state.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		if ( empty( $code ) ) {
+			return new WP_Error(
+				'missing_code',
+				__( 'Missing authorization code.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$token = Google_OAuth::exchange_code_for_token( $code );
+		if ( is_wp_error( $token ) ) {
+			return $token;
+		}
+
+		$user_info = Google_OAuth::get_user_info( $token['access_token'] );
+		if ( is_wp_error( $user_info ) ) {
+			return $user_info;
+		}
+
+		$user_id = Google_OAuth::find_or_create_user( $user_info );
+		if ( is_wp_error( $user_id ) ) {
+			return $user_id;
+		}
+
+		wp_set_current_user( $user_id );
+		wp_set_auth_cookie( $user_id, true );
+
+		wp_redirect( home_url( '/spawn/dashboard/' ) );
+		exit;
 	}
 
 	/**

@@ -7,12 +7,21 @@
 
 namespace Spawn;
 
-spl_autoload_register(
-	function ( string $class ): void {
-		// Only autoload Spawn classes.
-		if ( strpos( $class, 'Spawn\\' ) !== 0 ) {
-			return;
-		}
+	spl_autoload_register(
+		function ( string $class ): void {
+			// Only autoload Spawn classes.
+			if ( strpos( $class, 'Spawn\\' ) !== 0 ) {
+				return;
+			}
+
+			$class_map = [
+				'\Spawn\Google_OAuth' => SPAWN_PLUGIN_DIR . 'inc/class-google-oauth.php',
+			];
+
+			if ( isset( $class_map[ $class ] ) ) {
+				require_once $class_map[ $class ];
+				return;
+			}
 
 		// Remove namespace prefix.
 		$relative_class = substr( $class, strlen( 'Spawn\\' ) );

@@ -34,6 +34,20 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		form.className = 'wp-block-spawn-login__form';
 		form.innerHTML = `
 			<h2>Log In</h2>
+			<div class="wp-block-spawn-login__oauth" style="display: none;">
+				<button type="button" class="wp-block-spawn-login__google">
+					<span class="wp-block-spawn-login__google-icon" aria-hidden="true">
+						<svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+							<path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.23 3.61l6.9-6.9C35.93 2.64 30.3 0 24 0 14.62 0 6.5 5.38 2.56 13.22l8.05 6.24C12.5 13.09 17.77 9.5 24 9.5z"/>
+							<path fill="#4285F4" d="M46.5 24c0-1.64-.15-3.22-.43-4.74H24v9h12.7c-.55 2.96-2.2 5.46-4.67 7.15l7.5 5.82C43.86 37.24 46.5 31.05 46.5 24z"/>
+							<path fill="#FBBC05" d="M10.61 28.98A14.46 14.46 0 0 1 9.5 24c0-1.72.3-3.39.82-4.98l-8.05-6.24A24.03 24.03 0 0 0 0 24c0 3.95.95 7.69 2.64 10.98l7.97-6z"/>
+							<path fill="#34A853" d="M24 48c6.3 0 11.93-2.08 15.9-5.68l-7.5-5.82c-2.08 1.4-4.75 2.22-8.4 2.22-6.23 0-11.5-3.59-13.39-8.76l-7.97 6C6.5 42.62 14.62 48 24 48z"/>
+						</svg>
+					</span>
+					<span>Sign in with Google</span>
+				</button>
+				<div class="wp-block-spawn-login__divider"><span>or</span></div>
+			</div>
 			<div class="wp-block-spawn-login__field">
 				<label for="spawn-login-email">Email</label>
 				<input type="email" id="spawn-login-email" name="email" required />
@@ -54,6 +68,40 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		const errorDiv = form.querySelector( '.wp-block-spawn-login__error' );
 		const submitBtn = form.querySelector( '.wp-block-spawn-login__submit' );
+		const oauthWrap = form.querySelector( '.wp-block-spawn-login__oauth' );
+		const googleBtn = form.querySelector( '.wp-block-spawn-login__google' );
+
+		apiFetch( { path: '/spawn/v1/auth/google/configured' } )
+			.then( function ( response ) {
+				if ( response && response.configured ) {
+					oauthWrap.style.display = 'block';
+				}
+			} )
+			.catch( function () {
+				oauthWrap.style.display = 'none';
+			} );
+
+		if ( googleBtn ) {
+			googleBtn.addEventListener( 'click', function () {
+				googleBtn.disabled = true;
+				googleBtn.classList.add( 'is-loading' );
+
+				apiFetch( { path: '/spawn/v1/auth/google' } )
+					.then( function ( response ) {
+						if ( response && response.auth_url ) {
+							window.location.href = response.auth_url;
+							return;
+						}
+						throw new Error( 'No auth URL returned.' );
+					} )
+					.catch( function () {
+						errorDiv.textContent = 'Google sign-in failed. Please try again.';
+						errorDiv.style.display = 'block';
+						googleBtn.disabled = false;
+						googleBtn.classList.remove( 'is-loading' );
+					} );
+			} );
+		}
 
 		form.addEventListener( 'submit', function ( e ) {
 			e.preventDefault();

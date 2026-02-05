@@ -2,17 +2,22 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
-## Unreleased
+## [0.5.0] - 2025-02-05
 
-- Add domain renewal abilities (spawn_get_domain_renewal_info, spawn_renew_domain)
+### Added
+- Google OAuth authentication for customer sign-in
+- Admin settings for Google OAuth client ID/secret
+- New REST endpoints: `/auth/google/configured`, `/auth/google`, `/auth/google/callback`
+- "Sign in with Google" button on login block
+- Domain renewal abilities (spawn_get_domain_renewal_info, spawn_renew_domain)
+- Complete cancellation flow with 7-day grace period
+- Cleanup class for VPS and DNS deletion after grace period
+- Export-site ability for full/xml/database backups
+- Database fields for cancellation tracking
+
+### Changed
 - Create single source of truth for tier configuration
-- Update pricing: Starter $25/cpx21, Pro $50/cpx31, Business $100/cpx41 (confirmed by Chubes)
-- feat: Add complete cancellation flow with 7-day grace period
-- feat: Add Cleanup class for VPS and DNS deletion after grace period
-- feat: Add export-site ability for full/xml/database backups
-- feat: Update cancel ability with confirmation requirement and export instructions
-- feat: Add database fields for cancellation tracking (scheduled_deletion_at, cloudflare_record_id, hetzner_server_id)
-- feat: Send cancellation and deletion reminder emails
+- Update pricing: Starter $25/cpx21, Pro $50/cpx31, Business $100/cpx41
 
 ## [0.2.0] - 2025-02-09
 

@@ -79,6 +79,18 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
 		register_setting( 'spawn_settings', 'spawn_openclaw_token' );
 
+		// Google OAuth settings.
+		register_setting( 'spawn_settings', 'spawn_google_client_id', [
+			'sanitize_callback' => function( $value ) {
+				return sanitize_text_field( wp_unslash( $value ) );
+			},
+		] );
+		register_setting( 'spawn_settings', 'spawn_google_client_secret', [
+			'sanitize_callback' => function( $value ) {
+				return sanitize_text_field( wp_unslash( $value ) );
+			},
+		] );
+
 		// Stripe section - now links to stripe-integration settings.
 		add_settings_section(
 			'spawn_stripe_section',
@@ -197,6 +209,34 @@ class Admin {
 			'spawn-settings',
 			'spawn_openclaw_section',
 			[ 'name' => 'spawn_openclaw_token', 'type' => 'password' ]
+		);
+
+		// Google OAuth section.
+		add_settings_section(
+			'spawn_google_oauth_section',
+			__( 'Google OAuth', 'spawn' ),
+			function() {
+				echo '<p>' . esc_html__( 'Configure Google OAuth for customer sign-in. Create credentials at console.cloud.google.com', 'spawn' ) . '</p>';
+			},
+			'spawn-settings'
+		);
+
+		add_settings_field(
+			'spawn_google_client_id',
+			__( 'Client ID', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_google_oauth_section',
+			[ 'name' => 'spawn_google_client_id' ]
+		);
+
+		add_settings_field(
+			'spawn_google_client_secret',
+			__( 'Client Secret', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_google_oauth_section',
+			[ 'name' => 'spawn_google_client_secret', 'type' => 'password' ]
 		);
 	}
 
