@@ -8,22 +8,22 @@ export default function Edit() {
 		<div { ...blockProps }>
 			<div className="wp-block-spawn-dashboard__preview">
 				<h2>{ __( 'Your Dashboard', 'spawn' ) }</h2>
-				<div className="wp-block-spawn-dashboard__cards">
-					<div className="wp-block-spawn-dashboard__card">
-						<h3>{ __( 'Server Status', 'spawn' ) }</h3>
-						<span className="status-badge status-active">Active</span>
+				<div className="wp-block-spawn-dashboard__preview-grid">
+					<div className="wp-block-spawn-dashboard__preview-card">
+						<h3>{ __( 'Credit Balance', 'spawn' ) }</h3>
+						<p>{ __( '1,250 credits', 'spawn' ) }</p>
 					</div>
-					<div className="wp-block-spawn-dashboard__card">
-						<h3>{ __( 'Domain', 'spawn' ) }</h3>
-						<p>example.saraichinwag.com</p>
+					<div className="wp-block-spawn-dashboard__preview-card">
+						<h3>{ __( 'Usage', 'spawn' ) }</h3>
+						<p>{ __( 'Chart placeholder', 'spawn' ) }</p>
 					</div>
-					<div className="wp-block-spawn-dashboard__card">
-						<h3>{ __( 'AI Usage', 'spawn' ) }</h3>
-						<p>250 / 1,000 calls</p>
+					<div className="wp-block-spawn-dashboard__preview-card">
+						<h3>{ __( 'Servers', 'spawn' ) }</h3>
+						<p>{ __( '0 active', 'spawn' ) }</p>
 					</div>
-					<div className="wp-block-spawn-dashboard__card">
-						<h3>{ __( 'Plan', 'spawn' ) }</h3>
-						<p>Starter</p>
+					<div className="wp-block-spawn-dashboard__preview-card">
+						<h3>{ __( 'Domains', 'spawn' ) }</h3>
+						<p>{ __( '0 registered', 'spawn' ) }</p>
 					</div>
 				</div>
 				<p className="wp-block-spawn-dashboard__preview-note">
