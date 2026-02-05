@@ -2057,6 +2057,11 @@ class REST_API {
 		}
 
 		// Return the result from the tool invocation.
-		return new WP_REST_Response( $body['result'] ?? $body );
+		// OpenClaw tools return { ok, result: { content, details } } - we want details.
+		$result = $body['result'] ?? $body;
+		if ( isset( $result['details'] ) ) {
+			return new WP_REST_Response( $result['details'] );
+		}
+		return new WP_REST_Response( $result );
 	}
 }
