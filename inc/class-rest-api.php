@@ -1531,7 +1531,7 @@ class REST_API {
 	}
 
 	/**
-	 * Generate a creative session title using system agent.
+	 * Generate a creative session title using Data Machine's system agent.
 	 *
 	 * Uses word bank + username to generate a fun title without
 	 * accessing user's chat content (privacy-safe).
@@ -1548,60 +1548,57 @@ class REST_API {
 			$word_bank = 'curious, mystical, cosmic, enchanted, wandering, crow, phoenix, bloom, quest, star';
 		}
 
-		// Use control plane OpenClaw for title generation.
-		$gateway_base  = rtrim( get_option( 'spawn_openclaw_gateway_url', '' ), '/' );
-		$gateway_token = get_option( 'spawn_openclaw_token', '' );
+		$words = array_map( 'trim', explode( ',', $word_bank ) );
 
-		if ( empty( $gateway_base ) || empty( $gateway_token ) ) {
-			// Fallback: simple random combo in code name format.
-			$words = explode( ', ', $word_bank );
-			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
-			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
-		}
+		// Try Data Machine's RequestBuilder if available.
+		if ( class_exists( '\\DataMachine\\Engine\\AI\\RequestBuilder' ) ) {
+			$provider = \DataMachine\Core\PluginSettings::get( 'default_provider', '' );
+			$model    = \DataMachine\Core\PluginSettings::get( 'default_model', '' );
 
-		$prompt = sprintf(
-			"Generate a two-word code name like 'azure-phoenix' or 'cosmic-owl' for user '%s'. " .
-			"Use words from this bank: %s. " .
-			"Format: adjective-noun, lowercase, hyphenated. Return ONLY the code name.",
-			$username,
-			$word_bank
-		);
+			if ( ! empty( $provider ) && ! empty( $model ) ) {
+				$prompt = sprintf(
+					"Generate a two-word code name like 'azure-phoenix' or 'cosmic-owl' for user '%s'. " .
+					"Use words from this bank: %s. " .
+					"Format: adjective-noun, lowercase, hyphenated. Return ONLY the code name.",
+					$username,
+					$word_bank
+				);
 
-		$response = wp_remote_post( $gateway_base . '/v1/chat/completions', [
-			'headers' => [
-				'Content-Type'  => 'application/json',
-				'Authorization' => 'Bearer ' . $gateway_token,
-			],
-			'body'    => wp_json_encode( [
-				'model'      => 'openclaw:main',
-				'messages'   => [
+				$messages = [
 					[ 'role' => 'user', 'content' => $prompt ],
-				],
-				'max_tokens' => 20,
-			] ),
-			'timeout' => 15,
-		] );
+				];
 
-		if ( is_wp_error( $response ) ) {
-			// Fallback on error.
-			$words = explode( ', ', $word_bank );
-			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
-			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
+				try {
+					$result = \DataMachine\Engine\AI\RequestBuilder::build(
+						$messages,
+						$provider,
+						$model,
+						[], // No tools
+						'system',
+						[]
+					);
+
+					if ( ! empty( $result['success'] ) && ! empty( $result['data']['content'] ) ) {
+						$title = trim( $result['data']['content'] );
+						$title = trim( $title, '"\'.`' );
+						$title = strtolower( $title );
+
+						if ( ! empty( $title ) && strlen( $title ) <= 40 ) {
+							return new WP_REST_Response( [ 'title' => $title, 'method' => 'datamachine' ] );
+						}
+					}
+				} catch ( \Exception $e ) {
+					// Fall through to fallback.
+				}
+			}
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		$title = trim( $body['choices'][0]['message']['content'] ?? '' );
-		$title = trim( $title, '"\'.`' );
-		$title = strtolower( $title ); // Ensure lowercase
+		// Fallback: random word combo in code name format.
+		$adj  = $words[ array_rand( array_slice( $words, 0, (int) ( count( $words ) / 2 ) ) ) ];
+		$noun = $words[ array_rand( array_slice( $words, (int) ( count( $words ) / 2 ) ) ) ];
+		$title = strtolower( trim( $adj ) ) . '-' . strtolower( trim( $noun ) );
 
-		if ( empty( $title ) || strlen( $title ) > 40 ) {
-			// Fallback if response is weird.
-			$words = explode( ', ', $word_bank );
-			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
-			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
-		}
-
-		return new WP_REST_Response( [ 'title' => $title, 'method' => 'ai' ] );
+		return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
 	}
 
 	/**
