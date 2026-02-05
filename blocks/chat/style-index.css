@@ -9,7 +9,13 @@
 	border-radius: 8px;
 	display: flex;
 	flex-direction: column;
-	height: 500px;
+	height: 400px;
+}
+
+@media (min-width: 768px) {
+	.wp-block-spawn-chat__container {
+		height: 600px;
+	}
 }
 
 /* Fullpage variant */
