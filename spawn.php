@@ -53,89 +53,32 @@ function init(): void {
 		Admin::init();
 	}
 
-	// Disable Grow widget on Spawn pages (cleaner app experience).
-	add_action( 'wp', __NAMESPACE__ . '\\maybe_disable_grow' );
+	// Disable Grow widget on Spawn pages by filtering the site_id option.
+	// When site_id is empty, Grow won't initialize at all.
+	add_filter( 'pre_option_grow_site_id', __NAMESPACE__ . '\\maybe_disable_grow_site_id' );
 }
 
 /**
- * Disable Grow plugin on Spawn pages for cleaner app experience.
+ * Return empty site_id for Grow on Spawn pages to prevent it from loading.
+ *
+ * @param mixed $value Pre-filtered value.
+ * @return mixed Empty string on Spawn pages, unchanged otherwise.
  */
-function maybe_disable_grow(): void {
-	if ( ! is_page() ) {
-		return;
+function maybe_disable_grow_site_id( $value ) {
+	// Only run on frontend.
+	if ( is_admin() ) {
+		return $value;
 	}
 
-	// Check if this is a Spawn page (chat, dashboard, login, or main spawn page).
-	$spawn_slugs = [ 'chat', 'dashboard', 'login', 'spawn' ];
-	$post        = get_post();
+	// Check if this is a Spawn page by URL since we're early in the request.
+	$request_uri = $_SERVER['REQUEST_URI'] ?? '';
 
-	if ( ! $post ) {
-		return;
+	// Match /spawn, /spawn/, /spawn/chat, /spawn/dashboard, etc.
+	if ( preg_match( '#^/spawn(/|$)#', $request_uri ) ) {
+		return ''; // Empty site_id prevents Grow from initializing.
 	}
 
-	// Check current page or parent page.
-	$is_spawn_page = in_array( $post->post_name, $spawn_slugs, true )
-		|| ( $post->post_parent && in_array( get_post( $post->post_parent )->post_name ?? '', $spawn_slugs, true ) );
-
-	if ( ! $is_spawn_page ) {
-		return;
-	}
-
-	// Remove Grow's scripts at late priority.
-	add_action( 'wp_enqueue_scripts', function () {
-		wp_dequeue_script( 'grow-me-sdk' );
-		wp_dequeue_script( 'grow-sdk' );
-		wp_dequeue_script( 'grow-for-wp' );
-		wp_deregister_script( 'grow-me-sdk' );
-		wp_deregister_script( 'grow-sdk' );
-		wp_deregister_script( 'grow-for-wp' );
-	}, 999 );
-
-	// Hide Grow widget via CSS + JS removal (Grow loads dynamically after footer).
-	add_action( 'wp_head', function () {
-		echo '<style>#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-faves-site-id] { display: none !important; }</style>';
-	}, 999 );
-
-	// Remove Grow elements via MutationObserver - catches dynamic loads.
-	add_action( 'wp_footer', function () {
-		?>
-		<script>
-		(function() {
-			var growSelectors = '#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-initializer], [data-grow-faves-site-id], iframe[src*="grow.me"], [id*="grow-me"]';
-			
-			function removeGrow() {
-				document.querySelectorAll(growSelectors).forEach(function(el) { 
-					el.remove(); 
-				});
-			}
-			
-			// Remove existing elements.
-			removeGrow();
-			
-			// Watch for new elements being added.
-			var observer = new MutationObserver(function(mutations) {
-				mutations.forEach(function(mutation) {
-					mutation.addedNodes.forEach(function(node) {
-						if (node.nodeType === 1) {
-							if (node.matches && node.matches(growSelectors)) {
-								node.remove();
-							}
-							// Also check children.
-							var children = node.querySelectorAll ? node.querySelectorAll(growSelectors) : [];
-							children.forEach(function(child) { child.remove(); });
-						}
-					});
-				});
-			});
-			
-			observer.observe(document.body, { childList: true, subtree: true });
-			
-			// Also run periodically just in case.
-			setInterval(removeGrow, 2000);
-		})();
-		</script>
-		<?php
-	}, 9999 );
+	return $value;
 }
 
 /**
