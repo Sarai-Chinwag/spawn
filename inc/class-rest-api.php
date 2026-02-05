@@ -1143,10 +1143,13 @@ class REST_API {
 		$session_key = sanitize_text_field( $request->get_param( 'sessionKey' ) );
 		$context     = $request->get_param( 'context' );
 
-		// Allow external code to intercept chat (e.g., admin chat with control plane).
-		$filtered = apply_filters( 'spawn_chat_response', null, $user_id, $message, $session_key );
-		if ( $filtered instanceof WP_REST_Response ) {
-			return $filtered;
+		// Admin users chat with the control plane OpenClaw (if configured).
+		if ( current_user_can( 'manage_options' ) ) {
+			$gateway_url = get_option( 'spawn_openclaw_gateway_url', '' );
+			if ( ! empty( $gateway_url ) ) {
+				return self::chat_with_control_plane( $message, $session_key );
+			}
+			// No gateway configured - fall through to customer logic (will error).
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
@@ -1224,4 +1227,72 @@ class REST_API {
 		] );
 	}
 
+	/**
+	 * Admin chat with control plane OpenClaw instance.
+	 *
+	 * For SaaS operators to chat with their own agent managing the control plane.
+	 * Configured via spawn_openclaw_gateway_url and spawn_openclaw_token options.
+	 *
+	 * @param string $message     User message.
+	 * @param string $session_key Optional session key for conversation continuity.
+	 * @return WP_REST_Response Response.
+	 */
+	private static function chat_with_control_plane( string $message, string $session_key = '' ): WP_REST_Response {
+		$gateway_url   = rtrim( get_option( 'spawn_openclaw_gateway_url', '' ), '/' ) . '/tools/invoke';
+		$gateway_token = get_option( 'spawn_openclaw_token', '' );
+
+		if ( empty( $gateway_token ) ) {
+			return new WP_REST_Response( [
+				'reply' => 'Control plane chat not configured. Set spawn_openclaw_token in Settings → Spawn.',
+			] );
+		}
+
+		$payload = [
+			'tool' => 'sessions_send',
+			'args' => [
+				'message' => '[Spawn Admin] ' . $message,
+			],
+		];
+
+		if ( ! empty( $session_key ) ) {
+			$payload['args']['sessionKey'] = $session_key;
+		}
+
+		$response = wp_remote_post( $gateway_url, [
+			'headers' => [
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $gateway_token,
+			],
+			'body'    => wp_json_encode( $payload ),
+			'timeout' => 90,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_REST_Response( [
+				'reply' => 'Connection failed: ' . $response->get_error_message(),
+			] );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( 401 === $code ) {
+			return new WP_REST_Response( [
+				'reply' => 'Authentication failed. Check spawn_openclaw_token matches your gateway auth token.',
+			] );
+		}
+
+		if ( $code >= 400 ) {
+			$error_msg = $body['error']['message'] ?? "HTTP $code";
+			return new WP_REST_Response( [
+				'reply' => "Gateway error: $error_msg",
+			] );
+		}
+
+		$result  = $body['result'] ?? [];
+		$details = $result['details'] ?? [];
+		return new WP_REST_Response( [
+			'reply' => $details['reply'] ?? $result['reply'] ?? 'Message sent!',
+		] );
+	}
 }
