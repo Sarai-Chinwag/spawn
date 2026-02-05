@@ -140,22 +140,28 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			return html;
 		}
 
-		// Branded loading verbs - cycling through these while waiting
+		// Sarai Chinwag branded loading verbs - mystical, curious, whimsical
 		const loadingVerbs = [
-			'Thinking',
 			'Conjuring',
-			'Brewing',
-			'Crafting',
-			'Dreaming up',
-			'Pondering',
-			'Imagining',
-			'Scheming',
-			'Plotting',
-			'Manifesting',
 			'Channeling',
-			'Summoning',
-			'Weaving',
-			'Spinning up',
+			'Manifesting',
+			'Divining',
+			'Meditating on',
+			'Brewing',
+			'Hatching',
+			'Nesting on',
+			'Perching on',
+			'Pondering',
+			'Musing about',
+			'Wondering about',
+			'Enchanting',
+			'Cultivating',
+			'Blooming',
+			'Unfurling',
+			'Crystallizing',
+			'Dreaming up',
+			'Gazing into',
+			'Communing with',
 		];
 		let verbInterval = null;
 		let currentVerbIndex = 0;
