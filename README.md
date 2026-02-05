@@ -1,42 +1,45 @@
 # Spawn
 
-AI Website Service by Sarai Chinwag — spawn AI-powered WordPress sites for non-technical users.
+Personal AI assistant in a box. Website optional.
 
 ## What is Spawn?
 
-Spawn is the WordPress plugin that powers [Sarai's AI Website Service](https://saraichinwag.com/spawn). It enables non-technical users to get their own AI-powered WordPress site through a conversational interface — no wp-admin, no dashboards, just chat with your AI.
+Spawn provisions personal AI agents that live on dedicated servers. Each customer gets their own VPS running [OpenClaw](https://github.com/openclaw/openclaw) — a full AI assistant they can chat with from anywhere.
 
-**The pitch:** *"I'm Sarai. I'm an AI running my own website. I can set you up with your own AI agent to build and manage your site too."*
+**Want a website too?** Optionally add WordPress and let your AI build and manage it for you. Or skip the website entirely and just use the AI.
+
+**The pitch:** *"I'm Sarai. I'm an AI with my own server. I can set you up with your own AI agent too — and if you want, it can build you a website."*
 
 ## Features
 
-### Signup Flow
-- **Domain Search Block** — Check domain availability via Name.com API
-- **Tier Selection Block** — Choose between Starter, Pro, and Business tiers
-- **Checkout Block** — Stripe-powered checkout with included AI credits
-
-### Customer Experience
-- **Chat Block** — Conversational interface to your AI agent
+### Core Product
+- **Personal AI Agent** — Your own Claude-powered assistant on dedicated hardware
+- **Chat Interface** — Talk to your AI from the web or connect other channels
 - **Credits System** — Pay-as-you-go AI usage (pass-through pricing, no markup)
-- **WordPress Abilities** — AI can manage billing, check status, add credits, and more
+- **Full Portability** — Export everything and self-host anytime
+
+### Optional Website
+- **WordPress Integration** — AI manages your site through conversation
+- **Domain Registration** — Search and register domains during signup
+- **No wp-admin Required** — Your AI handles everything
 
 ### Backend
-- **Automated Provisioning** — Triggers Sweatpants to provision VPS + WordPress + OpenClaw
+- **Automated Provisioning** — Sweatpants provisions VPS + OpenClaw (+ WordPress if wanted)
 - **LiteLLM Integration** — Centralized AI proxy with usage tracking
-- **Domain Management** — Automatic DNS, SSL, and renewal warnings
+- **Region Detection** — US customers get US servers, EU customers get EU servers
 
 ## Pricing
 
 See `inc/class-config.php` for the single source of truth. Current tiers:
 
-| Tier | Monthly | VPS | Specs | Included Credits |
-|------|---------|-----|-------|------------------|
-| Starter | $25 | cpx21 | 3 vCPU (shared), 4 GB RAM, 80 GB SSD | $10 |
-| Pro | $50 | cpx31 | 4 vCPU (shared), 8 GB RAM, 160 GB SSD | $20 |
-| Business | $100 | cpx41 | 8 vCPU (shared), 16 GB RAM, 240 GB SSD | $40 |
+| Tier | Monthly | Included Credits | RAM | Storage |
+|------|---------|------------------|-----|---------|
+| Starter | $20 | $5 | 4 GB | 80 GB SSD |
+| Pro | $50 | $10 | 8 GB | 160 GB SSD |
+| Business | $100 | $40 | 16 GB | 240 GB SSD |
 
 - Credits are pass-through (no markup) — we charge what the AI providers charge
-- Default model: Claude Opus 4.5 (~$0.075/turn → ~133 turns/month with $10)
+- Default model: Claude Opus 4.5 (~$0.075/turn → ~67 turns/month with $5)
 - Additional credits available anytime via chat
 
 ## Architecture
@@ -44,6 +47,7 @@ See `inc/class-config.php` for the single source of truth. Current tiers:
 ```
 Customer signs up on saraichinwag.com/spawn
            │
+           │ wants_website: true/false
            ▼
 ┌─────────────────────────────────────────┐
 │  Spawn Plugin (this)                    │
@@ -57,9 +61,9 @@ Customer signs up on saraichinwag.com/spawn
            ▼
 ┌─────────────────────────────────────────┐
 │  Sweatpants (vps-provisioner module)    │
-│  - Register domain (Name.com)           │
-│  - Create Hetzner VPS                   │
+│  - Create Hetzner VPS (US or EU)        │
 │  - Run wp-openclaw setup.sh             │
+│  - If wants_website: register domain    │
 │  - Configure DNS + SSL                  │
 │  - Set up OpenClaw with LiteLLM         │
 └─────────────────────────────────────────┘
@@ -67,9 +71,9 @@ Customer signs up on saraichinwag.com/spawn
            ▼
 ┌─────────────────────────────────────────┐
 │  Customer VPS                           │
-│  - WordPress + OpenClaw agent           │
+│  - OpenClaw agent (always)              │
+│  - WordPress (if wants_website)         │
 │  - AI via Spawn's LiteLLM proxy         │
-│  - Data Machine for automation          │
 └─────────────────────────────────────────┘
            │
            │ AI requests via LiteLLM
@@ -108,7 +112,7 @@ Create products in Stripe for each tier with the monthly prices above.
 
 ### Name.com
 
-Get API credentials from [Name.com Developer Portal](https://www.name.com/account/settings/api).
+Get API credentials from [Name.com Developer Portal](https://www.name.com/account/settings/api). Required only if offering website option.
 
 ### Sweatpants
 
@@ -125,7 +129,7 @@ The LiteLLM proxy runs at `api.spawn.saraichinwag.com` and handles:
 
 | Block | Purpose |
 |-------|---------|
-| `spawn/domain-search` | Domain availability search with pricing |
+| `spawn/domain-search` | Domain availability search (website flow) |
 | `spawn/tier-select` | Pricing tier selection cards |
 | `spawn/checkout` | Email collection + Stripe redirect |
 | `spawn/chat` | Conversational AI interface |
@@ -140,8 +144,10 @@ Spawn registers these abilities for AI agents to use:
 | `spawn_get_usage` | Get AI usage history and costs |
 | `spawn_add_credits` | Create checkout for additional credits |
 | `spawn_manage_billing` | Access Stripe customer portal |
-| `spawn_scale_ai` | Change AI tier/model |
+| `spawn_scale_vps` | Upgrade/downgrade VPS tier |
 | `spawn_cancel` | Cancel subscription |
+| `spawn_export_site` | Export site data for migration |
+| `spawn_set_auto_refill` | Configure automatic credit top-ups |
 | `spawn_get_domain_renewal_info` | Get domain expiry and renewal pricing |
 | `spawn_renew_domain` | Initiate domain renewal checkout |
 
@@ -169,21 +175,22 @@ Spawn creates a `{prefix}spawn_customers` table:
 | `id` | bigint | Primary key |
 | `user_id` | bigint | WordPress user ID |
 | `email` | varchar | Customer email |
-| `domain` | varchar | Customer's domain |
+| `domain` | varchar | Customer's domain (if website) |
 | `tier` | varchar | starter/pro/business |
 | `status` | varchar | pending/active/suspended/cancelled |
+| `wants_website` | tinyint | Whether customer wants WordPress |
 | `stripe_customer_id` | varchar | Stripe customer ID |
 | `stripe_subscription_id` | varchar | Stripe subscription ID |
 | `hetzner_server_id` | varchar | Hetzner VPS ID |
 | `server_ip` | varchar | VPS IP address |
 | `openclaw_token` | varchar | OpenClaw gateway auth token |
-| `credit_balance` | decimal | Available AI credits (default: 10.00) |
+| `credit_balance` | decimal | Available AI credits (default: 5.00) |
 | `domain_expires_at` | datetime | Domain expiration date |
 | `renewal_warnings_sent` | text | JSON array of sent warning levels |
 
 ## Domain Renewal
 
-Spawn sends warning emails before domain expiration:
+For customers with websites, Spawn sends warning emails before domain expiration:
 - **30 days** — First warning
 - **14 days** — Second warning
 - **7 days** — Urgent warning
@@ -212,7 +219,7 @@ composer lint
 
 Spawn is open source (GPL-2.0-or-later). The code is free, but running the service costs money:
 - VPS hosting (Hetzner)
-- Domain registration (Name.com)
+- Domain registration (Name.com) — if website option
 - AI credits (Anthropic, OpenAI)
 
 We charge a fair price that covers infrastructure + modest margin. Customers own their data and can export/migrate anytime.
