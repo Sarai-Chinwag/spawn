@@ -1344,15 +1344,13 @@ class REST_API {
 
 	/**
 	 * Anthropic model pricing per MTok (pass-through, no markup).
+	 * Opus 4.5 only - the only model capable enough for this use case.
 	 */
 	private const ANTHROPIC_PRICING = [
 		'claude-opus-4-20250514'     => [ 'input' => 5.0, 'output' => 25.0 ],
 		'claude-opus-4.5'            => [ 'input' => 5.0, 'output' => 25.0 ],
-		'claude-sonnet-4-20250514'   => [ 'input' => 3.0, 'output' => 15.0 ],
-		'claude-sonnet-4'            => [ 'input' => 3.0, 'output' => 15.0 ],
-		'claude-3-5-haiku-20241022'  => [ 'input' => 1.0, 'output' => 5.0 ],
-		'claude-haiku-3.5'           => [ 'input' => 1.0, 'output' => 5.0 ],
-		// Default for unknown models.
+		'anthropic/claude-opus-4-20250514' => [ 'input' => 5.0, 'output' => 25.0 ],
+		// Default = Opus pricing (only model we use).
 		'default'                    => [ 'input' => 5.0, 'output' => 25.0 ],
 	];
 
