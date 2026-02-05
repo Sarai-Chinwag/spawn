@@ -53,6 +53,10 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_sweatpants_url' );
 		register_setting( 'spawn_settings', 'spawn_sweatpants_token' );
 
+		// OpenClaw settings.
+		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
+		register_setting( 'spawn_settings', 'spawn_openclaw_token' );
+
 		// Stripe section.
 		add_settings_section(
 			'spawn_stripe_section',
@@ -172,6 +176,34 @@ class Admin {
 			'spawn',
 			'spawn_sweatpants_section',
 			[ 'name' => 'spawn_sweatpants_token', 'type' => 'password' ]
+		);
+
+		// OpenClaw section.
+		add_settings_section(
+			'spawn_openclaw_section',
+			__( 'OpenClaw Configuration', 'spawn' ),
+			function() {
+				echo '<p>' . esc_html__( 'Configure OpenClaw gateway for admin chat.', 'spawn' ) . '</p>';
+			},
+			'spawn'
+		);
+
+		add_settings_field(
+			'spawn_openclaw_gateway_url',
+			__( 'Gateway URL', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn',
+			'spawn_openclaw_section',
+			[ 'name' => 'spawn_openclaw_gateway_url', 'placeholder' => 'http://127.0.0.1:18789' ]
+		);
+
+		add_settings_field(
+			'spawn_openclaw_token',
+			__( 'Auth Token', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn',
+			'spawn_openclaw_section',
+			[ 'name' => 'spawn_openclaw_token', 'type' => 'password' ]
 		);
 	}
 

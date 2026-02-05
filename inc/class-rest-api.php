@@ -1233,9 +1233,8 @@ class REST_API {
 	 */
 	private static function chat_with_sarai( string $message, array $context, string $session_key = '' ): WP_REST_Response {
 		// Connect to OpenClaw gateway's tools/invoke endpoint.
-		// Default gateway port is 18789 - configurable via spawn_openclaw_gateway_port option.
-		$gateway_port  = get_option( 'spawn_openclaw_gateway_port', '18789' );
-		$gateway_url   = 'http://127.0.0.1:' . $gateway_port . '/tools/invoke';
+		// Configurable via spawn_openclaw_gateway_url option (default: http://127.0.0.1:18789).
+		$gateway_url   = rtrim( get_option( 'spawn_openclaw_gateway_url', 'http://127.0.0.1:18789' ), '/' ) . '/tools/invoke';
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_token ) ) {
