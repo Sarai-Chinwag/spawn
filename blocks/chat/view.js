@@ -140,20 +140,59 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			return html;
 		}
 
+		// Branded loading verbs - cycling through these while waiting
+		const loadingVerbs = [
+			'Thinking',
+			'Conjuring',
+			'Brewing',
+			'Crafting',
+			'Dreaming up',
+			'Pondering',
+			'Imagining',
+			'Scheming',
+			'Plotting',
+			'Manifesting',
+			'Channeling',
+			'Summoning',
+			'Weaving',
+			'Spinning up',
+		];
+		let verbInterval = null;
+		let currentVerbIndex = 0;
+
 		function showTypingIndicator() {
+			// Start with random verb
+			currentVerbIndex = Math.floor( Math.random() * loadingVerbs.length );
+
 			const indicator = document.createElement( 'div' );
 			indicator.className = 'chat-message chat-message--assistant chat-message--typing';
 			indicator.innerHTML = `<div class="chat-message__content">
-				<span class="typing-dot"></span>
-				<span class="typing-dot"></span>
-				<span class="typing-dot"></span>
+				<span class="typing-verb">${ loadingVerbs[ currentVerbIndex ] }</span>
+				<span class="typing-dots">
+					<span class="typing-dot"></span>
+					<span class="typing-dot"></span>
+					<span class="typing-dot"></span>
+				</span>
 			</div>`;
 			indicator.id = 'typing-indicator';
 			messagesContainer.appendChild( indicator );
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+			// Cycle through verbs every 2 seconds
+			verbInterval = setInterval( () => {
+				currentVerbIndex = ( currentVerbIndex + 1 ) % loadingVerbs.length;
+				const verbSpan = indicator.querySelector( '.typing-verb' );
+				if ( verbSpan ) {
+					verbSpan.textContent = loadingVerbs[ currentVerbIndex ];
+				}
+			}, 2000 );
 		}
 
 		function hideTypingIndicator() {
+			if ( verbInterval ) {
+				clearInterval( verbInterval );
+				verbInterval = null;
+			}
 			const indicator = document.getElementById( 'typing-indicator' );
 			if ( indicator ) {
 				indicator.remove();

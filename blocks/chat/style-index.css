@@ -241,6 +241,52 @@
 	color: var(--color-primary, #1fc5e2);
 }
 
+/* Typing indicator with branded verbs */
+.chat-message--typing .chat-message__content {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-text-light, #666);
+	font-style: italic;
+}
+
+.typing-verb {
+	animation: fadeInVerb 0.3s ease;
+}
+
+@keyframes fadeInVerb {
+	from { opacity: 0.5; transform: translateY(2px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.typing-dots {
+	display: flex;
+	gap: 4px;
+}
+
+.typing-dot {
+	width: 6px;
+	height: 6px;
+	background: var(--color-primary, #1fc5e2);
+	border-radius: 50%;
+	animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+	0%, 80%, 100% { 
+		transform: scale(0.8);
+		opacity: 0.5;
+	}
+	40% { 
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
 /* Responsive width - don't go edge-to-edge on mobile */
 .wp-block-spawn-chat {
     width: 92%;
