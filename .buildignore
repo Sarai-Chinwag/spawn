@@ -1,0 +1,40 @@
+# Spawn build ignore
+# Don't exclude build/blocks/ - those are the compiled Gutenberg blocks
+
+.git
+.gitignore
+.gitattributes
+README.md
+CLAUDE.md
+AGENTS.md
+.claude
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Exclude build artifacts but keep build/blocks/
+/build/*.zip
+/build/spawn/
+
+/dist/
+*.zip
+*.tar.gz
+.DS_Store
+._*
+node_modules
+*.log
+*.tmp
+*.temp
+phpunit.xml*
+.github
+composer.lock
+package-lock.json
+webpack.config.js
+
+# Keep source blocks for fallback
+# blocks/ - keep this
+
+# Keep docs
+# docs/ - keep this
