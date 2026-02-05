@@ -1260,7 +1260,7 @@ class REST_API {
 	 * @return WP_REST_Response Response.
 	 */
 	private static function chat_with_control_plane( string $message, string $session_key = '' ): WP_REST_Response {
-		$gateway_url   = rtrim( get_option( 'spawn_openclaw_gateway_url', '' ), '/' ) . '/tools/invoke';
+		$gateway_base  = rtrim( get_option( 'spawn_openclaw_gateway_url', '' ), '/' );
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_token ) ) {
@@ -1269,24 +1269,33 @@ class REST_API {
 			] );
 		}
 
+		// Use OpenAI-compatible chat completions endpoint for synchronous response.
+		$chat_url = $gateway_base . '/v1/chat/completions';
+
 		$payload = [
-			'tool' => 'sessions_send',
-			'args' => [
-				'message' => '[Spawn Admin] ' . $message,
+			'model'    => 'openclaw:main',
+			'messages' => [
+				[
+					'role'    => 'user',
+					'content' => '[Spawn Admin Chat] ' . $message,
+				],
 			],
 		];
 
+		$headers = [
+			'Content-Type'  => 'application/json',
+			'Authorization' => 'Bearer ' . $gateway_token,
+		];
+
+		// Pass session key for conversation continuity.
 		if ( ! empty( $session_key ) ) {
-			$payload['args']['sessionKey'] = $session_key;
+			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $gateway_url, [
-			'headers' => [
-				'Content-Type'  => 'application/json',
-				'Authorization' => 'Bearer ' . $gateway_token,
-			],
+		$response = wp_remote_post( $chat_url, [
+			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
-			'timeout' => 90,
+			'timeout' => 120,
 		] );
 
 		if ( is_wp_error( $response ) ) {
@@ -1311,10 +1320,17 @@ class REST_API {
 			] );
 		}
 
-		$result  = $body['result'] ?? [];
-		$details = $result['details'] ?? [];
+		// Extract reply from OpenAI chat completions response format.
+		$reply = $body['choices'][0]['message']['content'] ?? null;
+
+		if ( empty( $reply ) ) {
+			return new WP_REST_Response( [
+				'reply' => 'No response received from agent.',
+			] );
+		}
+
 		return new WP_REST_Response( [
-			'reply' => $details['reply'] ?? $result['reply'] ?? 'Message sent!',
+			'reply' => $reply,
 		] );
 	}
 
