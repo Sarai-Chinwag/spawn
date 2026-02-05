@@ -82,39 +82,28 @@ if ( $is_admin && ! $customer ) {
 				<div class="wp-block-spawn-chat__sessions-loading">Loading chats...</div>
 			</div>
 			<div class="wp-block-spawn-chat__sidebar-footer">
-				<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="12" cy="12" r="3"></circle>
-						<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-					</svg>
-					Dashboard
-				</a>
-				<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-						<polyline points="16 17 21 12 16 7"></polyline>
-						<line x1="21" y1="12" x2="9" y2="12"></line>
-					</svg>
-					Log out
-				</a>
+				<span class="wp-block-spawn-chat__session-id" aria-live="polite"></span>
 			</div>
 		</aside>
 
 		<!-- Main chat area -->
 		<div class="wp-block-spawn-chat__main">
+			<button class="wp-block-spawn-chat__sidebar-toggle" type="button" aria-label="Toggle sidebar">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<line x1="3" y1="12" x2="21" y2="12"></line>
+					<line x1="3" y1="6" x2="21" y2="6"></line>
+					<line x1="3" y1="18" x2="21" y2="18"></line>
+				</svg>
+			</button>
 			<div class="wp-block-spawn-chat__topnav">
-				<button class="wp-block-spawn-chat__sidebar-toggle" type="button" aria-label="Toggle sidebar">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<line x1="3" y1="12" x2="21" y2="12"></line>
-						<line x1="3" y1="6" x2="21" y2="6"></line>
-						<line x1="3" y1="18" x2="21" y2="18"></line>
-					</svg>
-				</button>
 				<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
 					<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
 					<span>Spawn <em>by Sarai Chinwag</em></span>
 				</a>
-				<span class="wp-block-spawn-chat__session-id"></span>
+				<nav class="wp-block-spawn-chat__nav">
+					<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>
+					<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+				</nav>
 			</div>
 			<div class="wp-block-spawn-chat__messages"></div>
 			<div class="wp-block-spawn-chat__input-area">
