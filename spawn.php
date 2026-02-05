@@ -91,9 +91,9 @@ function maybe_disable_grow(): void {
 		wp_deregister_script( 'grow-for-wp' );
 	}, 999 );
 
-	// Hide any Grow elements that might still render via CSS.
+	// Hide Grow widget elements via CSS (be specific, don't use wildcards).
 	add_action( 'wp_head', function () {
-		echo '<style>#grow-me-container, .grow-me-widget, [class*="grow-"] { display: none !important; }</style>';
+		echo '<style>#grow-me-container, .grow-me-widget, #grow-wp-data { display: none !important; }</style>';
 	}, 999 );
 }
 
