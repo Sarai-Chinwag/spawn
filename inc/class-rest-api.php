@@ -1278,8 +1278,9 @@ class REST_API {
 		$site_url     = home_url();
 
 		$system_prompt = sprintf(
-			"[Spawn Chat Block]\n" .
-			"Site: %s (%s)\n" .
+			"[Spawn Chat Block - WordPress]\n" .
+			"Site: %s\n" .
+			"URL: %s\n" .
 			"User: %s <%s>",
 			$site_name,
 			$site_url,
