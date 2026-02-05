@@ -1225,38 +1225,61 @@ class REST_API {
 	 * @return WP_REST_Response Response.
 	 */
 	private static function chat_with_sarai( string $message, array $context ): WP_REST_Response {
-		// Connect to local OpenClaw gateway.
-		$gateway_url = 'http://localhost:3001/api/sessions/main/message';
+		// Connect to OpenClaw gateway's tools/invoke endpoint.
+		// Default gateway port is 18789 - configurable via spawn_openclaw_gateway_port option.
+		$gateway_port = get_option( 'spawn_openclaw_gateway_port', '18789' );
+		$gateway_url  = 'http://127.0.0.1:' . $gateway_port . '/tools/invoke';
+		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
+		if ( empty( $gateway_token ) ) {
+			return new WP_REST_Response( [
+				'reply' => "Chat not configured. Admin needs to set spawn_openclaw_token in wp_options.",
+			] );
+		}
+
+		// Use sessions_send tool to send message to main session.
 		$response = wp_remote_post( $gateway_url, [
 			'headers' => [
 				'Content-Type'  => 'application/json',
-				'Authorization' => 'Bearer ' . get_option( 'spawn_openclaw_token', '' ),
+				'Authorization' => 'Bearer ' . $gateway_token,
 			],
 			'body'    => wp_json_encode( [
-				'message' => '[Spawn Chat Test] ' . $message,
+				'tool'       => 'sessions_send',
+				'sessionKey' => 'main',
+				'args'       => [
+					'message'    => '[Spawn Chat] ' . $message,
+					'sessionKey' => 'main',
+				],
 			] ),
 			'timeout' => 90,
 		] );
 
 		if ( is_wp_error( $response ) ) {
-			// Fallback: acknowledge receipt, Sarai will see via Discord.
 			return new WP_REST_Response( [
-				'reply' => "Got it! (Note: Direct API connection failed, but I saw your message via Discord. Error: " . $response->get_error_message() . ")",
+				'reply' => "Connection failed: " . $response->get_error_message(),
 			] );
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( $code >= 400 ) {
+		if ( $code === 401 ) {
 			return new WP_REST_Response( [
-				'reply' => "I received your message but had trouble responding directly. Check Discord - I probably replied there! (HTTP $code)",
+				'reply' => "Authentication failed. Check spawn_openclaw_token matches the gateway auth token.",
 			] );
 		}
 
+		if ( $code >= 400 ) {
+			$error_msg = $body['error']['message'] ?? "HTTP $code";
+			return new WP_REST_Response( [
+				'reply' => "Gateway error: $error_msg",
+			] );
+		}
+
+		// sessions_send returns the agent's reply in result.
+		$result = $body['result'] ?? [];
 		return new WP_REST_Response( [
-			'reply' => $body['reply'] ?? $body['response'] ?? "Message received! (Check Discord for my full response)",
+			'reply' => $result['reply'] ?? $result['response'] ?? "Message sent! (Agent is processing...)",
 		] );
 	}
 }
