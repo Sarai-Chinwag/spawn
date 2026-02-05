@@ -15,9 +15,18 @@ use WP_Error;
 class Name_Com {
 
 	/**
-	 * API base URL.
+	 * Get API base URL.
+	 *
+	 * @return string API base URL.
 	 */
-	private const API_BASE = 'https://api.name.com/v4';
+	private static function get_api_base(): string {
+		// Use dev API if test mode or test username
+		$username = get_option( 'spawn_namecom_username', '' );
+		if ( str_contains( $username, 'test' ) || get_option( 'spawn_namecom_test_mode', false ) ) {
+			return 'https://api.dev.name.com/v4';
+		}
+		return 'https://api.name.com/v4';
+	}
 
 	/**
 	 * Get credentials.
@@ -63,7 +72,7 @@ class Name_Com {
 			$args['body'] = wp_json_encode( $data );
 		}
 
-		$response = wp_remote_request( self::API_BASE . $endpoint, $args );
+		$response = wp_remote_request( self::get_api_base() . $endpoint, $args );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
