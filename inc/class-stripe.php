@@ -159,10 +159,11 @@ class Stripe {
 	/**
 	 * Create checkout session for credit purchase (one-time payment).
 	 *
-	 * @param array $params Parameters including customer_email, amount, credits, package, spawn_customer_id.
+	 * @param array $params Parameters including customer_email, amount, credits, spawn_customer_id.
 	 * @return array|WP_Error Session data or error.
 	 */
 	public static function create_credit_checkout_session( array $params ): array|WP_Error {
+		$amount_dollars = (int) $params['amount'] / 100; // Convert cents to dollars for display.
 		$session_params = [
 			'mode'         => 'payment',
 			'success_url'  => home_url( '/spawn/dashboard/?credits_purchased=1&session_id={CHECKOUT_SESSION_ID}' ),
@@ -179,9 +180,9 @@ class Stripe {
 								$params['credits']
 							),
 							'description' => sprintf(
-								/* translators: %s: package name */
-								__( '%s credit package', 'spawn' ),
-								ucfirst( $params['package'] )
+								/* translators: %d: dollar amount */
+								__( '$%d credit purchase', 'spawn' ),
+								$amount_dollars
 							),
 						],
 					],
@@ -191,7 +192,6 @@ class Stripe {
 			'metadata'     => [
 				'type'              => 'credit_purchase',
 				'credits'           => $params['credits'],
-				'package'           => $params['package'],
 				'spawn_customer_id' => $params['spawn_customer_id'],
 			],
 		];

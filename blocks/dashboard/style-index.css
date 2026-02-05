@@ -304,3 +304,178 @@
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
+
+/* Credit card */
+.wp-block-spawn-dashboard__card.card-credits {
+	position: relative;
+}
+
+.wp-block-spawn-dashboard__card.card-credits .credit-balance {
+	font-size: 1.5rem;
+	font-weight: 700;
+	margin: 0;
+}
+
+.wp-block-spawn-dashboard__card.card-credits .credit-label {
+	font-size: 0.875rem;
+	font-weight: 400;
+	color: #666;
+}
+
+.wp-block-spawn-dashboard__card.card-credits .credit-warning {
+	color: #dc2626;
+	font-size: 0.875rem;
+	margin-top: 0.5rem;
+}
+
+.wp-block-spawn-dashboard__card.credits-low {
+	border-left: 4px solid #dc2626;
+}
+
+.wp-block-spawn-dashboard__card.credits-medium {
+	border-left: 4px solid #f59e0b;
+}
+
+.wp-block-spawn-dashboard__card.credits-ok {
+	border-left: 4px solid #22c55e;
+}
+
+/* Credit purchase modal */
+.wp-block-spawn-dashboard__modal {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.wp-block-spawn-dashboard__modal .modal-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+}
+
+.wp-block-spawn-dashboard__modal .modal-content {
+	position: relative;
+	background: #fff;
+	padding: 2rem;
+	border-radius: 12px;
+	max-width: 400px;
+	width: 90%;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.wp-block-spawn-dashboard__modal .modal-close {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	background: none;
+	border: none;
+	font-size: 1.5rem;
+	cursor: pointer;
+	color: #666;
+	line-height: 1;
+}
+
+.wp-block-spawn-dashboard__modal .modal-close:hover {
+	color: #333;
+}
+
+.wp-block-spawn-dashboard__modal h3 {
+	margin: 0 0 0.5rem;
+	font-size: 1.25rem;
+}
+
+.wp-block-spawn-dashboard__modal .modal-description {
+	color: #666;
+	margin-bottom: 1.5rem;
+}
+
+/* Credit purchase form */
+.credit-purchase-form {
+	text-align: center;
+}
+
+.amount-input-wrapper {
+	display: inline-flex;
+	align-items: center;
+	border: 2px solid #d1d5db;
+	border-radius: 8px;
+	padding: 0.5rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.amount-input-wrapper:focus-within {
+	border-color: #007cba;
+}
+
+.currency-symbol {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: #374151;
+	margin-right: 0.5rem;
+}
+
+.credit-amount-input {
+	border: none;
+	outline: none;
+	font-size: 1.5rem;
+	font-weight: 600;
+	width: 100px;
+	text-align: center;
+}
+
+.credit-amount-input::-webkit-outer-spin-button,
+.credit-amount-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.credit-amount-input[type=number] {
+	-moz-appearance: textfield;
+}
+
+.credits-preview {
+	font-size: 1.125rem;
+	color: #666;
+	margin-bottom: 1.5rem;
+}
+
+.credits-preview span {
+	font-weight: 600;
+	color: #374151;
+}
+
+.credit-purchase-btn {
+	width: 100%;
+	padding: 0.875rem 1.5rem;
+	background: #007cba;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.credit-purchase-btn:hover {
+	background: #005a87;
+}
+
+.credit-purchase-btn:disabled {
+	background: #ccc;
+	cursor: not-allowed;
+}
+
+/* Success banner */
+.wp-block-spawn-dashboard__success {
+	background: #dcfce7;
+	color: #166534;
+	padding: 1rem;
+	border-radius: 8px;
+	margin-bottom: 1.5rem;
+	text-align: center;
+	font-weight: 500;
+}

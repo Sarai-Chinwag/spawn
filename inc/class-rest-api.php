@@ -237,7 +237,7 @@ class REST_API {
 			]
 		);
 
-		// Credits: Purchase credits.
+		// Credits: Purchase credits (dynamic amount, $10 minimum).
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/purchase',
@@ -246,10 +246,11 @@ class REST_API {
 				'callback'            => [ __CLASS__, 'purchase_credits' ],
 				'permission_callback' => 'is_user_logged_in',
 				'args'                => [
-					'package' => [
-						'required' => true,
-						'type'     => 'string',
-						'enum'     => [ 'small', 'medium', 'large' ],
+					'amount' => [
+						'required'          => true,
+						'type'              => 'integer',
+						'minimum'           => 10,
+						'sanitize_callback' => 'absint',
 					],
 				],
 			]
@@ -831,7 +832,7 @@ class REST_API {
 	public static function purchase_credits( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$user_id  = get_current_user_id();
 		$customer = Database::get_customer_by_user_id( $user_id );
-		$package  = $request->get_param( 'package' );
+		$amount   = (int) $request->get_param( 'amount' );
 
 		if ( ! $customer ) {
 			return new WP_Error(
@@ -841,24 +842,24 @@ class REST_API {
 			);
 		}
 
-		$packages = self::get_credit_packages_config();
-		if ( ! isset( $packages[ $package ] ) ) {
+		// Validate minimum $10.
+		if ( $amount < 10 ) {
 			return new WP_Error(
-				'invalid_package',
-				__( 'Invalid credit package.', 'spawn' ),
+				'amount_too_low',
+				__( 'Minimum purchase is $10.', 'spawn' ),
 				[ 'status' => 400 ]
 			);
 		}
 
-		$pkg = $packages[ $package ];
+		// Credits = dollars * 100 (1 credit = $0.01).
+		$credits = $amount * 100;
 
 		// Create Stripe checkout session for one-time payment.
 		$session = Stripe::create_credit_checkout_session( [
-			'customer_id' => $customer['stripe_customer'] ?? null,
-			'customer_email' => $customer['email'],
-			'amount'      => $pkg['price'] * 100, // Stripe uses cents.
-			'credits'     => $pkg['credits'],
-			'package'     => $package,
+			'customer_id'       => $customer['stripe_customer'] ?? null,
+			'customer_email'    => $customer['email'],
+			'amount'            => $amount * 100, // Stripe uses cents.
+			'credits'           => $credits,
 			'spawn_customer_id' => $customer['id'],
 		] );
 

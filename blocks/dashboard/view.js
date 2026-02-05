@@ -167,26 +167,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				<div class="modal-content">
 					<button type="button" class="modal-close">&times;</button>
 					<h3>Buy Credits</h3>
-					<p class="modal-description">Choose a credit package:</p>
-					<div class="credit-packages">
-						<button type="button" class="credit-package" data-package="small">
-							<span class="package-credits">1,000</span>
-							<span class="package-price">$10</span>
-							<span class="package-rate">$0.01/credit</span>
-						</button>
-						<button type="button" class="credit-package package-popular" data-package="medium">
-							<span class="package-badge">Popular</span>
-							<span class="package-credits">3,000</span>
-							<span class="package-price">$25</span>
-							<span class="package-rate">$0.0083/credit</span>
-							<span class="package-bonus">17% bonus!</span>
-						</button>
-						<button type="button" class="credit-package" data-package="large">
-							<span class="package-badge">Best Value</span>
-							<span class="package-credits">7,500</span>
-							<span class="package-price">$50</span>
-							<span class="package-rate">$0.0067/credit</span>
-							<span class="package-bonus">50% bonus!</span>
+					<p class="modal-description">Enter amount ($10 minimum):</p>
+					<div class="credit-purchase-form">
+						<div class="amount-input-wrapper">
+							<span class="currency-symbol">$</span>
+							<input type="number" id="credit-amount" min="10" step="1" value="10" class="credit-amount-input" />
+						</div>
+						<p class="credits-preview">= <span id="credits-preview-value">1,000</span> credits</p>
+						<button type="button" class="credit-purchase-btn" id="purchase-credits-btn">
+							Purchase Credits
 						</button>
 					</div>
 				</div>
@@ -216,7 +205,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		const buyButton = block.querySelector( '.btn-buy-credits' );
 		const closeButton = modal.querySelector( '.modal-close' );
 		const backdrop = modal.querySelector( '.modal-backdrop' );
-		const packageButtons = modal.querySelectorAll( '.credit-package' );
+		const amountInput = modal.querySelector( '#credit-amount' );
+		const creditsPreview = modal.querySelector( '#credits-preview-value' );
+		const purchaseBtn = modal.querySelector( '#purchase-credits-btn' );
 
 		function openModal() {
 			modal.style.display = 'flex';
@@ -228,9 +219,16 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			document.body.style.overflow = '';
 		}
 
+		function updateCreditsPreview() {
+			const amount = parseInt( amountInput.value, 10 ) || 0;
+			const credits = amount * 100; // 1 credit = $0.01
+			creditsPreview.textContent = credits.toLocaleString();
+		}
+
 		buyButton.addEventListener( 'click', openModal );
 		closeButton.addEventListener( 'click', closeModal );
 		backdrop.addEventListener( 'click', closeModal );
+		amountInput.addEventListener( 'input', updateCreditsPreview );
 
 		// Handle escape key.
 		document.addEventListener( 'keydown', function ( e ) {
@@ -239,40 +237,33 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		} );
 
-		// Handle credit package selection.
-		packageButtons.forEach( function ( btn ) {
-			btn.addEventListener( 'click', function () {
-				const packageType = this.dataset.package;
-				
-				// Disable all buttons and show loading.
-				packageButtons.forEach( ( b ) => {
-					b.disabled = true;
-				} );
-				this.classList.add( 'loading' );
-				this.innerHTML += '<span class="spinner"></span>';
+		// Handle credit purchase.
+		purchaseBtn.addEventListener( 'click', function () {
+			const amount = parseInt( amountInput.value, 10 );
 
-				apiFetch( {
-					path: '/spawn/v1/credits/purchase',
-					method: 'POST',
-					data: { package: packageType },
+			if ( ! amount || amount < 10 ) {
+				alert( 'Minimum purchase is $10.' );
+				return;
+			}
+
+			purchaseBtn.disabled = true;
+			purchaseBtn.textContent = 'Processing...';
+
+			apiFetch( {
+				path: '/spawn/v1/credits/purchase',
+				method: 'POST',
+				data: { amount: amount },
+			} )
+				.then( function ( response ) {
+					if ( response.checkout_url ) {
+						window.location.href = response.checkout_url;
+					}
 				} )
-					.then( function ( response ) {
-						if ( response.checkout_url ) {
-							window.location.href = response.checkout_url;
-						}
-					} )
-					.catch( function ( error ) {
-						alert( error.message || 'Failed to start checkout.' );
-						packageButtons.forEach( ( b ) => {
-							b.disabled = false;
-							b.classList.remove( 'loading' );
-							const spinner = b.querySelector( '.spinner' );
-							if ( spinner ) {
-								spinner.remove();
-							}
-						} );
-					} );
-			} );
+				.catch( function ( error ) {
+					alert( error.message || 'Failed to start checkout.' );
+					purchaseBtn.disabled = false;
+					purchaseBtn.textContent = 'Purchase Credits';
+				} );
 		} );
 
 		// Check for successful purchase redirect.
