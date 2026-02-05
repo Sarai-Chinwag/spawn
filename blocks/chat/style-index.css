@@ -1,18 +1,19 @@
-/* Chat Block Styles */
+/* Chat Block Styles - ChatGPT-style layout with sidebar */
 .wp-block-spawn-chat {
 	/* Width controlled by theme's responsive rules */
 }
 
-.wp-block-spawn-chat__container {
+/* Main layout - sidebar + chat area */
+.wp-block-spawn-chat__layout {
+	display: flex;
+	height: 500px;
 	background: var(--color-background, #fff);
 	border: 3px solid var(--color-border, #ddd);
 	border-radius: 8px;
-	display: flex;
-	flex-direction: column;
-	height: 500px;
+	overflow: hidden;
 }
 
-/* Fullpage variant - true fullscreen for blank canvas template */
+/* Fullpage variant */
 .wp-block-spawn-chat--fullpage {
 	width: 100%;
 	max-width: 100%;
@@ -21,29 +22,151 @@
 	padding: 0;
 }
 
-.wp-block-spawn-chat--fullpage .wp-block-spawn-chat__container {
+.wp-block-spawn-chat--fullpage .wp-block-spawn-chat__layout {
 	height: 100%;
 	min-height: 100vh;
-	max-height: none;
 	border: none;
 	border-radius: 0;
 }
 
-/* Top navigation bar for fullpage chat */
+/* ===== SIDEBAR ===== */
+.wp-block-spawn-chat__sidebar {
+	width: 260px;
+	min-width: 260px;
+	background: var(--color-text, #212121);
+	color: var(--color-background, #fff);
+	display: flex;
+	flex-direction: column;
+	transition: margin-left 0.3s ease;
+}
+
+.wp-block-spawn-chat__sidebar-header {
+	padding: 12px;
+	border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.wp-block-spawn-chat__sidebar .wp-block-spawn-chat__new-convo {
+	width: 100%;
+	justify-content: center;
+	background: transparent;
+	border: 1px solid rgba(255,255,255,0.3);
+	color: var(--color-background, #fff);
+	padding: 10px;
+	border-radius: 8px;
+}
+
+.wp-block-spawn-chat__sidebar .wp-block-spawn-chat__new-convo:hover {
+	background: rgba(255,255,255,0.1);
+	border-color: rgba(255,255,255,0.5);
+}
+
+/* Session list */
+.wp-block-spawn-chat__sessions {
+	flex: 1;
+	overflow-y: auto;
+	padding: 8px;
+}
+
+.wp-block-spawn-chat__sessions-loading {
+	padding: 20px;
+	text-align: center;
+	color: rgba(255,255,255,0.5);
+	font-size: 0.9em;
+}
+
+.wp-block-spawn-chat__session-item {
+	padding: 10px 12px;
+	border-radius: 8px;
+	cursor: pointer;
+	margin-bottom: 4px;
+	transition: background 0.2s;
+	overflow: hidden;
+}
+
+.wp-block-spawn-chat__session-item:hover {
+	background: rgba(255,255,255,0.1);
+}
+
+.wp-block-spawn-chat__session-item--active {
+	background: rgba(255,255,255,0.15);
+}
+
+.wp-block-spawn-chat__session-title {
+	font-size: 0.9em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin-bottom: 4px;
+}
+
+.wp-block-spawn-chat__session-date {
+	font-size: 0.75em;
+	color: rgba(255,255,255,0.5);
+}
+
+/* Sidebar footer */
+.wp-block-spawn-chat__sidebar-footer {
+	padding: 12px;
+	border-top: 1px solid rgba(255,255,255,0.1);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.wp-block-spawn-chat__sidebar-footer a {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	color: rgba(255,255,255,0.8);
+	text-decoration: none;
+	border-radius: 8px;
+	font-size: 0.9em;
+	transition: background 0.2s;
+}
+
+.wp-block-spawn-chat__sidebar-footer a:hover {
+	background: rgba(255,255,255,0.1);
+	color: var(--color-background, #fff);
+}
+
+/* ===== MAIN CHAT AREA ===== */
+.wp-block-spawn-chat__main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+/* Top navigation */
 .wp-block-spawn-chat__topnav {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	padding: var(--space-sm, 10px) var(--space-md, 15px);
-	background: var(--color-text, #333);
-	color: var(--color-background, #fff);
+	gap: 12px;
+	padding: 10px 15px;
+	background: var(--color-surface, #f9f9f9);
+	border-bottom: 1px solid var(--color-border, #ddd);
+}
+
+.wp-block-spawn-chat__sidebar-toggle {
+	display: none;
+	background: transparent;
+	border: none;
+	padding: 8px;
+	cursor: pointer;
+	color: var(--color-text, #333);
+	border-radius: 6px;
+}
+
+.wp-block-spawn-chat__sidebar-toggle:hover {
+	background: var(--color-border, #ddd);
 }
 
 .wp-block-spawn-chat__logo {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	color: var(--color-background, #fff);
+	color: var(--color-text, #333);
 	text-decoration: none;
 	font-weight: bold;
 	font-size: 1em;
@@ -66,87 +189,26 @@
 	opacity: 0.7;
 }
 
-.wp-block-spawn-chat__nav {
-	display: flex;
-	gap: var(--space-md, 15px);
-}
-
-.wp-block-spawn-chat__nav a {
-	color: var(--color-background, #fff);
-	text-decoration: none;
-	font-size: 0.9em;
-	opacity: 0.8;
-	transition: opacity 0.2s;
-}
-
-.wp-block-spawn-chat__nav a:hover {
-	opacity: 1;
-	color: var(--color-primary, #1fc5e2);
-}
-
-/* Non-fullpage: hide topnav (theme has its own header) */
-.wp-block-spawn-chat:not(.wp-block-spawn-chat--fullpage) .wp-block-spawn-chat__topnav {
-	display: none;
-}
-
-/* Fullpage: adjust container for topnav */
-.wp-block-spawn-chat--fullpage .wp-block-spawn-chat__header {
-	border-radius: 0;
-}
-
-/* Header with session indicator and new convo button */
-.wp-block-spawn-chat__header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: var(--space-sm, 10px) var(--space-md, 15px);
-	border-bottom: 1px solid var(--color-border, #ddd);
-	background: var(--color-surface, #f9f9f9);
-	border-radius: 5px 5px 0 0;
-}
-
 .wp-block-spawn-chat__session-id {
+	margin-left: auto;
 	font-size: 0.75em;
 	color: var(--color-text-light, #999);
 	font-family: monospace;
 }
 
-.wp-block-spawn-chat__new-convo {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px 12px;
-	background: transparent;
-	border: 2px solid var(--color-border, #ddd);
-	border-radius: 6px;
-	color: var(--color-text, #333);
-	font-size: 0.85em;
-	cursor: pointer;
-	transition: all 0.2s;
-}
-
-.wp-block-spawn-chat__new-convo:hover {
-	border-color: var(--color-primary, #1fc5e2);
-	color: var(--color-primary, #1fc5e2);
-}
-
-.wp-block-spawn-chat__new-convo:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
+/* Messages area */
 .wp-block-spawn-chat__messages {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--space-md, 15px);
+	padding: 15px;
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-sm, 10px);
+	gap: 10px;
 }
 
 .chat-message {
 	max-width: 80%;
-	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	padding: 10px 15px;
 	border-radius: 12px;
 	line-height: 1.5;
 }
@@ -169,21 +231,22 @@
 	align-self: center;
 	background: #fef3cd;
 	color: #856404;
-	font-size: var(--font-size-small, 0.85em);
+	font-size: 0.85em;
 	text-align: center;
 	max-width: 90%;
 }
 
+/* Input area */
 .wp-block-spawn-chat__input-area {
 	display: flex;
-	gap: var(--space-sm, 10px);
-	padding: var(--space-md, 15px);
+	gap: 10px;
+	padding: 15px;
 	border-top: 2px solid var(--color-border, #ddd);
 }
 
 .wp-block-spawn-chat__input {
 	flex: 1;
-	padding: var(--space-sm, 10px);
+	padding: 10px;
 	border: 2px solid var(--color-border, #ddd);
 	border-radius: 8px;
 	font-size: inherit;
@@ -202,7 +265,7 @@
 	border: none;
 	border-radius: 8px;
 	color: var(--color-background, #fff);
-	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	padding: 10px 15px;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -228,20 +291,7 @@
 	to { transform: rotate(360deg); }
 }
 
-.wp-block-spawn-chat__login-required,
-.wp-block-spawn-chat__no-subscription {
-	text-align: center;
-	padding: var(--space-xl, 30px);
-	background: var(--color-surface, #f5f5f5);
-	border-radius: 8px;
-}
-
-.wp-block-spawn-chat__login-required a,
-.wp-block-spawn-chat__no-subscription a {
-	color: var(--color-primary, #1fc5e2);
-}
-
-/* Typing indicator with branded verbs */
+/* Typing indicator */
 .chat-message--typing .chat-message__content {
 	display: flex;
 	align-items: center;
@@ -287,16 +337,80 @@
 	}
 }
 
-/* Responsive width - don't go edge-to-edge on mobile */
-.wp-block-spawn-chat {
-    width: 92%;
-    max-width: 92%;
-    margin-left: auto;
-    margin-right: auto;
+/* Login/subscription states */
+.wp-block-spawn-chat__login-required,
+.wp-block-spawn-chat__no-subscription {
+	text-align: center;
+	padding: 30px;
+	background: var(--color-surface, #f5f5f5);
+	border-radius: 8px;
 }
+
+.wp-block-spawn-chat__login-required a,
+.wp-block-spawn-chat__no-subscription a {
+	color: var(--color-primary, #1fc5e2);
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+	.wp-block-spawn-chat__sidebar {
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 100;
+		margin-left: -260px;
+	}
+
+	.wp-block-spawn-chat__sidebar--open {
+		margin-left: 0;
+	}
+
+	.wp-block-spawn-chat__sidebar-toggle {
+		display: flex;
+	}
+
+	.wp-block-spawn-chat__layout {
+		position: relative;
+	}
+
+	/* Overlay when sidebar is open */
+	.wp-block-spawn-chat__sidebar-overlay {
+		display: none;
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0,0,0,0.5);
+		z-index: 99;
+	}
+
+	.wp-block-spawn-chat__sidebar--open ~ .wp-block-spawn-chat__main .wp-block-spawn-chat__sidebar-overlay {
+		display: block;
+	}
+}
+
+/* Non-fullpage: hide sidebar on smaller screens */
+.wp-block-spawn-chat:not(.wp-block-spawn-chat--fullpage) .wp-block-spawn-chat__sidebar {
+	display: none;
+}
+
+.wp-block-spawn-chat:not(.wp-block-spawn-chat--fullpage) .wp-block-spawn-chat__sidebar-toggle {
+	display: none;
+}
+
+/* Responsive width for non-fullpage */
+.wp-block-spawn-chat {
+	width: 92%;
+	max-width: 92%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
 @media (min-width: 992px) {
-    .wp-block-spawn-chat {
-        width: 100%;
-        max-width: 100%;
-    }
+	.wp-block-spawn-chat {
+		width: 100%;
+		max-width: 100%;
+	}
 }
