@@ -315,6 +315,27 @@ class REST_API {
 				],
 			]
 		);
+
+		// Chat: Send message to customer's AI.
+		register_rest_route(
+			self::NAMESPACE,
+			'/chat/send',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'chat_send' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'message' => [
+						'required' => true,
+						'type'     => 'string',
+					],
+					'context' => [
+						'type'    => 'object',
+						'default' => [],
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -668,9 +689,9 @@ class REST_API {
 
 		// Map tier to VPS and AI tiers.
 		$tier_map = [
-			'starter'  => [ 'vps' => 'cx22', 'ai' => '1k' ],
-			'pro'      => [ 'vps' => 'cx32', 'ai' => '5k' ],
-			'business' => [ 'vps' => 'cx42', 'ai' => '20k' ],
+			'starter'  => [ 'vps' => 'cx23', 'ai' => '1k' ],
+			'pro'      => [ 'vps' => 'cx33', 'ai' => '5k' ],
+			'business' => [ 'vps' => 'cx43', 'ai' => '20k' ],
 		];
 
 		if ( ! isset( $tier_map[ $new_tier ] ) ) {
@@ -1065,9 +1086,9 @@ class REST_API {
 				'price'           => 19,
 				'description'     => __( 'Perfect for personal sites and blogs', 'spawn' ),
 				'stripe_price_id' => $prices['vps_starter'] ?? '',
-				'hetzner_type'    => 'cx22',
+				'hetzner_type'    => 'cx23',
 				'features'        => [
-					__( '2GB RAM, 1 vCPU', 'spawn' ),
+					__( '4GB RAM, 2 vCPU, 40GB SSD', 'spawn' ),
 					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
@@ -1078,9 +1099,9 @@ class REST_API {
 				'price'           => 39,
 				'description'     => __( 'For growing businesses', 'spawn' ),
 				'stripe_price_id' => $prices['vps_pro'] ?? '',
-				'hetzner_type'    => 'cx32',
+				'hetzner_type'    => 'cx33',
 				'features'        => [
-					__( '4GB RAM, 2 vCPU', 'spawn' ),
+					__( '8GB RAM, 4 vCPU, 80GB SSD', 'spawn' ),
 					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
@@ -1092,9 +1113,9 @@ class REST_API {
 				'price'           => 99,
 				'description'     => __( 'For high-traffic sites', 'spawn' ),
 				'stripe_price_id' => $prices['vps_business'] ?? '',
-				'hetzner_type'    => 'cx42',
+				'hetzner_type'    => 'cx43',
 				'features'        => [
-					__( '8GB RAM, 4 vCPU', 'spawn' ),
+					__( '16GB RAM, 8 vCPU, 160GB SSD', 'spawn' ),
 					__( 'AI credits (pay-as-you-go)', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
@@ -1103,5 +1124,139 @@ class REST_API {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Send chat message to customer's AI.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function chat_send( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$message  = sanitize_textarea_field( $request->get_param( 'message' ) );
+		$context  = $request->get_param( 'context' );
+
+		// Special case: Admin users chat with the main OpenClaw instance (Sarai).
+		if ( current_user_can( 'manage_options' ) ) {
+			return self::chat_with_sarai( $message, $context );
+		}
+
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( empty( $message ) ) {
+			return new WP_Error(
+				'empty_message',
+				__( 'Message cannot be empty.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Build system context for the AI.
+		$system_context = sprintf(
+			"[Spawn Dashboard Context]\n" .
+			"Customer: %s\n" .
+			"Site: %s\n" .
+			"Status: %s\n" .
+			"Mobile channel configured: %s\n\n" .
+			"You are this customer's AI assistant for their website. Help them with their site, " .
+			"and if they haven't set up mobile messaging yet, offer to walk them through setting up Telegram or Discord.",
+			$customer['email'],
+			$customer['domain'],
+			$customer['status'],
+			! empty( $context['has_mobile'] ) ? 'yes' : 'no'
+		);
+
+		// Send to customer's OpenClaw instance.
+		$openclaw_url = 'http://' . $customer['server_ip'] . ':3000/api/chat';
+
+		// For now, if no server IP yet (provisioning), use a placeholder response.
+		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
+			return new WP_REST_Response( [
+				'reply' => "Your website is still being set up! This usually takes a few minutes. I'll be fully operational once it's ready. In the meantime, is there anything you'd like to plan for your site?",
+			] );
+		}
+
+		// Make request to customer's OpenClaw.
+		$response = wp_remote_post( $openclaw_url, [
+			'headers' => [
+				'Content-Type' => 'application/json',
+			],
+			'body'    => wp_json_encode( [
+				'message'        => $message,
+				'system_context' => $system_context,
+			] ),
+			'timeout' => 60,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_REST_Response( [
+				'reply' => "I'm having trouble connecting right now. Your site might be restarting. Try again in a moment!",
+			] );
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$code = wp_remote_retrieve_response_code( $response );
+
+		if ( $code >= 400 || empty( $body['reply'] ) ) {
+			return new WP_REST_Response( [
+				'reply' => "Something went wrong on my end. Let me try again - could you rephrase that?",
+			] );
+		}
+
+		return new WP_REST_Response( [
+			'reply' => $body['reply'],
+		] );
+	}
+
+	/**
+	 * Admin self-chat with Sarai (main OpenClaw instance).
+	 *
+	 * @param string $message User message.
+	 * @param array  $context Chat context.
+	 * @return WP_REST_Response Response.
+	 */
+	private static function chat_with_sarai( string $message, array $context ): WP_REST_Response {
+		// Connect to local OpenClaw gateway.
+		$gateway_url = 'http://localhost:3001/api/sessions/main/message';
+
+		$response = wp_remote_post( $gateway_url, [
+			'headers' => [
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . get_option( 'spawn_openclaw_token', '' ),
+			],
+			'body'    => wp_json_encode( [
+				'message' => '[Spawn Chat Test] ' . $message,
+			] ),
+			'timeout' => 90,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			// Fallback: acknowledge receipt, Sarai will see via Discord.
+			return new WP_REST_Response( [
+				'reply' => "Got it! (Note: Direct API connection failed, but I saw your message via Discord. Error: " . $response->get_error_message() . ")",
+			] );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code >= 400 ) {
+			return new WP_REST_Response( [
+				'reply' => "I received your message but had trouble responding directly. Check Discord - I probably replied there! (HTTP $code)",
+			] );
+		}
+
+		return new WP_REST_Response( [
+			'reply' => $body['reply'] ?? $body['response'] ?? "Message received! (Check Discord for my full response)",
+		] );
 	}
 }

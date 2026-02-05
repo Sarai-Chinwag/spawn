@@ -1,14 +1,6 @@
 /* Tier Select Block - Uses theme design system */
 .wp-block-spawn-tier-select {
-	max-width: 1000px;
-	margin: 0 auto;
-	padding: var(--space-lg, 20px) 0;
-}
-
-@media (min-width: 768px) {
-	.wp-block-spawn-tier-select {
-		padding: var(--space-lg, 20px);
-	}
+	/* Width controlled by theme's responsive rules */
 }
 
 .wp-block-spawn-tier-select__container {

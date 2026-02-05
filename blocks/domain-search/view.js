@@ -34,38 +34,28 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		block.appendChild( form );
 		block.appendChild( results );
 
-		// BYOD (Bring Your Own Domain) section
-		const byodSection = document.createElement( 'div' );
-		byodSection.className = 'wp-block-spawn-domain-search__byod';
-		byodSection.innerHTML = `
-			<p class="byod-label">Already have a domain?</p>
-			<div class="byod-form">
-				<input type="text" placeholder="yourdomain.com" class="byod-input" />
-				<button type="button" class="byod-btn">Use My Domain</button>
-			</div>
-			<p class="byod-note">You'll need to point your domain's DNS to our servers after signup.</p>
-		`;
-		block.appendChild( byodSection );
-
-		const byodInput = byodSection.querySelector( '.byod-input' );
-		const byodBtn = byodSection.querySelector( '.byod-btn' );
-		byodBtn.addEventListener( 'click', function () {
-			const domain = byodInput.value.trim();
-			if ( ! domain ) {
-				return;
-			}
-			block.setAttribute( 'data-selected-domain', domain );
+		// Skip for Now option - always visible
+		const skipSection = document.createElement( 'div' );
+		skipSection.className = 'wp-block-spawn-domain-search__skip';
+		skipSection.innerHTML = `<p>Or</p>`;
+		const skipBtn = document.createElement( 'button' );
+		skipBtn.type = 'button';
+		skipBtn.textContent = 'Skip for Now';
+		skipBtn.className = 'wp-block-spawn-domain-search__skip-btn';
+		skipBtn.addEventListener( 'click', function () {
 			const event = new CustomEvent( 'spawn:domain-selected', {
 				detail: {
-					domain,
+					domain: null,
 					price: 0,
-					type: 'byod',
+					type: 'subdomain',
 				},
 			} );
 			document.dispatchEvent( event );
-			// Visual feedback
-			byodSection.innerHTML = `<p class="byod-selected">✓ Using your domain: <strong>${ domain }</strong></p>`;
+			skipSection.innerHTML = `<p class="skip-selected">✓ We'll set up a free subdomain for you. You can add a custom domain later.</p>`;
 		} );
+		skipSection.appendChild( skipBtn );
+		skipSection.innerHTML += `<p class="skip-note">Get a free subdomain. Add your own domain later in dashboard.</p>`;
+		block.appendChild( skipSection );
 
 		form.addEventListener( 'submit', function ( e ) {
 			e.preventDefault();
@@ -91,12 +81,12 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						availableDiv.className = 'domain-available';
 						availableDiv.innerHTML = `
 						<p><span class="checkmark">✓</span> ${ domain } is available!</p>
-						<p>Price: $${ response.price }</p>
+						<p>Price: $${ response.price }/year</p>
 					`;
 						results.appendChild( availableDiv );
 
 						const selectBtn = document.createElement( 'button' );
-						selectBtn.textContent = 'Select Domain';
+						selectBtn.textContent = 'Choose This Domain';
 						selectBtn.className =
 							'wp-block-spawn-domain-search__select-btn';
 						selectBtn.addEventListener( 'click', function () {
@@ -117,35 +107,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 							document.dispatchEvent( event );
 						} );
 						results.appendChild( selectBtn );
-
-						// Subdomain option
-						const subdomainDiv = document.createElement( 'div' );
-						subdomainDiv.className = 'domain-subdomain';
-						subdomainDiv.innerHTML = `<p>Or get <strong>${ domain }.saraichinwag.com</strong> for free</p>`;
-						const selectSubBtn = document.createElement( 'button' );
-						selectSubBtn.textContent = 'Select Subdomain';
-						selectSubBtn.className =
-							'wp-block-spawn-domain-search__select-btn subdomain';
-						selectSubBtn.addEventListener( 'click', function () {
-							const subdomain = `${ domain }.saraichinwag.com`;
-							block.setAttribute(
-								'data-selected-domain',
-								subdomain
-							);
-							const event = new CustomEvent(
-								'spawn:domain-selected',
-								{
-									detail: {
-										domain: subdomain,
-										price: 0,
-										type: 'subdomain',
-									},
-								}
-							);
-							document.dispatchEvent( event );
-						} );
-						subdomainDiv.appendChild( selectSubBtn );
-						results.appendChild( subdomainDiv );
 					} else {
 						const takenDiv = document.createElement( 'div' );
 						takenDiv.className = 'domain-taken';
@@ -161,7 +122,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 								document.createElement( 'div' );
 							suggestionsDiv.className = 'domain-suggestions';
 							suggestionsDiv.innerHTML =
-								'<p>Suggestions:</p><ul></ul>';
+								'<p>Try one of these:</p><ul></ul>';
 							const ul = suggestionsDiv.querySelector( 'ul' );
 							response.suggestions.forEach(
 								function ( suggestion ) {

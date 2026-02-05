@@ -1,6 +1,7 @@
 .wp-block-spawn-account {
-	max-width: 800px;
-	margin: 2rem auto;
+	/* Width controlled by theme's responsive rules */
+	margin-top: 2rem;
+	margin-bottom: 2rem;
 	padding: 2rem;
 }
 
