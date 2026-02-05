@@ -394,6 +394,28 @@ class REST_API {
 				],
 			]
 		);
+
+		// Domain: Get renewal info.
+		register_rest_route(
+			self::NAMESPACE,
+			'/domain/renewal-info',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_domain_renewal_info' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Domain: Manual renewal (initiate payment).
+		register_rest_route(
+			self::NAMESPACE,
+			'/domain/renew',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'renew_domain' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
 	}
 
 	/**
@@ -1676,5 +1698,287 @@ class REST_API {
 			'previous_balance' => $current_balance,
 			'new_balance'      => $new_balance,
 		] );
+	}
+
+	/**
+	 * Get domain renewal information for current customer.
+	 *
+	 * Returns expiration date, renewal price, and warnings sent.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_domain_renewal_info(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Check if this is a registered domain (not subdomain/BYOD).
+		if ( 'register' !== ( $customer['domain_type'] ?? '' ) ) {
+			return new WP_REST_Response( [
+				'renewable'   => false,
+				'domain'      => $customer['domain'],
+				'domain_type' => $customer['domain_type'] ?? 'subdomain',
+				'message'     => __( 'This domain type does not require renewal through Spawn.', 'spawn' ),
+			] );
+		}
+
+		$domain     = $customer['domain'];
+		$expires_at = $customer['domain_expires_at'];
+
+		// Calculate days until expiry.
+		$expires_timestamp = strtotime( $expires_at );
+		$now_timestamp     = time();
+		$days_until_expiry = (int) ceil( ( $expires_timestamp - $now_timestamp ) / DAY_IN_SECONDS );
+
+		// Get renewal price from Name.com.
+		$renewal_price = Name_Com::get_renewal_price( $domain );
+		$price_error   = null;
+
+		if ( is_wp_error( $renewal_price ) ) {
+			$price_error   = $renewal_price->get_error_message();
+			$renewal_price = null;
+		} else {
+			// Apply markup.
+			$markup        = (float) get_option( 'spawn_domain_markup', 1.5 );
+			$renewal_price = round( $renewal_price * $markup, 2 );
+		}
+
+		return new WP_REST_Response( [
+			'renewable'          => true,
+			'domain'             => $domain,
+			'domain_type'        => 'register',
+			'expires_at'         => $expires_at,
+			'expires_formatted'  => wp_date( 'F j, Y', $expires_timestamp ),
+			'days_until_expiry'  => $days_until_expiry,
+			'renewal_price'      => $renewal_price,
+			'renewal_price_error'=> $price_error,
+			'is_expired'         => $days_until_expiry < 0,
+			'is_expiring_soon'   => $days_until_expiry <= 30 && $days_until_expiry >= 0,
+		] );
+	}
+
+	/**
+	 * Initiate manual domain renewal.
+	 *
+	 * Creates a Stripe checkout session for the renewal payment.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function renew_domain(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Validate domain type.
+		if ( 'register' !== ( $customer['domain_type'] ?? '' ) ) {
+			return new WP_Error(
+				'not_renewable',
+				__( 'This domain type cannot be renewed through Spawn.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$domain      = $customer['domain'];
+		$customer_id = (int) $customer['id'];
+
+		// Get renewal price from Name.com.
+		$renewal_price = Name_Com::get_renewal_price( $domain );
+
+		if ( is_wp_error( $renewal_price ) ) {
+			return new WP_Error(
+				'price_unavailable',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Could not get renewal price: %s', 'spawn' ),
+					$renewal_price->get_error_message()
+				),
+				[ 'status' => 500 ]
+			);
+		}
+
+		// Apply markup.
+		$markup              = (float) get_option( 'spawn_domain_markup', 1.5 );
+		$marked_up_price     = round( $renewal_price * $markup, 2 );
+		$amount_cents        = (int) round( $marked_up_price * 100 );
+
+		// Create Stripe checkout session for domain renewal.
+		$session = StripeClient::create_checkout_session( [
+			'customer'       => $customer['stripe_customer'] ?? null,
+			'customer_email' => $customer['email'],
+			'metadata'       => [
+				'type'              => 'domain_renewal',
+				'domain'            => $domain,
+				'spawn_customer_id' => $customer_id,
+				'source'            => 'spawn',
+			],
+			'line_items'     => [
+				[
+					'price_data' => [
+						'currency'     => 'usd',
+						'unit_amount'  => $amount_cents,
+						'product_data' => [
+							'name'        => sprintf(
+								/* translators: %s: domain name */
+								__( 'Domain Renewal: %s', 'spawn' ),
+								$domain
+							),
+							'description' => __( 'One-year domain renewal', 'spawn' ),
+						],
+					],
+					'quantity'   => 1,
+				],
+			],
+			'mode'           => 'payment',
+			'success_url'    => add_query_arg(
+				[
+					'renewed' => '1',
+					'domain'  => $domain,
+				],
+				home_url( '/spawn/dashboard/' )
+			),
+			'cancel_url'     => home_url( '/spawn/dashboard/' ),
+		] );
+
+		if ( is_wp_error( $session ) ) {
+			return $session;
+		}
+
+		return new WP_REST_Response( [
+			'checkout_url'  => $session['url'],
+			'session_id'    => $session['id'],
+			'domain'        => $domain,
+			'renewal_price' => $marked_up_price,
+		] );
+	}
+
+	/**
+	 * Process successful domain renewal after Stripe payment.
+	 *
+	 * Called from webhook when domain_renewal payment succeeds.
+	 *
+	 * @param int    $customer_id Spawn customer ID.
+	 * @param string $domain      Domain name.
+	 * @return bool|WP_Error True on success, error on failure.
+	 */
+	public static function process_domain_renewal_payment( int $customer_id, string $domain ): bool|WP_Error {
+		// Renew domain via Name.com API.
+		$renewal_result = Name_Com::renew( $domain, 1 );
+
+		if ( is_wp_error( $renewal_result ) ) {
+			// Log the error - payment succeeded but renewal failed.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf(
+				'[Spawn] Domain renewal API failed after payment for %s (customer #%d): %s',
+				$domain,
+				$customer_id,
+				$renewal_result->get_error_message()
+			) );
+
+			// Notify admin for manual intervention.
+			$admin_email = get_option( 'admin_email' );
+			wp_mail(
+				$admin_email,
+				sprintf( '[Spawn] URGENT: Domain renewal failed after payment: %s', $domain ),
+				sprintf(
+					"Domain renewal API call failed after successful payment.\n\n" .
+					"Customer ID: %d\n" .
+					"Domain: %s\n" .
+					"Error: %s\n\n" .
+					"MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.",
+					$customer_id,
+					$domain,
+					$renewal_result->get_error_message()
+				)
+			);
+
+			return $renewal_result;
+		}
+
+		// Update database with new expiration.
+		$db_updated = Database::renew_domain( $customer_id );
+
+		if ( ! $db_updated ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( '[Spawn] Failed to update database after domain renewal for customer #%d', $customer_id ) );
+		}
+
+		// Clear renewal warnings since domain is now renewed.
+		Cron::clear_warnings_sent( $customer_id );
+
+		// Get customer for email notification.
+		$customer = Database::get_customer( $customer_id );
+		if ( $customer ) {
+			$new_expires = $renewal_result['expires_at'] ?? null;
+			self::send_renewal_success_email( $customer, $new_expires );
+		}
+
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf(
+			'[Spawn] Successfully renewed domain %s for customer #%d, new expiration: %s',
+			$domain,
+			$customer_id,
+			$renewal_result['expires_at'] ?? 'unknown'
+		) );
+
+		/**
+		 * Fires after a domain is successfully renewed.
+		 *
+		 * @param int    $customer_id   Spawn customer ID.
+		 * @param string $domain        Domain name.
+		 * @param array  $renewal_result Result from Name.com API.
+		 */
+		do_action( 'spawn_domain_renewed', $customer_id, $domain, $renewal_result );
+
+		return true;
+	}
+
+	/**
+	 * Send domain renewal success email.
+	 *
+	 * @param array       $customer    Customer data.
+	 * @param string|null $new_expires New expiration date.
+	 */
+	private static function send_renewal_success_email( array $customer, ?string $new_expires ): void {
+		$email   = $customer['email'];
+		$domain  = $customer['domain'];
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'Your domain %s has been renewed', 'spawn' ),
+			$domain
+		);
+
+		$expires_formatted = $new_expires
+			? wp_date( 'F j, Y', strtotime( $new_expires ) )
+			: __( 'in approximately one year', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain name, 2: expiration date */
+			__(
+				"Hello,\n\n" .
+				"Great news! Your domain %1\$s has been successfully renewed.\n\n" .
+				"New expiration date: %2\$s\n\n" .
+				"Thank you for using Spawn!\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$expires_formatted
+		);
+
+		wp_mail( $email, $subject, $message );
 	}
 }

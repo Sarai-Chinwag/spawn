@@ -161,6 +161,22 @@ class Webhook {
 			return;
 		}
 
+		// Check if this is a domain renewal.
+		if ( ( $metadata['type'] ?? '' ) === 'domain_renewal' ) {
+			$customer_id = (int) ( $metadata['spawn_customer_id'] ?? 0 );
+			$domain      = $metadata['domain'] ?? '';
+
+			if ( $customer_id && $domain ) {
+				$result = REST_API::process_domain_renewal_payment( $customer_id, $domain );
+				if ( is_wp_error( $result ) ) {
+					error_log( sprintf( '[Spawn] Domain renewal processing failed: %s', $result->get_error_message() ) );
+				}
+			} else {
+				error_log( '[Spawn] Domain renewal webhook missing customer_id or domain' );
+			}
+			return;
+		}
+
 		// Handle subscription checkout.
 		self::process_subscription_checkout( $session, $metadata );
 	}

@@ -55,6 +55,7 @@ class Database {
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
 			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
+			renewal_warnings_sent text DEFAULT NULL,
 			PRIMARY KEY (id),
 			KEY user_id (user_id),
 			KEY email (email),
