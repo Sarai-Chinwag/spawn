@@ -35,16 +35,48 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== SESSION MANAGEMENT =====
 
+		// Storage key for persisting current session
+		const STORAGE_KEY = 'spawn_webchat_session';
+
 		function generateSessionKey() {
 			return 'webchat-' + Date.now() + '-' + Math.random().toString( 36 ).substr( 2, 9 );
+		}
+
+		function getSavedSessionKey() {
+			try {
+				return localStorage.getItem( STORAGE_KEY ) || '';
+			} catch ( e ) {
+				return '';
+			}
+		}
+
+		function saveSessionKey( key ) {
+			try {
+				if ( key ) {
+					localStorage.setItem( STORAGE_KEY, key );
+				} else {
+					localStorage.removeItem( STORAGE_KEY );
+				}
+			} catch ( e ) {
+				// Ignore storage errors
+			}
 		}
 
 		async function loadSessions() {
 			if ( ! sessionsContainer ) return;
 
+			// Check for a persisted session first
+			const savedKey = getSavedSessionKey();
+
 			try {
 				const response = await apiFetch( { path: '/spawn/v1/chat/sessions' } );
-				sessions = response.sessions || response || [];
+				let allSessions = response.sessions || response || [];
+
+				// Filter to only show webchat sessions (not Discord, Telegram, etc.)
+				sessions = allSessions.filter( ( session ) => {
+					const key = session.sessionKey || session.key || '';
+					return key.includes( 'webchat' );
+				} );
 
 				// Sort by updatedAt descending (most recent first)
 				sessions.sort( ( a, b ) => {
@@ -55,17 +87,24 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 				renderSessions();
 
-				// Select the most recent session, or create new if none
-				if ( sessions.length > 0 && ! currentSessionKey ) {
-					selectSession( sessions[ 0 ].sessionKey || sessions[ 0 ].key );
+				// Priority: 1) Saved session, 2) Most recent webchat, 3) New session
+				if ( savedKey && sessions.some( ( s ) => ( s.sessionKey || s.key ) === savedKey ) ) {
+					selectSession( savedKey );
+				} else if ( sessions.length > 0 && ! currentSessionKey ) {
+					const firstKey = sessions[ 0 ].sessionKey || sessions[ 0 ].key;
+					selectSession( firstKey );
 				} else if ( ! currentSessionKey ) {
 					startNewSession();
 				}
 			} catch ( error ) {
 				console.error( 'Failed to load sessions:', error );
 				sessionsContainer.innerHTML = '<div class="wp-block-spawn-chat__sessions-loading">Could not load chats</div>';
-				// Start a new session anyway
-				if ( ! currentSessionKey ) {
+				// Restore saved session or start new
+				if ( savedKey ) {
+					currentSessionKey = savedKey;
+					updateSessionIndicator();
+					messagesContainer.innerHTML = '';
+				} else if ( ! currentSessionKey ) {
 					startNewSession();
 				}
 			}
@@ -138,6 +177,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		async function selectSession( key ) {
 			currentSessionKey = key;
+			saveSessionKey( key ); // Persist across page loads
 			updateSessionIndicator();
 			renderSessions(); // Update active state
 
@@ -182,6 +222,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		function startNewSession() {
 			currentSessionKey = generateSessionKey();
+			saveSessionKey( currentSessionKey ); // Persist across page loads
 			updateSessionIndicator();
 			messagesContainer.innerHTML = '';
 			renderSessions();
