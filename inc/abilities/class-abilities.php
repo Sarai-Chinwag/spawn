@@ -45,7 +45,7 @@ class Abilities {
 		// Get Status
 		wp_register_ability( 'spawn_get_status', [
 			'label'       => __( 'Get Customer Status', 'spawn' ),
-			'description' => __( 'Get current subscription status, tiers, and usage', 'spawn' ),
+			'description' => __( 'Get current subscription status and credit balance', 'spawn' ),
 			'category'    => 'spawn',
 			'callback'    => [ Ability_Get_Status::class, 'execute' ],
 			'input_schema' => [
@@ -61,12 +61,10 @@ class Abilities {
 				'type'       => 'object',
 				'properties' => [
 					'vps_tier'       => [ 'type' => 'string' ],
-					'ai_tier'        => [ 'type' => 'string' ],
 					'status'         => [ 'type' => 'string' ],
 					'domain'         => [ 'type' => 'string' ],
 					'server_ip'      => [ 'type' => 'string' ],
-					'ai_calls_used'  => [ 'type' => 'integer' ],
-					'ai_calls_limit' => [ 'type' => 'integer' ],
+					'credit_balance' => [ 'type' => 'number' ],
 				],
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
@@ -85,31 +83,39 @@ class Abilities {
 					'customer_id' => [ 'type' => 'integer' ],
 					'new_tier'    => [
 						'type' => 'string',
-						'enum' => [ 'cx22', 'cx32', 'cx42' ],
+						'enum' => [ 'cpx11', 'cpx21', 'cpx31' ],
 					],
 				],
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
 		] );
 
-		// Scale AI
-		wp_register_ability( 'spawn_scale_ai', [
-			'label'       => __( 'Scale AI', 'spawn' ),
-			'description' => __( 'Change AI token allocation', 'spawn' ),
+		// Add Credits
+		wp_register_ability( 'spawn_add_credits', [
+			'label'       => __( 'Add Credits', 'spawn' ),
+			'description' => __( 'Add credits to customer balance', 'spawn' ),
 			'category'    => 'spawn',
-			'callback'    => [ Ability_Scale_AI::class, 'execute' ],
+			'callback'    => [ Ability_Add_Credits::class, 'execute' ],
 			'input_schema' => [
 				'type'       => 'object',
-				'required'   => [ 'new_tier' ],
+				'required'   => [ 'amount' ],
 				'properties' => [
 					'customer_id' => [ 'type' => 'integer' ],
-					'new_tier'    => [
-						'type' => 'string',
-						'enum' => [ '1k', '5k', '20k' ],
+					'amount'      => [
+						'type'        => 'number',
+						'description' => 'Amount in dollars to add',
 					],
 				],
 			],
-			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'     => [ 'type' => 'boolean' ],
+					'added'       => [ 'type' => 'number' ],
+					'new_balance' => [ 'type' => 'number' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
 		] );
 
 		// Get Usage
@@ -192,5 +198,15 @@ class Abilities {
 
 		// Default: allow for logged-in users (will resolve their own customer).
 		return true;
+	}
+
+	/**
+	 * Check if current user is admin.
+	 *
+	 * @param array $input Input parameters.
+	 * @return bool Whether user is admin.
+	 */
+	public static function check_admin_permission( array $input ): bool {
+		return current_user_can( 'manage_options' );
 	}
 }

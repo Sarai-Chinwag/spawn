@@ -40,10 +40,7 @@ class Database {
 			domain_type varchar(20) NOT NULL DEFAULT 'subdomain',
 			domain_price decimal(10,2) DEFAULT NULL,
 			domain_expires_at datetime DEFAULT NULL,
-			vps_tier varchar(50) NOT NULL DEFAULT 'cx22',
-			ai_tier varchar(50) NOT NULL DEFAULT '1k',
-			ai_calls_used int(11) NOT NULL DEFAULT 0,
-			ai_calls_limit int(11) NOT NULL DEFAULT 1000,
+			vps_tier varchar(50) NOT NULL DEFAULT 'cpx11',
 			stripe_customer varchar(255) DEFAULT NULL,
 			stripe_subscription varchar(255) DEFAULT NULL,
 			stripe_payment_method varchar(255) DEFAULT NULL,
@@ -54,10 +51,10 @@ class Database {
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
 			cancelled_at datetime DEFAULT NULL,
-			credit_balance decimal(10,2) NOT NULL DEFAULT 0.00,
+			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
-			auto_refill_threshold int(11) NOT NULL DEFAULT 100,
-			auto_refill_amount int(11) NOT NULL DEFAULT 1000,
+			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
+			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
 			PRIMARY KEY (id),
 			KEY user_id (user_id),
 			KEY email (email),
@@ -78,19 +75,13 @@ class Database {
 	 * @return int|false Customer ID or false on failure.
 	 */
 	/**
-	 * AI tier to calls limit mapping.
+	 * Default free credits for new customers ($10).
 	 */
-	private const AI_TIER_LIMITS = [
-		'1k'  => 1000,
-		'5k'  => 5000,
-		'20k' => 20000,
-	];
+	private const DEFAULT_FREE_CREDITS = 10.00;
 
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
-		$ai_tier     = $data['ai_tier'] ?? '1k';
-		$ai_limit    = self::AI_TIER_LIMITS[ $ai_tier ] ?? 1000;
 		$domain_type = $data['domain_type'] ?? 'subdomain';
 
 		// Set domain expiration to 1 year from now if registering domain.
@@ -109,16 +100,14 @@ class Database {
 				'domain_type'         => $domain_type,
 				'domain_price'        => $data['domain_price'] ?? null,
 				'domain_expires_at'   => $domain_expires,
-				'vps_tier'            => $data['vps_tier'] ?? 'cx22',
-				'ai_tier'             => $ai_tier,
-				'ai_calls_used'       => 0,
-				'ai_calls_limit'      => $ai_limit,
+				'vps_tier'            => $data['vps_tier'] ?? 'cpx11',
 				'stripe_customer'     => $data['stripe_customer'] ?? null,
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
+				'credit_balance'      => $data['credit_balance'] ?? self::DEFAULT_FREE_CREDITS,
 				'created_at'          => current_time( 'mysql' ),
 			],
-			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' ]
+			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%s' ]
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -249,23 +238,6 @@ class Database {
 	}
 
 	/**
-	 * Update AI tier for customer.
-	 *
-	 * @param int    $id       Customer ID.
-	 * @param string $ai_tier  New AI tier.
-	 * @return bool Success.
-	 */
-	public static function update_ai_tier( int $id, string $ai_tier ): bool {
-		$limits = self::AI_TIER_LIMITS;
-		$limit  = $limits[ $ai_tier ] ?? 1000;
-
-		return self::update_customer( $id, [
-			'ai_tier'        => $ai_tier,
-			'ai_calls_limit' => $limit,
-		] );
-	}
-
-	/**
 	 * Update VPS tier for customer.
 	 *
 	 * @param int    $id       Customer ID.
@@ -277,35 +249,26 @@ class Database {
 	}
 
 	/**
-	 * Increment AI calls used.
+	 * Deduct credits from customer balance.
 	 *
-	 * @param int $id    Customer ID.
-	 * @param int $count Number of calls to add.
+	 * @param int   $id     Customer ID.
+	 * @param float $amount Amount to deduct.
 	 * @return bool Success.
 	 */
-	public static function increment_ai_calls( int $id, int $count = 1 ): bool {
+	public static function deduct_credits( int $id, float $amount ): bool {
 		global $wpdb;
 
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET ai_calls_used = ai_calls_used + %d WHERE id = %d",
+				"UPDATE %i SET credit_balance = credit_balance - %f WHERE id = %d AND credit_balance >= %f",
 				self::get_table_name(),
-				$count,
-				$id
+				$amount,
+				$id,
+				$amount
 			)
 		);
 
-		return $result !== false;
-	}
-
-	/**
-	 * Reset AI calls used (for new billing period).
-	 *
-	 * @param int $id Customer ID.
-	 * @return bool Success.
-	 */
-	public static function reset_ai_calls( int $id ): bool {
-		return self::update_customer( $id, [ 'ai_calls_used' => 0 ] );
+		return $result > 0;
 	}
 
 	/**

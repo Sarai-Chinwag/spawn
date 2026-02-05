@@ -41,11 +41,8 @@ class Ability_Get_Usage {
 
 		return [
 			'customer_id'    => (int) $customer['id'],
-			'ai_calls_used'  => (int) $customer['ai_calls_used'],
-			'ai_calls_limit' => (int) $customer['ai_calls_limit'],
-			'ai_calls_pct'   => $customer['ai_calls_limit'] > 0 
-				? round( ( $customer['ai_calls_used'] / $customer['ai_calls_limit'] ) * 100, 1 )
-				: 0,
+			'credit_balance' => (float) $customer['credit_balance'],
+			'auto_refill'    => (bool) $customer['auto_refill_enabled'],
 			'bandwidth_mb'   => 0, // TODO: Track bandwidth.
 			'storage_mb'     => 0, // TODO: Track storage.
 			'period_start'   => $period_start,

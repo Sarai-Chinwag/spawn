@@ -1,6 +1,6 @@
 <?php
 /**
- * Get Status ability.
+ * Add Credits ability.
  *
  * @package Spawn
  */
@@ -11,9 +11,9 @@ use Spawn\Database;
 use WP_Error;
 
 /**
- * Returns customer subscription status.
+ * Adds credits to customer balance.
  */
-class Ability_Get_Status {
+class Ability_Add_Credits {
 
 	/**
 	 * Execute the ability.
@@ -22,21 +22,32 @@ class Ability_Get_Status {
 	 * @return array|WP_Error Result or error.
 	 */
 	public static function execute( array $input ): array|WP_Error {
-		$customer = self::get_customer( $input );
+		$amount = (float) ( $input['amount'] ?? 0 );
 
+		if ( $amount <= 0 ) {
+			return new WP_Error( 'invalid_amount', __( 'Amount must be positive', 'spawn' ) );
+		}
+
+		// Get customer.
+		$customer = self::get_customer( $input );
 		if ( is_wp_error( $customer ) ) {
 			return $customer;
 		}
 
+		// Add credits.
+		$success = Database::add_credits( (int) $customer['id'], $amount );
+
+		if ( ! $success ) {
+			return new WP_Error( 'update_failed', __( 'Failed to add credits', 'spawn' ) );
+		}
+
+		// Get updated balance.
+		$new_balance = Database::get_credit_balance( (int) $customer['id'] );
+
 		return [
-			'customer_id'    => (int) $customer['id'],
-			'email'          => $customer['email'],
-			'domain'         => $customer['domain'],
-			'vps_tier'       => $customer['vps_tier'],
-			'status'         => $customer['status'],
-			'server_ip'      => $customer['server_ip'],
-			'credit_balance' => (float) $customer['credit_balance'],
-			'created_at'     => $customer['created_at'],
+			'success'     => true,
+			'added'       => $amount,
+			'new_balance' => $new_balance,
 		];
 	}
 
@@ -54,7 +65,7 @@ class Ability_Get_Status {
 			if ( ! $user->ID ) {
 				return new WP_Error( 'not_logged_in', __( 'You must be logged in', 'spawn' ) );
 			}
-			$customer = Database::get_customer_by_email( $user->user_email );
+			$customer = Database::get_customer_by_user_id( $user->ID );
 		}
 
 		if ( ! $customer ) {

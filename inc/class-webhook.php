@@ -22,20 +22,17 @@ use WP_Error;
 class Webhook {
 
 	/**
-	 * Tier to VPS and AI tier mapping.
+	 * Tier to VPS mapping. Credits are separate (purchased as needed).
 	 */
 	private const TIER_MAP = [
 		'starter'  => [
-			'vps' => 'cx22',
-			'ai'  => '1k',
+			'vps' => 'cpx11',
 		],
 		'pro'      => [
-			'vps' => 'cx32',
-			'ai'  => '5k',
+			'vps' => 'cpx21',
 		],
 		'business' => [
-			'vps' => 'cx42',
-			'ai'  => '20k',
+			'vps' => 'cpx31',
 		],
 	];
 
@@ -202,7 +199,6 @@ class Webhook {
 			'domain_price'        => $domain_price > 0 ? $domain_price : null,
 			'subdomain'           => $is_subdomain,
 			'vps_tier'            => $tier_config['vps'],
-			'ai_tier'             => $tier_config['ai'],
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
 			'status'              => 'provisioning',

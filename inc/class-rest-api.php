@@ -654,9 +654,7 @@ class REST_API {
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
 				'vps_tier'       => $customer['vps_tier'],
-				'ai_tier'        => $customer['ai_tier'],
-				'ai_calls_used'  => (int) $customer['ai_calls_used'],
-				'ai_calls_limit' => (int) $customer['ai_calls_limit'],
+				'credit_balance' => (float) $customer['credit_balance'],
 				'server_ip'      => $customer['server_ip'],
 				'status'         => $customer['status'],
 				'created_at'     => $customer['created_at'],
@@ -714,11 +712,11 @@ class REST_API {
 			);
 		}
 
-		// Map tier to VPS and AI tiers.
+		// Map tier to VPS tier (credits are separate, purchased as needed).
 		$tier_map = [
-			'starter'  => [ 'vps' => 'cx23', 'ai' => '1k' ],
-			'pro'      => [ 'vps' => 'cx33', 'ai' => '5k' ],
-			'business' => [ 'vps' => 'cx43', 'ai' => '20k' ],
+			'starter'  => [ 'vps' => 'cpx11' ],
+			'pro'      => [ 'vps' => 'cpx21' ],
+			'business' => [ 'vps' => 'cpx31' ],
 		];
 
 		if ( ! isset( $tier_map[ $new_tier ] ) ) {
@@ -746,7 +744,6 @@ class REST_API {
 
 		// Update database.
 		Database::update_vps_tier( (int) $customer['id'], $tier_map[ $new_tier ]['vps'] );
-		Database::update_ai_tier( (int) $customer['id'], $tier_map[ $new_tier ]['ai'] );
 
 		return new WP_REST_Response( [
 			'success' => true,
