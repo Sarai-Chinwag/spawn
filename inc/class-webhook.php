@@ -280,6 +280,9 @@ class Webhook {
 	/**
 	 * Handle subscription cancellation.
 	 *
+	 * Initiates the grace period - does NOT immediately delete resources.
+	 * Actual deletion happens after grace period via Cleanup cron.
+	 *
 	 * @param object|array $subscription Subscription data.
 	 * @param object       $event        Full Stripe event.
 	 */
@@ -292,11 +295,31 @@ class Webhook {
 		}
 
 		$customer = Database::get_customer_by_subscription( $subscription_id );
-		if ( $customer ) {
-			Database::update_customer( $customer['id'], [
-				'status'       => 'cancelled',
-				'cancelled_at' => current_time( 'mysql' ),
-			] );
+		if ( ! $customer ) {
+			return;
+		}
+
+		// Skip if already cancelling or deleted.
+		if ( in_array( $customer['status'], [ 'cancelling', 'deleted' ], true ) ) {
+			return;
+		}
+
+		// Schedule deletion with grace period.
+		$result = Database::schedule_deletion( $customer['id'], Cleanup::GRACE_PERIOD_DAYS );
+
+		if ( $result ) {
+			// Refresh customer data to get the scheduled deletion date.
+			$customer = Database::get_customer( $customer['id'] );
+
+			// Send cancellation confirmation email with export instructions.
+			Cleanup::send_cancellation_email( $customer );
+
+			error_log( sprintf(
+				'[Spawn] Cancellation initiated for customer #%d (%s). Deletion scheduled for %s',
+				$customer['id'],
+				$customer['domain'],
+				$customer['scheduled_deletion_at']
+			) );
 		}
 	}
 }

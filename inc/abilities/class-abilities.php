@@ -141,14 +141,72 @@ class Abilities {
 		// Cancel
 		wp_register_ability( 'spawn_cancel', [
 			'label'       => __( 'Cancel Subscription', 'spawn' ),
-			'description' => __( 'Cancel subscription and schedule VPS deletion', 'spawn' ),
+			'description' => __( 'Cancel subscription and schedule VPS deletion after grace period. Provides export instructions.', 'spawn' ),
 			'category'    => 'spawn',
 			'callback'    => [ Ability_Cancel::class, 'execute' ],
 			'input_schema' => [
 				'type'       => 'object',
 				'properties' => [
-					'customer_id' => [ 'type' => 'integer' ],
-					'reason'      => [ 'type' => 'string' ],
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+					'reason'      => [
+						'type'        => 'string',
+						'description' => 'Optional reason for cancellation',
+					],
+					'confirm'     => [
+						'type'        => 'boolean',
+						'description' => 'Must be true to proceed with cancellation',
+						'default'     => false,
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'             => [ 'type' => 'boolean' ],
+					'status'              => [ 'type' => 'string' ],
+					'scheduled_deletion'  => [ 'type' => 'string' ],
+					'grace_period_days'   => [ 'type' => 'integer' ],
+					'message'             => [ 'type' => 'string' ],
+					'export_instructions' => [ 'type' => 'object' ],
+					'can_reactivate'      => [ 'type' => 'boolean' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Export Site
+		wp_register_ability( 'spawn_export_site', [
+			'label'       => __( 'Export Site', 'spawn' ),
+			'description' => __( 'Get instructions to export/backup your WordPress site', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Export_Site::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+					'format'      => [
+						'type'        => 'string',
+						'enum'        => [ 'full', 'xml', 'database' ],
+						'default'     => 'full',
+						'description' => 'Export format: full (ZIP), xml (WordPress export), database (SQL dump)',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'      => [ 'type' => 'boolean' ],
+					'format'       => [ 'type' => 'string' ],
+					'description'  => [ 'type' => 'string' ],
+					'instructions' => [ 'type' => 'object' ],
+					'download_url' => [ 'type' => 'string' ],
+					'notes'        => [ 'type' => 'array' ],
 				],
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],

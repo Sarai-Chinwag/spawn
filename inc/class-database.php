@@ -51,6 +51,9 @@ class Database {
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
 			cancelled_at datetime DEFAULT NULL,
+			scheduled_deletion_at datetime DEFAULT NULL,
+			cloudflare_record_id varchar(255) DEFAULT NULL,
+			hetzner_server_id varchar(255) DEFAULT NULL,
 			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
@@ -457,5 +460,114 @@ class Database {
 	public static function get_payment_method( int $id ): ?string {
 		$customer = self::get_customer( $id );
 		return $customer['stripe_payment_method'] ?? null;
+	}
+
+	/**
+	 * Schedule customer for deletion after grace period.
+	 *
+	 * @param int $id         Customer ID.
+	 * @param int $grace_days Number of days until deletion (default 7).
+	 * @return bool Success.
+	 */
+	public static function schedule_deletion( int $id, int $grace_days = 7 ): bool {
+		$deletion_date = gmdate( 'Y-m-d H:i:s', strtotime( "+{$grace_days} days" ) );
+
+		return self::update_customer( $id, [
+			'status'                => 'cancelling',
+			'cancelled_at'          => current_time( 'mysql' ),
+			'scheduled_deletion_at' => $deletion_date,
+		] );
+	}
+
+	/**
+	 * Get customers scheduled for deletion that have passed their grace period.
+	 *
+	 * @return array Customers ready for deletion.
+	 */
+	public static function get_customers_pending_deletion(): array {
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE status = 'cancelling' AND scheduled_deletion_at IS NOT NULL AND scheduled_deletion_at <= NOW()",
+				self::get_table_name()
+			),
+			ARRAY_A
+		);
+
+		return $results ?: [];
+	}
+
+	/**
+	 * Get customers in cancelling status (for admin view).
+	 *
+	 * @return array Customers in cancellation grace period.
+	 */
+	public static function get_cancelling_customers(): array {
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE status = 'cancelling' ORDER BY scheduled_deletion_at ASC",
+				self::get_table_name()
+			),
+			ARRAY_A
+		);
+
+		return $results ?: [];
+	}
+
+	/**
+	 * Mark customer as deleted after cleanup.
+	 *
+	 * @param int $id Customer ID.
+	 * @return bool Success.
+	 */
+	public static function mark_deleted( int $id ): bool {
+		return self::update_customer( $id, [
+			'status'    => 'deleted',
+			'server_id' => null,
+			'server_ip' => null,
+		] );
+	}
+
+	/**
+	 * Reactivate a cancelling customer (cancel the cancellation).
+	 *
+	 * @param int $id Customer ID.
+	 * @return bool Success.
+	 */
+	public static function reactivate_customer( int $id ): bool {
+		return self::update_customer( $id, [
+			'status'                => 'active',
+			'cancelled_at'          => null,
+			'scheduled_deletion_at' => null,
+		] );
+	}
+
+	/**
+	 * Store Cloudflare record ID for a customer.
+	 *
+	 * @param int    $id        Customer ID.
+	 * @param string $record_id Cloudflare DNS record ID.
+	 * @return bool Success.
+	 */
+	public static function set_cloudflare_record_id( int $id, string $record_id ): bool {
+		return self::update_customer( $id, [
+			'cloudflare_record_id' => $record_id,
+		] );
+	}
+
+	/**
+	 * Store Hetzner server ID for a customer.
+	 *
+	 * @param int    $id        Customer ID.
+	 * @param string $server_id Hetzner server ID.
+	 * @return bool Success.
+	 */
+	public static function set_hetzner_server_id( int $id, string $server_id ): bool {
+		return self::update_customer( $id, [
+			'hetzner_server_id' => $server_id,
+		] );
 	}
 }

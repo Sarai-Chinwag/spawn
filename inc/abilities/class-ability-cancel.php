@@ -7,19 +7,15 @@
 
 namespace Spawn\Abilities;
 
+use Spawn\Cleanup;
 use Spawn\Database;
 use StripeIntegration\StripeClient;
 use WP_Error;
 
 /**
- * Cancels subscription.
+ * Cancels subscription with grace period for data export.
  */
 class Ability_Cancel {
-
-	/**
-	 * Grace period in days before VPS deletion.
-	 */
-	private const GRACE_PERIOD_DAYS = 7;
 
 	/**
 	 * Execute the ability.
@@ -28,7 +24,8 @@ class Ability_Cancel {
 	 * @return array|WP_Error Result or error.
 	 */
 	public static function execute( array $input ): array|WP_Error {
-		$reason = $input['reason'] ?? '';
+		$reason  = $input['reason'] ?? '';
+		$confirm = $input['confirm'] ?? false;
 
 		// Get customer.
 		$customer = self::get_customer( $input );
@@ -36,41 +33,107 @@ class Ability_Cancel {
 			return $customer;
 		}
 
-		// Check if already cancelled.
-		if ( 'cancelled' === $customer['status'] ) {
-			return new WP_Error( 'already_cancelled', __( 'Subscription already cancelled', 'spawn' ) );
+		// Check current status.
+		if ( 'deleted' === $customer['status'] ) {
+			return new WP_Error( 'already_deleted', __( 'This account has already been deleted', 'spawn' ) );
+		}
+
+		if ( 'cancelling' === $customer['status'] ) {
+			$deletion_date = wp_date( 'F j, Y \a\t g:i A', strtotime( $customer['scheduled_deletion_at'] ) );
+			return [
+				'status'              => 'already_cancelling',
+				'scheduled_deletion'  => $customer['scheduled_deletion_at'],
+				'message'             => sprintf(
+					__( 'Cancellation already in progress. Your site will be deleted on %s. Export your data before then!', 'spawn' ),
+					$deletion_date
+				),
+				'export_instructions' => self::get_export_instructions(),
+				'can_reactivate'      => true,
+			];
+		}
+
+		// If not confirmed, return warning with export instructions.
+		if ( ! $confirm ) {
+			return [
+				'status'              => 'confirmation_required',
+				'grace_period_days'   => Cleanup::GRACE_PERIOD_DAYS,
+				'message'             => sprintf(
+					__( 'Are you sure you want to cancel? Your site and ALL DATA will be permanently deleted after %d days. This cannot be undone. Please export your data first.', 'spawn' ),
+					Cleanup::GRACE_PERIOD_DAYS
+				),
+				'export_instructions' => self::get_export_instructions(),
+				'confirm_prompt'      => __( 'To proceed, call this ability again with confirm: true', 'spawn' ),
+			];
 		}
 
 		// Cancel Stripe subscription via shared stripe-integration plugin.
 		if ( ! empty( $customer['stripe_subscription'] ) ) {
 			$result = StripeClient::cancel_subscription( $customer['stripe_subscription'] );
 			if ( is_wp_error( $result ) ) {
-				// Log but don't fail - customer may have cancelled via Stripe portal.
-				error_log( sprintf( '[Spawn] Stripe cancel failed: %s', $result->get_error_message() ) );
+				// Log but continue - Stripe webhook will also handle this.
+				error_log( sprintf( '[Spawn] Stripe cancel via ability: %s', $result->get_error_message() ) );
 			}
 		}
 
-		// Calculate grace period end.
-		$cancelled_at     = current_time( 'mysql' );
-		$grace_period_end = gmdate( 'Y-m-d H:i:s', strtotime( "+{self::GRACE_PERIOD_DAYS} days" ) );
+		// Schedule deletion with grace period.
+		$scheduled = Database::schedule_deletion( (int) $customer['id'], Cleanup::GRACE_PERIOD_DAYS );
 
-		// Update customer status.
-		Database::update_customer( (int) $customer['id'], [
-			'status'       => 'cancelled',
-			'cancelled_at' => $cancelled_at,
-		] );
+		if ( ! $scheduled ) {
+			return new WP_Error( 'schedule_failed', __( 'Failed to schedule cancellation', 'spawn' ) );
+		}
 
-		// TODO: Schedule VPS deletion after grace period.
-		// TODO: Send cancellation confirmation email.
+		// Refresh customer data.
+		$customer = Database::get_customer( (int) $customer['id'] );
+
+		// Send cancellation email.
+		Cleanup::send_cancellation_email( $customer );
+
+		$deletion_date = wp_date( 'F j, Y \a\t g:i A', strtotime( $customer['scheduled_deletion_at'] ) );
 
 		return [
-			'success'          => true,
-			'cancellation_date' => $cancelled_at,
-			'grace_period_end' => $grace_period_end,
-			'message'          => sprintf(
-				__( 'Your subscription has been cancelled. Your site will remain active until %s.', 'spawn' ),
-				$grace_period_end
+			'success'             => true,
+			'status'              => 'cancellation_scheduled',
+			'cancelled_at'        => $customer['cancelled_at'],
+			'scheduled_deletion'  => $customer['scheduled_deletion_at'],
+			'grace_period_days'   => Cleanup::GRACE_PERIOD_DAYS,
+			'message'             => sprintf(
+				__( 'Your subscription has been cancelled. Your site will remain accessible until %s. Please export your data before then.', 'spawn' ),
+				$deletion_date
 			),
+			'export_instructions' => self::get_export_instructions(),
+			'can_reactivate'      => true,
+			'reactivate_prompt'   => __( 'Changed your mind? You can reactivate before the deletion date.', 'spawn' ),
+		];
+	}
+
+	/**
+	 * Get export instructions for the customer.
+	 *
+	 * @return array Export instructions.
+	 */
+	private static function get_export_instructions(): array {
+		return [
+			'methods' => [
+				[
+					'name'        => 'Full Site Backup',
+					'description' => __( 'Download a complete backup of your WordPress site', 'spawn' ),
+					'command'     => 'export-site',
+					'details'     => __( 'Creates a downloadable ZIP with your database and files', 'spawn' ),
+				],
+				[
+					'name'        => 'WordPress Export (XML)',
+					'description' => __( 'Export posts, pages, and media as WordPress XML', 'spawn' ),
+					'command'     => 'wp export',
+					'details'     => __( 'Standard WordPress export format, importable anywhere', 'spawn' ),
+				],
+				[
+					'name'        => 'Direct File Access (SFTP)',
+					'description' => __( 'Connect via SFTP to download files directly', 'spawn' ),
+					'command'     => 'get-sftp-credentials',
+					'details'     => __( 'Full access to wp-content, themes, plugins, uploads', 'spawn' ),
+				],
+			],
+			'important' => __( 'After deletion, your data CANNOT be recovered. Export everything you need!', 'spawn' ),
 		];
 	}
 
