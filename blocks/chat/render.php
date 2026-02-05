@@ -68,6 +68,20 @@ if ( $is_admin && ! $customer ) {
 ?>
 <div <?php echo $wrapper_attributes; ?> data-context="<?php echo esc_attr( wp_json_encode( $chat_context ) ); ?>">
 	<div class="wp-block-spawn-chat__container">
+		<div class="wp-block-spawn-chat__topnav">
+			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+					<path d="M2 17l10 5 10-5"></path>
+					<path d="M2 12l10 5 10-5"></path>
+				</svg>
+				<span>Spawn</span>
+			</a>
+			<nav class="wp-block-spawn-chat__nav">
+				<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>
+				<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+			</nav>
+		</div>
 		<div class="wp-block-spawn-chat__header">
 			<span class="wp-block-spawn-chat__session-id"></span>
 			<button class="wp-block-spawn-chat__new-convo" type="button" title="Start new conversation">

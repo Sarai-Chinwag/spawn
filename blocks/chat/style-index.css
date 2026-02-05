@@ -29,6 +29,62 @@
 	border-radius: 0;
 }
 
+/* Top navigation bar for fullpage chat */
+.wp-block-spawn-chat__topnav {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--space-sm, 10px) var(--space-md, 15px);
+	background: var(--color-text, #333);
+	color: var(--color-background, #fff);
+}
+
+.wp-block-spawn-chat__logo {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-background, #fff);
+	text-decoration: none;
+	font-weight: bold;
+	font-size: 1.1em;
+}
+
+.wp-block-spawn-chat__logo:hover {
+	color: var(--color-primary, #1fc5e2);
+}
+
+.wp-block-spawn-chat__logo svg {
+	stroke: currentColor;
+}
+
+.wp-block-spawn-chat__nav {
+	display: flex;
+	gap: var(--space-md, 15px);
+}
+
+.wp-block-spawn-chat__nav a {
+	color: var(--color-background, #fff);
+	text-decoration: none;
+	font-size: 0.9em;
+	opacity: 0.8;
+	transition: opacity 0.2s;
+}
+
+.wp-block-spawn-chat__nav a:hover {
+	opacity: 1;
+	color: var(--color-primary, #1fc5e2);
+}
+
+/* Non-fullpage: hide topnav (theme has its own header) */
+.wp-block-spawn-chat:not(.wp-block-spawn-chat--fullpage) .wp-block-spawn-chat__topnav {
+	display: none;
+}
+
+/* Fullpage: adjust container for topnav */
+.wp-block-spawn-chat--fullpage .wp-block-spawn-chat__header {
+	border-radius: 0;
+}
+
 /* Header with session indicator and new convo button */
 .wp-block-spawn-chat__header {
 	display: flex;
