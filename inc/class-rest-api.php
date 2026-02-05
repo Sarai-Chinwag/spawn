@@ -1143,11 +1143,6 @@ class REST_API {
 		$session_key = sanitize_text_field( $request->get_param( 'sessionKey' ) );
 		$context     = $request->get_param( 'context' );
 
-		// Special case: Admin users chat with the main OpenClaw instance (Sarai).
-		if ( current_user_can( 'manage_options' ) ) {
-			return self::chat_with_sarai( $message, $context, $session_key );
-		}
-
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer ) {
@@ -1223,74 +1218,4 @@ class REST_API {
 		] );
 	}
 
-	/**
-	 * Admin self-chat with Sarai (main OpenClaw instance).
-	 *
-	 * @param string $message     User message.
-	 * @param array  $context     Chat context.
-	 * @param string $session_key Optional session key for conversation continuity.
-	 * @return WP_REST_Response Response.
-	 */
-	private static function chat_with_sarai( string $message, array $context, string $session_key = '' ): WP_REST_Response {
-		// Connect to OpenClaw gateway's tools/invoke endpoint.
-		// Configurable via spawn_openclaw_gateway_url option (default: http://127.0.0.1:18789).
-		$gateway_url   = rtrim( get_option( 'spawn_openclaw_gateway_url', 'http://127.0.0.1:18789' ), '/' ) . '/tools/invoke';
-		$gateway_token = get_option( 'spawn_openclaw_token', '' );
-
-		if ( empty( $gateway_token ) ) {
-			return new WP_REST_Response( [
-				'reply' => "Chat not configured. Admin needs to set spawn_openclaw_token in wp_options.",
-			] );
-		}
-
-		$payload = [
-			'tool' => 'sessions_send',
-			'args' => [
-				'message' => '[Spawn Chat] ' . $message,
-			],
-		];
-		if ( ! empty( $session_key ) ) {
-			$payload['sessionKey'] = $session_key;
-			$payload['args']['sessionKey'] = $session_key;
-		}
-
-		// Use sessions_send tool to send message to the session.
-		$response = wp_remote_post( $gateway_url, [
-			'headers' => [
-				'Content-Type'  => 'application/json',
-				'Authorization' => 'Bearer ' . $gateway_token,
-			],
-			'body'    => wp_json_encode( $payload ),
-			'timeout' => 90,
-		] );
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
-				'reply' => "Connection failed: " . $response->get_error_message(),
-			] );
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( $code === 401 ) {
-			return new WP_REST_Response( [
-				'reply' => "Authentication failed. Check spawn_openclaw_token matches the gateway auth token.",
-			] );
-		}
-
-		if ( $code >= 400 ) {
-			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
-				'reply' => "Gateway error: $error_msg",
-			] );
-		}
-
-		// sessions_send returns the agent's reply in result.details.reply.
-		$result  = $body['result'] ?? [];
-		$details = $result['details'] ?? [];
-		return new WP_REST_Response( [
-			'reply' => $details['reply'] ?? $result['reply'] ?? "Message sent! (Agent is processing...)",
-		] );
-	}
 }
