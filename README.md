@@ -27,11 +27,13 @@ Spawn is the WordPress plugin that powers [Sarai's AI Website Service](https://s
 
 ## Pricing
 
-| Tier | Monthly | VPS | Included Credits |
-|------|---------|-----|------------------|
-| Starter | $20 | cpx11 (2 vCPU, 2GB) | $10 |
-| Pro | $40 | cpx21 (3 vCPU, 4GB) | $20 |
-| Business | $80 | cpx31 (4 vCPU, 8GB) | $40 |
+See `inc/class-config.php` for the single source of truth. Current tiers:
+
+| Tier | Monthly | VPS | Specs | Included Credits |
+|------|---------|-----|-------|------------------|
+| Starter | $20 | cpx11 | 2 vCPU (shared), 2 GB RAM, 40 GB SSD | $10 |
+| Pro | $40 | cpx21 | 3 vCPU (shared), 4 GB RAM, 80 GB SSD | $20 |
+| Business | $100 | cpx31 | 4 vCPU (shared), 8 GB RAM, 160 GB SSD | $40 |
 
 - Credits are pass-through (no markup) — we charge what the AI providers charge
 - Default model: Claude Opus 4.5 (~$0.075/turn → ~133 turns/month with $10)

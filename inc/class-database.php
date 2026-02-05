@@ -76,11 +76,6 @@ class Database {
 	 * @param array $data Customer data.
 	 * @return int|false Customer ID or false on failure.
 	 */
-	/**
-	 * Default free credits for new customers ($10).
-	 */
-	private const DEFAULT_FREE_CREDITS = 10.00;
-
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
@@ -106,7 +101,7 @@ class Database {
 				'stripe_customer'     => $data['stripe_customer'] ?? null,
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
-				'credit_balance'      => $data['credit_balance'] ?? self::DEFAULT_FREE_CREDITS,
+				'credit_balance'      => $data['credit_balance'] ?? Config::DEFAULT_STARTER_CREDITS,
 				'created_at'          => current_time( 'mysql' ),
 			],
 			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%s' ]

@@ -16,11 +16,6 @@ use WP_Error;
 class Ability_Scale_VPS {
 
 	/**
-	 * Valid VPS tiers.
-	 */
-	private const VALID_TIERS = [ 'cx22', 'cx32', 'cx42' ];
-
-	/**
 	 * Execute the ability.
 	 *
 	 * @param array $input Input parameters.
@@ -29,7 +24,9 @@ class Ability_Scale_VPS {
 	public static function execute( array $input ): array|WP_Error {
 		$new_tier = $input['new_tier'] ?? '';
 
-		if ( ! in_array( $new_tier, self::VALID_TIERS, true ) ) {
+		// Validate against Config (single source of truth for tier data).
+		$valid_types = \Spawn\Config::get_valid_hetzner_types();
+		if ( ! in_array( $new_tier, $valid_types, true ) ) {
 			return new WP_Error( 'invalid_tier', __( 'Invalid VPS tier', 'spawn' ) );
 		}
 

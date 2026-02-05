@@ -22,21 +22,6 @@ use WP_Error;
 class Webhook {
 
 	/**
-	 * Tier to VPS mapping. Credits are separate (purchased as needed).
-	 */
-	private const TIER_MAP = [
-		'starter'  => [
-			'vps' => 'cpx11',
-		],
-		'pro'      => [
-			'vps' => 'cpx21',
-		],
-		'business' => [
-			'vps' => 'cpx31',
-		],
-	];
-
-	/**
 	 * Initialize webhooks.
 	 */
 	public static function init(): void {
@@ -200,7 +185,7 @@ class Webhook {
 			return;
 		}
 
-		$tier_config  = self::TIER_MAP[ $tier ] ?? self::TIER_MAP['starter'];
+		$tier_config  = Config::get_tier( $tier ) ?? Config::get_tier( 'starter' );
 		$is_subdomain = 'subdomain' === $domain_type;
 
 		$existing = Database::get_customer_by_domain( $domain );
@@ -215,10 +200,11 @@ class Webhook {
 			'domain_type'         => $domain_type,
 			'domain_price'        => $domain_price > 0 ? $domain_price : null,
 			'subdomain'           => $is_subdomain,
-			'vps_tier'            => $tier_config['vps'],
+			'vps_tier'            => $tier_config['hetzner_type'],
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
 			'status'              => 'provisioning',
+			'credit_balance'      => $tier_config['included_credits'],
 		] );
 
 		if ( ! $customer_id ) {

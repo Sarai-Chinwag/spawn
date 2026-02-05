@@ -484,16 +484,14 @@ class REST_API {
 		$email        = sanitize_email( $request->get_param( 'email' ) );
 
 		// Get tier pricing.
-		$tiers = self::get_tier_config();
-		if ( ! isset( $tiers[ $tier ] ) ) {
+		$tier_config = Config::get_tier( $tier );
+		if ( ! $tier_config ) {
 			return new WP_Error(
 				'invalid_tier',
 				__( 'Invalid tier selected', 'spawn' ),
 				[ 'status' => 400 ]
 			);
 		}
-
-		$tier_config = $tiers[ $tier ];
 
 		// Build line items.
 		$line_items = [
@@ -561,20 +559,7 @@ class REST_API {
 	 * @return WP_REST_Response Tiers response.
 	 */
 	public static function get_tiers(): WP_REST_Response {
-		$tiers = self::get_tier_config();
-		
-		// Remove internal fields for public response.
-		$public_tiers = [];
-		foreach ( $tiers as $id => $tier ) {
-			$public_tiers[ $id ] = [
-				'name'        => $tier['name'],
-				'price'       => $tier['price'],
-				'description' => $tier['description'],
-				'features'    => $tier['features'],
-			];
-		}
-
-		return new WP_REST_Response( $public_tiers );
+		return new WP_REST_Response( Config::get_public_tiers() );
 	}
 
 	/**
@@ -780,14 +765,9 @@ class REST_API {
 			);
 		}
 
-		// Map tier to VPS tier (credits are separate, purchased as needed).
-		$tier_map = [
-			'starter'  => [ 'vps' => 'cpx11' ],
-			'pro'      => [ 'vps' => 'cpx21' ],
-			'business' => [ 'vps' => 'cpx31' ],
-		];
-
-		if ( ! isset( $tier_map[ $new_tier ] ) ) {
+		// Get tier config from single source of truth.
+		$tier_config = Config::get_tier( $new_tier );
+		if ( ! $tier_config ) {
 			return new WP_Error(
 				'invalid_tier',
 				__( 'Invalid tier selected.', 'spawn' ),
@@ -795,8 +775,7 @@ class REST_API {
 			);
 		}
 
-		$tier_config = self::get_tier_config();
-		$new_price_id = $tier_config[ $new_tier ]['stripe_price_id'] ?? '';
+		$new_price_id = $tier_config['stripe_price_id'] ?? '';
 
 		// Update Stripe subscription if we have a subscription ID and price ID.
 		if ( ! empty( $customer['stripe_subscription'] ) && ! empty( $new_price_id ) ) {
@@ -811,7 +790,7 @@ class REST_API {
 		}
 
 		// Update database.
-		Database::update_vps_tier( (int) $customer['id'], $tier_map[ $new_tier ]['vps'] );
+		Database::update_vps_tier( (int) $customer['id'], $tier_config['hetzner_type'] );
 
 		return new WP_REST_Response( [
 			'success' => true,
@@ -1250,61 +1229,6 @@ class REST_API {
 				'description' => __( '7,500 credits for $50 (50% bonus)', 'spawn' ),
 				'per_credit'  => 0.0067,
 				'bonus'       => '50%',
-			],
-		];
-	}
-
-	/**
-	 * Get tier configuration.
-	 *
-	 * @return array Tier configuration.
-	 */
-	private static function get_tier_config(): array {
-		// Get price IDs from stored options.
-		$prices = get_option( 'spawn_stripe_prices', [] );
-
-		return [
-			'starter'  => [
-				'name'            => __( 'Starter', 'spawn' ),
-				'price'           => 19,
-				'description'     => __( 'Perfect for personal sites and blogs', 'spawn' ),
-				'stripe_price_id' => $prices['vps_starter'] ?? '',
-				'hetzner_type'    => 'cx23',
-				'features'        => [
-					__( '4GB RAM, 2 vCPU, 40GB SSD', 'spawn' ),
-					__( 'AI credits (pay-as-you-go)', 'spawn' ),
-					__( 'Custom domain', 'spawn' ),
-					__( 'SSL included', 'spawn' ),
-				],
-			],
-			'pro'      => [
-				'name'            => __( 'Pro', 'spawn' ),
-				'price'           => 39,
-				'description'     => __( 'For growing businesses', 'spawn' ),
-				'stripe_price_id' => $prices['vps_pro'] ?? '',
-				'hetzner_type'    => 'cx33',
-				'features'        => [
-					__( '8GB RAM, 4 vCPU, 80GB SSD', 'spawn' ),
-					__( 'AI credits (pay-as-you-go)', 'spawn' ),
-					__( 'Custom domain', 'spawn' ),
-					__( 'SSL included', 'spawn' ),
-					__( 'Priority support', 'spawn' ),
-				],
-			],
-			'business' => [
-				'name'            => __( 'Business', 'spawn' ),
-				'price'           => 99,
-				'description'     => __( 'For high-traffic sites', 'spawn' ),
-				'stripe_price_id' => $prices['vps_business'] ?? '',
-				'hetzner_type'    => 'cx43',
-				'features'        => [
-					__( '16GB RAM, 8 vCPU, 160GB SSD', 'spawn' ),
-					__( 'AI credits (pay-as-you-go)', 'spawn' ),
-					__( 'Custom domain', 'spawn' ),
-					__( 'SSL included', 'spawn' ),
-					__( 'Priority support', 'spawn' ),
-					__( 'Dedicated resources', 'spawn' ),
-				],
 			],
 		];
 	}

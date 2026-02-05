@@ -83,7 +83,7 @@ class Abilities {
 					'customer_id' => [ 'type' => 'integer' ],
 					'new_tier'    => [
 						'type' => 'string',
-						'enum' => [ 'cpx11', 'cpx21', 'cpx31' ],
+						'enum' => \Spawn\Config::get_valid_hetzner_types(),
 					],
 				],
 			],
