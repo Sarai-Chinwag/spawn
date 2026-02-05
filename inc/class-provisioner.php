@@ -36,6 +36,7 @@ class Provisioner {
 		$config = self::get_config();
 
 		if ( empty( $config['url'] ) ) {
+			error_log( '[Spawn Provisioner] Sweatpants URL not configured' );
 			return new WP_Error(
 				'sweatpants_not_configured',
 				__( 'Sweatpants is not configured', 'spawn' ),
@@ -43,18 +44,30 @@ class Provisioner {
 			);
 		}
 
+		// Determine if domain registration should be skipped.
+		// Skip for subdomains or BYOD (bring your own domain).
+		$is_subdomain              = $params['subdomain'] ?? false;
+		$skip_domain_registration  = $is_subdomain; // Subdomains use saraichinwag.com.
+
 		// Build the job request.
 		$job_data = [
 			'module_id' => 'vps-provisioner',
-			'inputs' => [
+			'inputs'    => [
 				'customer_email'           => $params['customer_email'],
 				'domain'                   => $params['domain'],
-				'subdomain'                => $params['subdomain'] ?? false,
+				'subdomain'                => $is_subdomain,
 				'tier'                     => $params['tier'] ?? 'starter',
 				'site_title'               => $params['site_title'] ?? '',
-				'skip_domain_registration' => $params['subdomain'] ?? false,
+				'skip_domain_registration' => $skip_domain_registration,
 			],
 		];
+
+		error_log( sprintf(
+			'[Spawn Provisioner] Triggering job for %s (tier: %s, subdomain: %s)',
+			$params['domain'],
+			$params['tier'] ?? 'starter',
+			$is_subdomain ? 'yes' : 'no'
+		) );
 
 		// Make request to Sweatpants API.
 		$args = [
@@ -74,6 +87,7 @@ class Provisioner {
 		$response = wp_remote_request( $config['url'] . '/jobs', $args );
 
 		if ( is_wp_error( $response ) ) {
+			error_log( sprintf( '[Spawn Provisioner] Request failed: %s', $response->get_error_message() ) );
 			return $response;
 		}
 
@@ -82,6 +96,7 @@ class Provisioner {
 
 		if ( $code >= 400 ) {
 			$message = $body['error'] ?? __( 'Failed to create provisioning job', 'spawn' );
+			error_log( sprintf( '[Spawn Provisioner] API error %d: %s', $code, $message ) );
 			return new WP_Error(
 				'provisioning_failed',
 				$message,
@@ -89,15 +104,18 @@ class Provisioner {
 			);
 		}
 
+		$job_id = $body['job_id'] ?? null;
+
 		// Store job ID with customer record.
-		if ( ! empty( $params['customer_id'] ) && ! empty( $body['job_id'] ) ) {
+		if ( ! empty( $params['customer_id'] ) && ! empty( $job_id ) ) {
 			Database::update_customer( $params['customer_id'], [
-				'server_id' => 'job:' . $body['job_id'],
+				'server_id' => 'job:' . $job_id,
 			] );
+			error_log( sprintf( '[Spawn Provisioner] Job %s linked to customer #%d', $job_id, $params['customer_id'] ) );
 		}
 
 		return [
-			'job_id' => $body['job_id'] ?? null,
+			'job_id' => $job_id,
 			'status' => $body['status'] ?? 'queued',
 		];
 	}
@@ -159,33 +177,138 @@ class Provisioner {
 	public static function handle_completion( array $data ): bool {
 		$domain    = $data['domain'] ?? '';
 		$server_ip = $data['server_ip'] ?? $data['vps_ip'] ?? '';
+		$server_id = $data['server_id'] ?? '';
 		$success   = $data['success'] ?? false;
 
 		if ( empty( $domain ) ) {
+			error_log( '[Spawn Provisioner] Completion webhook missing domain' );
 			return false;
 		}
 
 		$customer = Database::get_customer_by_domain( $domain );
 		if ( ! $customer ) {
+			error_log( sprintf( '[Spawn Provisioner] No customer found for domain: %s', $domain ) );
 			return false;
 		}
 
-		if ( $success ) {
-			Database::update_customer( $customer['id'], [
-				'server_ip' => $server_ip,
-				'status'    => 'active',
-			] );
+		error_log( sprintf(
+			'[Spawn Provisioner] Completion received for customer #%d (%s): success=%s',
+			$customer['id'],
+			$domain,
+			$success ? 'true' : 'false'
+		) );
 
-			// TODO: Send welcome email to customer.
+		if ( $success ) {
+			$update_data = [
+				'status' => 'active',
+			];
+
+			if ( ! empty( $server_ip ) ) {
+				$update_data['server_ip'] = $server_ip;
+			}
+
+			if ( ! empty( $server_id ) ) {
+				$update_data['server_id'] = $server_id;
+			}
+
+			Database::update_customer( (int) $customer['id'], $update_data );
+
+			error_log( sprintf(
+				'[Spawn Provisioner] Customer #%d activated: IP=%s',
+				$customer['id'],
+				$server_ip
+			) );
+
+			// Send welcome email.
+			self::send_welcome_email( $customer['email'], $domain );
+
+			// Fire action for other integrations.
+			do_action( 'spawn_provisioning_complete', $customer['id'], $domain, $server_ip );
 		} else {
-			Database::update_customer( $customer['id'], [
+			$error_message = $data['error'] ?? 'Unknown error';
+
+			Database::update_customer( (int) $customer['id'], [
 				'status' => 'failed',
 			] );
 
-			// TODO: Send failure notification.
-			// TODO: Trigger refund?
+			error_log( sprintf(
+				'[Spawn Provisioner] Customer #%d provisioning failed: %s',
+				$customer['id'],
+				$error_message
+			) );
+
+			// Send failure notification to admin.
+			self::send_failure_notification( $customer['email'], $domain, $error_message );
+
+			// Fire action for other integrations.
+			do_action( 'spawn_provisioning_failed', $customer['id'], $domain, $error_message );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Send welcome email to new customer.
+	 *
+	 * @param string $email  Customer email.
+	 * @param string $domain Customer domain.
+	 */
+	private static function send_welcome_email( string $email, string $domain ): void {
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'Your website %s is ready!', 'spawn' ),
+			$domain
+		);
+
+		$message = sprintf(
+			/* translators: 1: domain name, 2: WordPress admin URL */
+			__(
+				"Great news! Your AI-powered website is now live.\n\n" .
+				"Website: https://%1\$s\n" .
+				"Admin: https://%1\$s/wp-admin/\n\n" .
+				"Your AI assistant is ready to help you build and manage your site. " .
+				"Log in to your Spawn dashboard to start chatting with your AI.\n\n" .
+				"Welcome aboard!\n" .
+				"- The Spawn Team",
+				'spawn'
+			),
+			$domain
+		);
+
+		wp_mail( $email, $subject, $message );
+	}
+
+	/**
+	 * Send failure notification to admin.
+	 *
+	 * @param string $email   Customer email.
+	 * @param string $domain  Customer domain.
+	 * @param string $error   Error message.
+	 */
+	private static function send_failure_notification( string $email, string $domain, string $error ): void {
+		$admin_email = get_option( 'admin_email' );
+
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( '[Spawn] Provisioning failed for %s', 'spawn' ),
+			$domain
+		);
+
+		$message = sprintf(
+			/* translators: 1: domain, 2: email, 3: error */
+			__(
+				"VPS provisioning failed.\n\n" .
+				"Domain: %1\$s\n" .
+				"Customer: %2\$s\n" .
+				"Error: %3\$s\n\n" .
+				"Please investigate and contact the customer.",
+				'spawn'
+			),
+			$domain,
+			$email,
+			$error
+		);
+
+		wp_mail( $admin_email, $subject, $message );
 	}
 }
