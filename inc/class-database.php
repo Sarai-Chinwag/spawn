@@ -305,30 +305,6 @@ class Database {
 	}
 
 	/**
-	 * Deduct credits from a customer's balance.
-	 *
-	 * @param int   $id     Customer ID.
-	 * @param float $amount Amount of credits to deduct.
-	 * @return bool Success. Returns false if insufficient balance.
-	 */
-	public static function deduct_credits( int $id, float $amount ): bool {
-		global $wpdb;
-
-		// Use atomic update to prevent race conditions and ensure sufficient balance.
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE %i SET credit_balance = credit_balance - %f WHERE id = %d AND credit_balance >= %f",
-				self::get_table_name(),
-				$amount,
-				$id,
-				$amount
-			)
-		);
-
-		return $result > 0;
-	}
-
-	/**
 	 * Update auto-refill settings for a customer.
 	 *
 	 * @param int  $id        Customer ID.
