@@ -443,18 +443,25 @@ class REST_API {
 		}
 
 		// Create Stripe checkout session.
+		// Save payment method for future charges (auto-refill credits).
 		$session = Stripe::create_checkout_session( [
-			'customer_email' => $email,
-			'metadata'       => [
+			'customer_email'    => $email,
+			'metadata'          => [
 				'domain'       => $domain,
 				'domain_type'  => $domain_type,
 				'domain_price' => $domain_price,
 				'tier'         => $tier,
 			],
-			'line_items'     => $line_items,
-			'mode'           => 'subscription',
-			'success_url'    => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
-			'cancel_url'     => home_url( '/spawn/' ),
+			'line_items'        => $line_items,
+			'mode'              => 'subscription',
+			'payment_method_collection' => 'always',
+			'subscription_data' => [
+				'metadata' => [
+					'tier' => $tier,
+				],
+			],
+			'success_url'       => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
+			'cancel_url'        => home_url( '/spawn/' ),
 		] );
 
 		if ( is_wp_error( $session ) ) {

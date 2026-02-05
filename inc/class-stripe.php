@@ -424,4 +424,124 @@ class Stripe {
 
 		return $result['data'] ?? [];
 	}
+
+	/**
+	 * Get default payment method for a customer.
+	 *
+	 * @param string $customer_id Stripe customer ID.
+	 * @return string|WP_Error Payment method ID or error.
+	 */
+	public static function get_default_payment_method( string $customer_id ): string|WP_Error {
+		$customer = self::request( '/customers/' . urlencode( $customer_id ), 'GET' );
+
+		if ( is_wp_error( $customer ) ) {
+			return $customer;
+		}
+
+		$pm = $customer['invoice_settings']['default_payment_method'] ?? null;
+		if ( ! $pm ) {
+			return new WP_Error(
+				'no_payment_method',
+				__( 'No default payment method found.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return $pm;
+	}
+
+	/**
+	 * Charge a saved payment method for auto-refill.
+	 *
+	 * @param string $customer_id       Stripe customer ID.
+	 * @param string $payment_method_id Stripe payment method ID.
+	 * @param int    $amount_cents      Amount in cents.
+	 * @param int    $credits           Number of credits being purchased.
+	 * @param int    $spawn_customer_id Spawn customer ID.
+	 * @return array|WP_Error PaymentIntent or error.
+	 */
+	public static function charge_for_auto_refill(
+		string $customer_id,
+		string $payment_method_id,
+		int $amount_cents,
+		int $credits,
+		int $spawn_customer_id
+	): array|WP_Error {
+		$result = self::request( '/payment_intents', 'POST', [
+			'amount'               => $amount_cents,
+			'currency'             => 'usd',
+			'customer'             => $customer_id,
+			'payment_method'       => $payment_method_id,
+			'off_session'          => true,
+			'confirm'              => true,
+			'description'          => sprintf(
+				/* translators: %d: number of credits */
+				__( 'Auto-refill: %d Spawn Credits', 'spawn' ),
+				$credits
+			),
+			'metadata'             => [
+				'type'              => 'auto_refill',
+				'credits'           => $credits,
+				'spawn_customer_id' => $spawn_customer_id,
+			],
+		] );
+
+		return $result;
+	}
+
+	/**
+	 * Process auto-refill for a customer.
+	 *
+	 * @param int   $spawn_customer_id Spawn customer ID.
+	 * @param array $settings          Auto-refill settings (amount in credits).
+	 * @return bool|WP_Error True on success, error on failure.
+	 */
+	public static function process_auto_refill( int $spawn_customer_id, array $settings ): bool|WP_Error {
+		$customer = \Spawn\Database::get_customer( $spawn_customer_id );
+		if ( ! $customer ) {
+			return new WP_Error( 'customer_not_found', 'Customer not found.' );
+		}
+
+		$stripe_customer_id = $customer['stripe_customer'] ?? null;
+		$payment_method_id  = $customer['stripe_payment_method'] ?? null;
+
+		if ( ! $stripe_customer_id ) {
+			return new WP_Error( 'no_stripe_customer', 'No Stripe customer ID.' );
+		}
+
+		// Get payment method from customer if not stored locally.
+		if ( ! $payment_method_id ) {
+			$payment_method_id = self::get_default_payment_method( $stripe_customer_id );
+			if ( is_wp_error( $payment_method_id ) ) {
+				return $payment_method_id;
+			}
+			// Save it for next time.
+			\Spawn\Database::update_payment_method( $spawn_customer_id, $payment_method_id );
+		}
+
+		$credits      = (int) $settings['amount'];
+		$amount_cents = $credits; // 1 credit = $0.01 = 1 cent.
+
+		$result = self::charge_for_auto_refill(
+			$stripe_customer_id,
+			$payment_method_id,
+			$amount_cents,
+			$credits,
+			$spawn_customer_id
+		);
+
+		if ( is_wp_error( $result ) ) {
+			do_action( 'spawn_auto_refill_failed', $spawn_customer_id, $result );
+			return $result;
+		}
+
+		// Add credits to customer.
+		$success = \Spawn\Database::add_credits( $spawn_customer_id, $credits );
+		if ( ! $success ) {
+			return new WP_Error( 'credit_add_failed', 'Failed to add credits after charge.' );
+		}
+
+		do_action( 'spawn_auto_refill_success', $spawn_customer_id, $credits, $result );
+		return true;
+	}
 }

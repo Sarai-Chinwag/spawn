@@ -46,6 +46,7 @@ class Database {
 			ai_calls_limit int(11) NOT NULL DEFAULT 1000,
 			stripe_customer varchar(255) DEFAULT NULL,
 			stripe_subscription varchar(255) DEFAULT NULL,
+			stripe_payment_method varchar(255) DEFAULT NULL,
 			server_id varchar(255) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
 			status varchar(50) NOT NULL DEFAULT 'pending',
@@ -457,5 +458,29 @@ class Database {
 		);
 
 		return $result !== false;
+	}
+
+	/**
+	 * Update Stripe payment method for a customer.
+	 *
+	 * @param int    $id               Customer ID.
+	 * @param string $payment_method_id Stripe payment method ID.
+	 * @return bool Success.
+	 */
+	public static function update_payment_method( int $id, string $payment_method_id ): bool {
+		return self::update_customer( $id, [
+			'stripe_payment_method' => $payment_method_id,
+		] );
+	}
+
+	/**
+	 * Get Stripe payment method for a customer.
+	 *
+	 * @param int $id Customer ID.
+	 * @return string|null Payment method ID or null.
+	 */
+	public static function get_payment_method( int $id ): ?string {
+		$customer = self::get_customer( $id );
+		return $customer['stripe_payment_method'] ?? null;
 	}
 }
