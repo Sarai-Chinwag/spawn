@@ -1278,10 +1278,14 @@ class REST_API {
 		$site_url     = home_url();
 
 		$system_prompt = sprintf(
-			"[Spawn Chat Block - WordPress]\n" .
-			"Site: %s\n" .
-			"URL: %s\n" .
-			"User: %s <%s>",
+			"[Spawn Web Chat - Bootstrap Interface]\n" .
+			"Platform: WordPress\n" .
+			"Site: %s (%s)\n" .
+			"User: %s <%s>\n" .
+			"Interface: Web chat block (temporary)\n\n" .
+			"This is the Spawn plugin's web-based chat interface. It exists to help users " .
+			"get started before they set up a proper messaging channel (Telegram, Discord, Signal, etc.) " .
+			"which OpenClaw supports natively. Help them configure a real messaging channel when appropriate.",
 			$site_name,
 			$site_url,
 			$current_user->display_name ?: $current_user->user_login,
