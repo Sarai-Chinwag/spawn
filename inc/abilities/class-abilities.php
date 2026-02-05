@@ -168,6 +168,50 @@ class Abilities {
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
 		] );
+
+		// Set Auto-Refill
+		wp_register_ability( 'spawn_set_auto_refill', [
+			'label'       => __( 'Set Auto-Refill', 'spawn' ),
+			'description' => __( 'Configure automatic credit refill when balance is low', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Set_Auto_Refill::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+					'enabled'     => [
+						'type'        => 'boolean',
+						'description' => 'Enable or disable auto-refill',
+					],
+					'threshold'   => [
+						'type'        => 'number',
+						'description' => 'Trigger refill when balance falls below this amount (in dollars, $1-$100)',
+						'minimum'     => 1,
+						'maximum'     => 100,
+					],
+					'amount'      => [
+						'type'        => 'number',
+						'description' => 'Amount to refill (in dollars, $10-$100)',
+						'minimum'     => 10,
+						'maximum'     => 100,
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [ 'type' => 'integer' ],
+					'enabled'     => [ 'type' => 'boolean' ],
+					'threshold'   => [ 'type' => 'number' ],
+					'amount'      => [ 'type' => 'number' ],
+					'message'     => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
 	}
 
 	/**

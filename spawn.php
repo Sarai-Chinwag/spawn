@@ -51,28 +51,6 @@ function init(): void {
 	if ( is_admin() ) {
 		Admin::init();
 	}
-
-	// Auto-refill credits when balance falls below threshold.
-	add_action( 'spawn_credits_auto_refill_needed', __NAMESPACE__ . '\\handle_auto_refill', 10, 2 );
-}
-
-/**
- * Handle auto-refill when credits fall below threshold.
- *
- * @param int   $customer_id Spawn customer ID.
- * @param array $settings    Auto-refill settings.
- */
-function handle_auto_refill( int $customer_id, array $settings ): void {
-	$result = Payment_Helpers::process_auto_refill( $customer_id, $settings );
-
-	if ( is_wp_error( $result ) ) {
-		// Log the error but don't throw - the deduction already happened.
-		error_log( sprintf(
-			'Spawn auto-refill failed for customer %d: %s',
-			$customer_id,
-			$result->get_error_message()
-		) );
-	}
 }
 
 /**

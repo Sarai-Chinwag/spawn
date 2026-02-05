@@ -28,10 +28,20 @@ class Cron {
 	private const RENEWAL_WINDOW_DAYS = 30;
 
 	/**
+	 * Low balance threshold for warning email (in dollars).
+	 */
+	private const LOW_BALANCE_WARNING_THRESHOLD = 2.00;
+
+	/**
 	 * Initialize cron handlers.
 	 */
 	public static function init(): void {
 		add_action( self::RENEWAL_HOOK, [ __CLASS__, 'process_domain_renewals' ] );
+
+		// Auto-refill handlers.
+		add_action( 'spawn_credits_auto_refill_needed', [ __CLASS__, 'handle_auto_refill_needed' ], 10, 2 );
+		add_action( 'spawn_auto_refill_success', [ __CLASS__, 'send_auto_refill_success_email' ], 10, 3 );
+		add_action( 'spawn_auto_refill_failed', [ __CLASS__, 'send_auto_refill_failed_email' ], 10, 2 );
 	}
 
 	/**
@@ -323,5 +333,220 @@ class Cron {
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional logging.
 		error_log( sprintf( '%s %s', $prefix, $message ) );
+	}
+
+	/**
+	 * Handle auto-refill needed action.
+	 *
+	 * Called when a customer's balance falls below their auto-refill threshold.
+	 *
+	 * @param int   $customer_id Customer ID.
+	 * @param array $settings    Auto-refill settings (enabled, threshold, amount).
+	 */
+	public static function handle_auto_refill_needed( int $customer_id, array $settings ): void {
+		self::log( sprintf(
+			'Auto-refill triggered for customer #%d (threshold: $%.2f, amount: $%.2f)',
+			$customer_id,
+			$settings['threshold'] ?? 0,
+			$settings['amount'] ?? 0
+		) );
+
+		// Verify auto-refill is actually enabled.
+		if ( empty( $settings['enabled'] ) ) {
+			self::log( sprintf( 'Auto-refill not enabled for customer #%d, checking for low balance warning', $customer_id ) );
+			self::maybe_send_low_balance_warning( $customer_id );
+			return;
+		}
+
+		// Process the auto-refill.
+		$result = Payment_Helpers::process_auto_refill( $customer_id, $settings );
+
+		if ( is_wp_error( $result ) ) {
+			self::log( sprintf(
+				'Auto-refill failed for customer #%d: %s',
+				$customer_id,
+				$result->get_error_message()
+			), 'error' );
+		} else {
+			self::log( sprintf(
+				'Auto-refill succeeded for customer #%d, added $%.2f',
+				$customer_id,
+				$settings['amount'] ?? 0
+			) );
+		}
+	}
+
+	/**
+	 * Check and send low balance warning if needed.
+	 *
+	 * Only sends if balance < $2 and auto-refill is disabled.
+	 *
+	 * @param int $customer_id Customer ID.
+	 */
+	private static function maybe_send_low_balance_warning( int $customer_id ): void {
+		$customer = Database::get_customer( $customer_id );
+		if ( ! $customer ) {
+			return;
+		}
+
+		$balance = (float) $customer['credit_balance'];
+
+		// Only warn if balance is below threshold.
+		if ( $balance >= self::LOW_BALANCE_WARNING_THRESHOLD ) {
+			return;
+		}
+
+		// Check if we've already sent a warning recently (within 24 hours).
+		$last_warning = get_transient( 'spawn_low_balance_warning_' . $customer_id );
+		if ( $last_warning ) {
+			return;
+		}
+
+		self::send_low_balance_warning( $customer, $balance );
+
+		// Mark that we've sent a warning (don't send again for 24 hours).
+		set_transient( 'spawn_low_balance_warning_' . $customer_id, time(), DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Send low balance warning email.
+	 *
+	 * @param array $customer Customer data.
+	 * @param float $balance  Current balance.
+	 */
+	private static function send_low_balance_warning( array $customer, float $balance ): void {
+		$email   = $customer['email'];
+		$domain  = $customer['domain'];
+		$subject = __( 'Low credit balance warning - Spawn', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain, 2: balance amount */
+			__(
+				"Hello,\n\n" .
+				"Your Spawn credit balance for %1\$s is running low.\n\n" .
+				"Current balance: $%2\$.2f\n\n" .
+				"When your balance reaches $0, your AI assistant will stop responding until you add more credits.\n\n" .
+				"You can:\n" .
+				"1. Purchase credits from your dashboard\n" .
+				"2. Enable auto-refill to automatically top up when balance gets low\n\n" .
+				"To enable auto-refill, visit your dashboard and go to Settings → Credits.\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$balance
+		);
+
+		$sent = wp_mail( $email, $subject, $message );
+
+		if ( $sent ) {
+			self::log( sprintf( 'Sent low balance warning to %s (balance: $%.2f)', $email, $balance ) );
+		} else {
+			self::log( sprintf( 'Failed to send low balance warning to %s', $email ), 'error' );
+		}
+	}
+
+	/**
+	 * Send auto-refill success email notification.
+	 *
+	 * @param int   $customer_id Customer ID.
+	 * @param int   $credits     Credits added.
+	 * @param array $result      Stripe payment result.
+	 */
+	public static function send_auto_refill_success_email( int $customer_id, int $credits, array $result ): void {
+		$customer = Database::get_customer( $customer_id );
+		if ( ! $customer ) {
+			return;
+		}
+
+		$email       = $customer['email'];
+		$domain      = $customer['domain'];
+		$new_balance = Database::get_credit_balance( $customer_id );
+		$amount      = $credits / 100; // Convert credits to dollars.
+		$subject     = __( 'Credits auto-refilled - Spawn', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain, 2: amount charged, 3: credits added, 4: new balance */
+			__(
+				"Hello,\n\n" .
+				"Your Spawn credits for %1\$s have been automatically refilled.\n\n" .
+				"Amount charged: $%2\$.2f\n" .
+				"Credits added: %3\$d\n" .
+				"New balance: $%4\$.2f\n\n" .
+				"You can manage your auto-refill settings in your dashboard under Settings → Credits.\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$amount,
+			$credits,
+			$new_balance ?? 0
+		);
+
+		$sent = wp_mail( $email, $subject, $message );
+
+		if ( $sent ) {
+			self::log( sprintf( 'Sent auto-refill success email to %s', $email ) );
+		} else {
+			self::log( sprintf( 'Failed to send auto-refill success email to %s', $email ), 'error' );
+		}
+	}
+
+	/**
+	 * Send auto-refill failure email notification.
+	 *
+	 * @param int      $customer_id Customer ID.
+	 * @param WP_Error $error       The error that occurred.
+	 */
+	public static function send_auto_refill_failed_email( int $customer_id, WP_Error $error ): void {
+		$customer = Database::get_customer( $customer_id );
+		if ( ! $customer ) {
+			return;
+		}
+
+		$email   = $customer['email'];
+		$domain  = $customer['domain'];
+		$balance = (float) $customer['credit_balance'];
+		$subject = __( 'Credit auto-refill failed - Action required', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain, 2: error message, 3: current balance */
+			__(
+				"Hello,\n\n" .
+				"We were unable to automatically refill your Spawn credits for %1\$s.\n\n" .
+				"Reason: %2\$s\n\n" .
+				"Current balance: $%3\$.2f\n\n" .
+				"Please update your payment method or manually purchase credits to continue using your AI assistant.\n\n" .
+				"You can do this from your dashboard under Settings → Billing.\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$error->get_error_message(),
+			$balance
+		);
+
+		$sent = wp_mail( $email, $subject, $message );
+
+		if ( $sent ) {
+			self::log( sprintf( 'Sent auto-refill failure email to %s', $email ) );
+		} else {
+			self::log( sprintf( 'Failed to send auto-refill failure email to %s', $email ), 'error' );
+		}
+
+		// Also notify admin of payment failures.
+		$admin_email = get_option( 'admin_email' );
+		wp_mail(
+			$admin_email,
+			sprintf( '[Spawn] Auto-refill failed: Customer #%d', $customer_id ),
+			sprintf(
+				"Auto-refill payment failed\n\nCustomer: #%d\nDomain: %s\nEmail: %s\nBalance: $%.2f\nError: %s",
+				$customer_id,
+				$domain,
+				$email,
+				$balance,
+				$error->get_error_message()
+			)
+		);
 	}
 }

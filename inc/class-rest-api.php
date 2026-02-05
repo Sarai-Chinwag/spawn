@@ -293,7 +293,47 @@ class REST_API {
 			]
 		);
 
+		// Credits: Get auto-refill settings.
+		register_rest_route(
+			self::NAMESPACE,
+			'/account/auto-refill',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_auto_refill' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
 		// Credits: Update auto-refill settings.
+		register_rest_route(
+			self::NAMESPACE,
+			'/account/auto-refill',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'update_auto_refill_settings' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'enabled'   => [
+						'required' => true,
+						'type'     => 'boolean',
+					],
+					'threshold' => [
+						'type'    => 'number',
+						'default' => 5.00,
+						'minimum' => 1.00,
+						'maximum' => 100.00,
+					],
+					'amount'    => [
+						'type'    => 'number',
+						'default' => 10.00,
+						'minimum' => 10.00,
+						'maximum' => 100.00,
+					],
+				],
+			]
+		);
+
+		// Legacy: Credits auto-refill (old endpoint, forwards to new one).
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/auto-refill',
@@ -967,7 +1007,98 @@ class REST_API {
 	}
 
 	/**
-	 * Update auto-refill settings.
+	 * Get auto-refill settings for the current customer.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_auto_refill(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$settings = Database::get_auto_refill_settings( (int) $customer['id'] );
+
+		return new WP_REST_Response( [
+			'enabled'   => $settings['enabled'] ?? false,
+			'threshold' => (float) ( $settings['threshold'] ?? 5.00 ),
+			'amount'    => (float) ( $settings['amount'] ?? 10.00 ),
+		] );
+	}
+
+	/**
+	 * Update auto-refill settings (new endpoint with dollar amounts).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function update_auto_refill_settings( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		$enabled   = (bool) $request->get_param( 'enabled' );
+		$threshold = (float) $request->get_param( 'threshold' );
+		$amount    = (float) $request->get_param( 'amount' );
+
+		// Validate threshold (in dollars).
+		if ( $threshold < 1.00 || $threshold > 100.00 ) {
+			return new WP_Error(
+				'invalid_threshold',
+				__( 'Threshold must be between $1 and $100.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Validate amount (in dollars, minimum $10).
+		if ( $amount < 10.00 || $amount > 100.00 ) {
+			return new WP_Error(
+				'invalid_amount',
+				__( 'Refill amount must be between $10 and $100.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$success = Database::update_auto_refill_settings(
+			(int) $customer['id'],
+			$enabled,
+			$threshold,
+			$amount
+		);
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update auto-refill settings.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [
+			'success'  => true,
+			'settings' => [
+				'enabled'   => $enabled,
+				'threshold' => $threshold,
+				'amount'    => $amount,
+			],
+		] );
+	}
+
+	/**
+	 * Update auto-refill settings (legacy endpoint with credit amounts).
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error Response or error.

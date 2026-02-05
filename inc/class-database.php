@@ -326,15 +326,32 @@ class Database {
 	}
 
 	/**
-	 * Update auto-refill settings for a customer.
+	 * Update auto-refill settings for a customer (legacy, credit-based).
 	 *
 	 * @param int  $id        Customer ID.
 	 * @param bool $enabled   Whether auto-refill is enabled.
-	 * @param int  $threshold Refill when balance falls below this.
+	 * @param int  $threshold Refill when balance falls below this (in credits).
 	 * @param int  $amount    Number of credits to add when refilling.
 	 * @return bool Success.
 	 */
 	public static function update_auto_refill( int $id, bool $enabled, int $threshold = 100, int $amount = 1000 ): bool {
+		return self::update_customer( $id, [
+			'auto_refill_enabled'   => $enabled ? 1 : 0,
+			'auto_refill_threshold' => $threshold,
+			'auto_refill_amount'    => $amount,
+		] );
+	}
+
+	/**
+	 * Update auto-refill settings for a customer (dollar-based).
+	 *
+	 * @param int   $id        Customer ID.
+	 * @param bool  $enabled   Whether auto-refill is enabled.
+	 * @param float $threshold Refill when balance falls below this (in dollars).
+	 * @param float $amount    Amount in dollars to refill.
+	 * @return bool Success.
+	 */
+	public static function update_auto_refill_settings( int $id, bool $enabled, float $threshold = 5.00, float $amount = 10.00 ): bool {
 		return self::update_customer( $id, [
 			'auto_refill_enabled'   => $enabled ? 1 : 0,
 			'auto_refill_threshold' => $threshold,
