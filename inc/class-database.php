@@ -23,6 +23,36 @@ class Database {
 	}
 
 	/**
+	 * Get servers table name.
+	 *
+	 * @return string Table name.
+	 */
+	public static function get_servers_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'spawn_servers';
+	}
+
+	/**
+	 * Get domains table name.
+	 *
+	 * @return string Table name.
+	 */
+	public static function get_domains_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'spawn_domains';
+	}
+
+	/**
+	 * Get usage table name.
+	 *
+	 * @return string Table name.
+	 */
+	public static function get_usage_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'spawn_usage';
+	}
+
+	/**
 	 * Create database tables.
 	 */
 	public static function create_tables(): void {
@@ -76,6 +106,107 @@ class Database {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+	}
+
+	/**
+	 * Create servers table for multi-server support.
+	 */
+	public static function create_servers_table(): void {
+		global $wpdb;
+
+		$table_name      = self::get_servers_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$table_name} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			name varchar(255) DEFAULT '',
+			tier varchar(50) NOT NULL DEFAULT 'starter',
+			hetzner_server_id varchar(100) DEFAULT NULL,
+			hetzner_type varchar(50) DEFAULT NULL,
+			server_ip varchar(45) DEFAULT NULL,
+			server_location varchar(10) DEFAULT 'ash',
+			openclaw_token varchar(255) DEFAULT NULL,
+			has_wordpress tinyint(1) DEFAULT 0,
+			status varchar(50) DEFAULT 'pending',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			KEY idx_user_id (user_id),
+			KEY idx_status (status)
+		) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create domains table for multi-domain support.
+	 */
+	public static function create_domains_table(): void {
+		global $wpdb;
+
+		$table_name      = self::get_domains_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$table_name} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			server_id bigint(20) unsigned DEFAULT NULL,
+			domain varchar(255) NOT NULL,
+			registrar varchar(50) DEFAULT 'namecom',
+			registered_at datetime DEFAULT NULL,
+			expires_at datetime DEFAULT NULL,
+			auto_renew tinyint(1) DEFAULT 0,
+			dns_configured tinyint(1) DEFAULT 0,
+			ssl_configured tinyint(1) DEFAULT 0,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			UNIQUE KEY idx_domain (domain),
+			KEY idx_user_id (user_id),
+			KEY idx_server_id (server_id)
+		) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create usage table for per-server usage tracking.
+	 */
+	public static function create_usage_table(): void {
+		global $wpdb;
+
+		$table_name      = self::get_usage_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$table_name} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			server_id bigint(20) unsigned NOT NULL,
+			credits_used decimal(10,4) DEFAULT 0,
+			requests_count int(10) unsigned DEFAULT 0,
+			tokens_input bigint(20) unsigned DEFAULT 0,
+			tokens_output bigint(20) unsigned DEFAULT 0,
+			period_start date NOT NULL,
+			period_end date NOT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			UNIQUE KEY idx_server_period (server_id, period_start),
+			KEY idx_user_id (user_id)
+		) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create all multi-server tables.
+	 */
+	public static function create_multi_server_tables(): void {
+		self::create_servers_table();
+		self::create_domains_table();
+		self::create_usage_table();
 	}
 
 	/**
@@ -635,5 +766,336 @@ class Database {
 		return self::update_customer( $id, [
 			'hetzner_server_id' => $server_id,
 		] );
+	}
+
+	// =========================================================================
+	// Server CRUD (multi-server support)
+	// =========================================================================
+
+	/**
+	 * Create a server record.
+	 *
+	 * @param array $data Server data.
+	 * @return int|false Server ID or false on failure.
+	 */
+	public static function create_server( array $data ): int|false {
+		global $wpdb;
+
+		$result = $wpdb->insert(
+			self::get_servers_table_name(),
+			[
+				'user_id'           => $data['user_id'],
+				'name'              => $data['name'] ?? '',
+				'tier'              => $data['tier'] ?? 'starter',
+				'hetzner_server_id' => $data['hetzner_server_id'] ?? null,
+				'hetzner_type'      => $data['hetzner_type'] ?? null,
+				'server_ip'         => $data['server_ip'] ?? null,
+				'server_location'   => $data['server_location'] ?? 'ash',
+				'openclaw_token'    => $data['openclaw_token'] ?? null,
+				'has_wordpress'     => ! empty( $data['has_wordpress'] ) ? 1 : 0,
+				'status'            => $data['status'] ?? 'pending',
+			],
+			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ]
+		);
+
+		return $result ? $wpdb->insert_id : false;
+	}
+
+	/**
+	 * Get a server by ID.
+	 *
+	 * @param int $id Server ID.
+	 * @return array|null Server data or null if not found.
+	 */
+	public static function get_server( int $id ): ?array {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE id = %d',
+				self::get_servers_table_name(),
+				$id
+			),
+			ARRAY_A
+		);
+
+		return $row ?: null;
+	}
+
+	/**
+	 * Get all servers for a user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Servers.
+	 */
+	public static function get_servers_by_user( int $user_id ): array {
+		global $wpdb;
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE user_id = %d ORDER BY created_at DESC',
+				self::get_servers_table_name(),
+				$user_id
+			),
+			ARRAY_A
+		) ?: [];
+	}
+
+	/**
+	 * Update a server record.
+	 *
+	 * @param int   $id   Server ID.
+	 * @param array $data Data to update.
+	 * @return bool Success.
+	 */
+	public static function update_server( int $id, array $data ): bool {
+		global $wpdb;
+
+		$data['updated_at'] = current_time( 'mysql' );
+
+		return $wpdb->update(
+			self::get_servers_table_name(),
+			$data,
+			[ 'id' => $id ]
+		) !== false;
+	}
+
+	/**
+	 * Delete a server record.
+	 *
+	 * @param int $id Server ID.
+	 * @return bool Success.
+	 */
+	public static function delete_server( int $id ): bool {
+		global $wpdb;
+
+		return $wpdb->delete(
+			self::get_servers_table_name(),
+			[ 'id' => $id ],
+			[ '%d' ]
+		) !== false;
+	}
+
+	// =========================================================================
+	// Domain CRUD (multi-domain support)
+	// =========================================================================
+
+	/**
+	 * Create a domain record.
+	 *
+	 * @param array $data Domain data.
+	 * @return int|false Domain ID or false on failure.
+	 */
+	public static function create_domain( array $data ): int|false {
+		global $wpdb;
+
+		$result = $wpdb->insert(
+			self::get_domains_table_name(),
+			[
+				'user_id'        => $data['user_id'],
+				'server_id'      => $data['server_id'] ?? null,
+				'domain'         => $data['domain'],
+				'registrar'      => $data['registrar'] ?? 'namecom',
+				'registered_at'  => $data['registered_at'] ?? current_time( 'mysql' ),
+				'expires_at'     => $data['expires_at'] ?? null,
+				'auto_renew'     => ! empty( $data['auto_renew'] ) ? 1 : 0,
+				'dns_configured' => ! empty( $data['dns_configured'] ) ? 1 : 0,
+				'ssl_configured' => ! empty( $data['ssl_configured'] ) ? 1 : 0,
+			],
+			[ '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d' ]
+		);
+
+		return $result ? $wpdb->insert_id : false;
+	}
+
+	/**
+	 * Get a domain by ID.
+	 *
+	 * @param int $id Domain ID.
+	 * @return array|null Domain data or null if not found.
+	 */
+	public static function get_domain( int $id ): ?array {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE id = %d',
+				self::get_domains_table_name(),
+				$id
+			),
+			ARRAY_A
+		);
+
+		return $row ?: null;
+	}
+
+	/**
+	 * Get all domains for a user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Domains.
+	 */
+	public static function get_domains_by_user( int $user_id ): array {
+		global $wpdb;
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE user_id = %d ORDER BY created_at DESC',
+				self::get_domains_table_name(),
+				$user_id
+			),
+			ARRAY_A
+		) ?: [];
+	}
+
+	/**
+	 * Update a domain record.
+	 *
+	 * @param int   $id   Domain ID.
+	 * @param array $data Data to update.
+	 * @return bool Success.
+	 */
+	public static function update_domain( int $id, array $data ): bool {
+		global $wpdb;
+
+		return $wpdb->update(
+			self::get_domains_table_name(),
+			$data,
+			[ 'id' => $id ]
+		) !== false;
+	}
+
+	/**
+	 * Delete a domain record.
+	 *
+	 * @param int $id Domain ID.
+	 * @return bool Success.
+	 */
+	public static function delete_domain( int $id ): bool {
+		global $wpdb;
+
+		return $wpdb->delete(
+			self::get_domains_table_name(),
+			[ 'id' => $id ],
+			[ '%d' ]
+		) !== false;
+	}
+
+	/**
+	 * Assign a domain to a server.
+	 *
+	 * @param int      $domain_id Domain ID.
+	 * @param int|null $server_id Server ID (null to unassign).
+	 * @return bool Success.
+	 */
+	public static function assign_domain_to_server( int $domain_id, ?int $server_id ): bool {
+		return self::update_domain( $domain_id, [ 'server_id' => $server_id ] );
+	}
+
+	// =========================================================================
+	// Usage tracking (per-server)
+	// =========================================================================
+
+	/**
+	 * Record usage for a server.
+	 *
+	 * @param int   $user_id      User ID.
+	 * @param int   $server_id    Server ID.
+	 * @param float $credits_used Credits used.
+	 * @param int   $tokens_in    Input tokens.
+	 * @param int   $tokens_out   Output tokens.
+	 * @return bool Success.
+	 */
+	public static function record_usage( int $user_id, int $server_id, float $credits_used, int $tokens_in = 0, int $tokens_out = 0 ): bool {
+		global $wpdb;
+
+		$today        = current_time( 'Y-m-d' );
+		$period_start = gmdate( 'Y-m-01', strtotime( $today ) );
+		$period_end   = gmdate( 'Y-m-t', strtotime( $today ) );
+
+		// Try to update existing record for this period.
+		$existing = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT id FROM %i WHERE server_id = %d AND period_start = %s',
+				self::get_usage_table_name(),
+				$server_id,
+				$period_start
+			)
+		);
+
+		if ( $existing ) {
+			return $wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET credits_used = credits_used + %f, requests_count = requests_count + 1, tokens_input = tokens_input + %d, tokens_output = tokens_output + %d WHERE id = %d',
+					self::get_usage_table_name(),
+					$credits_used,
+					$tokens_in,
+					$tokens_out,
+					$existing
+				)
+			) !== false;
+		}
+
+		// Insert new record.
+		return $wpdb->insert(
+			self::get_usage_table_name(),
+			[
+				'user_id'        => $user_id,
+				'server_id'      => $server_id,
+				'credits_used'   => $credits_used,
+				'requests_count' => 1,
+				'tokens_input'   => $tokens_in,
+				'tokens_output'  => $tokens_out,
+				'period_start'   => $period_start,
+				'period_end'     => $period_end,
+			],
+			[ '%d', '%d', '%f', '%d', '%d', '%d', '%s', '%s' ]
+		) !== false;
+	}
+
+	/**
+	 * Get usage for a server.
+	 *
+	 * @param int $server_id Server ID.
+	 * @param int $months    Number of months to retrieve.
+	 * @return array Usage records.
+	 */
+	public static function get_server_usage( int $server_id, int $months = 3 ): array {
+		global $wpdb;
+
+		$cutoff = gmdate( 'Y-m-d', strtotime( "-{$months} months" ) );
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE server_id = %d AND period_start >= %s ORDER BY period_start DESC',
+				self::get_usage_table_name(),
+				$server_id,
+				$cutoff
+			),
+			ARRAY_A
+		) ?: [];
+	}
+
+	/**
+	 * Get total usage for a user across all servers.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $months  Number of months to retrieve.
+	 * @return array Usage records grouped by period.
+	 */
+	public static function get_user_usage( int $user_id, int $months = 3 ): array {
+		global $wpdb;
+
+		$cutoff = gmdate( 'Y-m-d', strtotime( "-{$months} months" ) );
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT period_start, period_end, SUM(credits_used) as credits_used, SUM(requests_count) as requests_count, SUM(tokens_input) as tokens_input, SUM(tokens_output) as tokens_output FROM %i WHERE user_id = %d AND period_start >= %s GROUP BY period_start, period_end ORDER BY period_start DESC',
+				self::get_usage_table_name(),
+				$user_id,
+				$cutoff
+			),
+			ARRAY_A
+		) ?: [];
 	}
 }
