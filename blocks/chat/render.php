@@ -47,6 +47,10 @@ if ( ! $customer && ! $is_admin ) {
 	return;
 }
 
+// Get current user for context.
+$current_user = wp_get_current_user();
+$username     = $current_user->display_name ?: $current_user->user_login;
+
 // Pass customer context to JS.
 if ( $is_admin && ! $customer ) {
 	$chat_context = [
@@ -55,6 +59,7 @@ if ( $is_admin && ! $customer ) {
 		'status'      => 'admin',
 		'has_mobile'  => true,
 		'is_admin'    => true,
+		'username'    => $username,
 	];
 } else {
 	$chat_context = [
@@ -63,6 +68,7 @@ if ( $is_admin && ! $customer ) {
 		'status'      => $customer['status'],
 		'has_mobile'  => false, // TODO: Check if they have mobile channel configured.
 		'first_visit' => empty( $customer['server_ip'] ) ? false : true,
+		'username'    => $username,
 	];
 }
 ?>

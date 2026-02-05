@@ -33,6 +33,38 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		let verbInterval = null;
 		let currentVerbIndex = 0;
 
+		// Fun session name components (Sarai-branded)
+		const sessionAdjectives = [
+			'Curious', 'Mystical', 'Cosmic', 'Enchanted', 'Wandering',
+			'Dreaming', 'Starlit', 'Moonlit', 'Crystal', 'Golden',
+			'Whispering', 'Dancing', 'Glowing', 'Hidden', 'Sacred',
+		];
+		const sessionNouns = [
+			'Crow', 'Sparrow', 'Phoenix', 'Butterfly', 'Firefly',
+			'Musing', 'Wonder', 'Quest', 'Journey', 'Vision',
+			'Bloom', 'Garden', 'River', 'Mountain', 'Star',
+		];
+
+		function generateSessionName() {
+			// Try to get username from context or page
+			const username = context.username || window.spawnUsername || '';
+			const firstLetter = username.charAt( 0 ).toUpperCase();
+
+			// Find adjectives/nouns starting with user's first letter (if possible)
+			let adj = sessionAdjectives.find( ( a ) => a.charAt( 0 ) === firstLetter );
+			let noun = sessionNouns.find( ( n ) => n.charAt( 0 ) === firstLetter );
+
+			// Fallback to random if no match
+			if ( ! adj ) {
+				adj = sessionAdjectives[ Math.floor( Math.random() * sessionAdjectives.length ) ];
+			}
+			if ( ! noun ) {
+				noun = sessionNouns[ Math.floor( Math.random() * sessionNouns.length ) ];
+			}
+
+			return `${ adj } ${ noun }`;
+		}
+
 		// ===== SESSION MANAGEMENT =====
 
 		// Storage key for persisting current session
@@ -120,7 +152,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			sessionsContainer.innerHTML = sessions.map( ( session ) => {
 				const key = session.sessionKey || session.key || '';
-				const title = session.displayName || session.subject || getSessionTitle( key );
+				const title = getSessionTitle( key, session );
 				const date = session.updatedAt ? formatDate( session.updatedAt ) : '';
 				const isActive = key === currentSessionKey;
 
@@ -144,18 +176,43 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			} );
 		}
 
-		function getSessionTitle( key ) {
-			// Generate a friendly title from session key
+		function getSessionTitle( key, session = null ) {
+			// Use stored title if available
+			if ( session && session.displayName && ! session.displayName.startsWith( 'webchat-' ) ) {
+				return session.displayName;
+			}
+
+			// Check localStorage for custom title
+			const storedTitle = getStoredSessionTitle( key );
+			if ( storedTitle ) {
+				return storedTitle;
+			}
+
+			// Generate fun name for webchat sessions
 			if ( key.startsWith( 'webchat-' ) ) {
-				return 'Web Chat';
+				return generateSessionName();
 			}
-			if ( key.includes( ':dm:' ) ) {
-				return 'Direct Message';
-			}
-			if ( key.includes( ':group:' ) ) {
-				return 'Group Chat';
-			}
+
 			return 'Conversation';
+		}
+
+		function getStoredSessionTitle( key ) {
+			try {
+				const titles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
+				return titles[ key ] || null;
+			} catch ( e ) {
+				return null;
+			}
+		}
+
+		function storeSessionTitle( key, title ) {
+			try {
+				const titles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
+				titles[ key ] = title;
+				localStorage.setItem( 'spawn_session_titles', JSON.stringify( titles ) );
+			} catch ( e ) {
+				// Ignore storage errors
+			}
 		}
 
 		function formatDate( dateStr ) {
@@ -348,9 +405,18 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 
 			// Ensure we have a session
-			if ( ! currentSessionKey ) {
+			const isNewSession = ! currentSessionKey;
+			if ( isNewSession ) {
 				currentSessionKey = generateSessionKey();
+				saveSessionKey( currentSessionKey );
 				updateSessionIndicator();
+			}
+
+			// For new sessions or first message, update title to truncated message
+			const existingTitle = getStoredSessionTitle( currentSessionKey );
+			if ( ! existingTitle ) {
+				const truncatedTitle = text.length > 40 ? text.substring( 0, 40 ) + '...' : text;
+				storeSessionTitle( currentSessionKey, truncatedTitle );
 			}
 
 			addMessage( 'user', text );
