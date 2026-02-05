@@ -9,20 +9,24 @@
 	border-radius: 8px;
 	display: flex;
 	flex-direction: column;
-	height: 400px;
+	height: 500px;
 }
 
-@media (min-width: 768px) {
-	.wp-block-spawn-chat__container {
-		height: 600px;
-	}
+/* Fullpage variant - true fullscreen for blank canvas template */
+.wp-block-spawn-chat--fullpage {
+	width: 100%;
+	max-width: 100%;
+	height: 100vh;
+	margin: 0;
+	padding: 0;
 }
 
-/* Fullpage variant */
 .wp-block-spawn-chat--fullpage .wp-block-spawn-chat__container {
-	height: calc(100vh - 200px);
-	min-height: 400px;
-	max-height: 800px;
+	height: 100%;
+	min-height: 100vh;
+	max-height: none;
+	border: none;
+	border-radius: 0;
 }
 
 /* Header with session indicator and new convo button */
@@ -157,79 +161,6 @@
 @keyframes spin {
 	from { transform: rotate(0deg); }
 	to { transform: rotate(360deg); }
-}
-
-/* Typing indicator */
-.chat-message--typing .chat-message__content {
-	display: flex;
-	gap: 4px;
-	padding: 8px 12px;
-}
-
-.typing-dot {
-	width: 8px;
-	height: 8px;
-	background: var(--color-text-light, #999);
-	border-radius: 50%;
-	animation: typing-bounce 1.4s ease-in-out infinite;
-}
-
-.typing-dot:nth-child(2) {
-	animation-delay: 0.2s;
-}
-
-.typing-dot:nth-child(3) {
-	animation-delay: 0.4s;
-}
-
-@keyframes typing-bounce {
-	0%, 60%, 100% {
-		transform: translateY(0);
-	}
-	30% {
-		transform: translateY(-6px);
-	}
-}
-
-/* Markdown styles */
-.chat-message__content code {
-	background: rgba(0, 0, 0, 0.1);
-	padding: 2px 6px;
-	border-radius: 4px;
-	font-family: ui-monospace, monospace;
-	font-size: 0.9em;
-}
-
-.chat-message--user .chat-message__content code {
-	background: rgba(255, 255, 255, 0.2);
-}
-
-.chat-message__content pre {
-	background: #1e1e1e;
-	color: #d4d4d4;
-	padding: 12px;
-	border-radius: 6px;
-	overflow-x: auto;
-	margin: 8px 0;
-}
-
-.chat-message__content pre code {
-	background: none;
-	padding: 0;
-	color: inherit;
-}
-
-.chat-message__content a {
-	color: inherit;
-	text-decoration: underline;
-}
-
-.chat-message__content strong {
-	font-weight: 600;
-}
-
-.chat-message__content em {
-	font-style: italic;
 }
 
 .wp-block-spawn-chat__login-required,
