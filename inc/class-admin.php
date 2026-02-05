@@ -5,6 +5,8 @@
  * @package Spawn
  */
 
+declare(strict_types=1);
+
 namespace Spawn;
 
 /**
@@ -37,10 +39,7 @@ class Admin {
 	 * Register settings.
 	 */
 	public static function register_settings(): void {
-		// Stripe settings.
-		register_setting( 'spawn_settings', 'spawn_stripe_secret_key' );
-		register_setting( 'spawn_settings', 'spawn_stripe_publishable_key' );
-		register_setting( 'spawn_settings', 'spawn_stripe_webhook_secret' );
+		// Stripe Price IDs (API keys are in stripe-integration plugin).
 		register_setting( 'spawn_settings', 'spawn_stripe_price_starter' );
 		register_setting( 'spawn_settings', 'spawn_stripe_price_pro' );
 		register_setting( 'spawn_settings', 'spawn_stripe_price_business' );
@@ -57,51 +56,22 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
 		register_setting( 'spawn_settings', 'spawn_openclaw_token' );
 
-		// Stripe section.
+		// Stripe section - now links to stripe-integration settings.
 		add_settings_section(
 			'spawn_stripe_section',
 			__( 'Stripe Configuration', 'spawn' ),
-			function() {
-				echo '<p>' . esc_html__( 'Configure your Stripe API keys for payment processing.', 'spawn' ) . '</p>';
-			},
+			[ __CLASS__, 'render_stripe_section_description' ],
 			'spawn'
 		);
 
-		add_settings_field(
-			'spawn_stripe_secret_key',
-			__( 'Secret Key', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
-			'spawn',
-			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_secret_key', 'type' => 'password' ]
-		);
-
-		add_settings_field(
-			'spawn_stripe_publishable_key',
-			__( 'Publishable Key', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
-			'spawn',
-			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_publishable_key' ]
-		);
-
-		add_settings_field(
-			'spawn_stripe_webhook_secret',
-			__( 'Webhook Secret', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
-			'spawn',
-			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_webhook_secret', 'type' => 'password' ]
-		);
-
-		// Price IDs.
+		// Price IDs (spawn-specific).
 		add_settings_field(
 			'spawn_stripe_price_starter',
 			__( 'Starter Price ID', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
 			'spawn',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_starter' ]
+			[ 'name' => 'spawn_stripe_price_starter', 'description' => __( 'Stripe Price ID for Starter tier', 'spawn' ) ]
 		);
 
 		add_settings_field(
@@ -110,7 +80,7 @@ class Admin {
 			[ __CLASS__, 'render_text_field' ],
 			'spawn',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_pro' ]
+			[ 'name' => 'spawn_stripe_price_pro', 'description' => __( 'Stripe Price ID for Pro tier', 'spawn' ) ]
 		);
 
 		add_settings_field(
@@ -119,7 +89,7 @@ class Admin {
 			[ __CLASS__, 'render_text_field' ],
 			'spawn',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_business' ]
+			[ 'name' => 'spawn_stripe_price_business', 'description' => __( 'Stripe Price ID for Business tier', 'spawn' ) ]
 		);
 
 		// Name.com section.
@@ -208,6 +178,21 @@ class Admin {
 	}
 
 	/**
+	 * Render Stripe section description with link to stripe-integration settings.
+	 */
+	public static function render_stripe_section_description(): void {
+		$stripe_settings_url = admin_url( 'options-general.php?page=stripe-integration' );
+
+		echo '<p>';
+		printf(
+			/* translators: %s: URL to Stripe Integration settings */
+			esc_html__( 'Stripe API keys are managed in the %s plugin. Configure your Price IDs below.', 'spawn' ),
+			'<a href="' . esc_url( $stripe_settings_url ) . '">' . esc_html__( 'Stripe Integration', 'spawn' ) . '</a>'
+		);
+		echo '</p>';
+	}
+
+	/**
 	 * Render text field.
 	 *
 	 * @param array $args Field arguments.
@@ -216,6 +201,7 @@ class Admin {
 		$name        = $args['name'];
 		$type        = $args['type'] ?? 'text';
 		$placeholder = $args['placeholder'] ?? '';
+		$description = $args['description'] ?? '';
 		$value       = get_option( $name, '' );
 
 		printf(
@@ -225,6 +211,10 @@ class Admin {
 			esc_attr( $value ),
 			esc_attr( $placeholder )
 		);
+
+		if ( $description ) {
+			printf( '<p class="description">%s</p>', esc_html( $description ) );
+		}
 	}
 
 	/**

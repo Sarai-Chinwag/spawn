@@ -8,7 +8,7 @@
 namespace Spawn\Abilities;
 
 use Spawn\Database;
-use Spawn\Stripe;
+use StripeIntegration\StripeClient;
 use WP_Error;
 
 /**
@@ -41,9 +41,9 @@ class Ability_Cancel {
 			return new WP_Error( 'already_cancelled', __( 'Subscription already cancelled', 'spawn' ) );
 		}
 
-		// Cancel Stripe subscription.
+		// Cancel Stripe subscription via shared stripe-integration plugin.
 		if ( ! empty( $customer['stripe_subscription'] ) ) {
-			$result = Stripe::cancel_subscription( $customer['stripe_subscription'] );
+			$result = StripeClient::cancel_subscription( $customer['stripe_subscription'] );
 			if ( is_wp_error( $result ) ) {
 				// Log but don't fail - customer may have cancelled via Stripe portal.
 				error_log( sprintf( '[Spawn] Stripe cancel failed: %s', $result->get_error_message() ) );

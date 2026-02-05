@@ -3,14 +3,15 @@
  * Plugin Name: Spawn
  * Plugin URI: https://github.com/Sarai-Chinwag/spawn
  * Description: AI Website Service by Sarai Chinwag - spawn AI-powered WordPress sites
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Sarai Chinwag
  * Author URI: https://saraichinwag.com
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: spawn
- * Requires at least: 6.4
- * Requires PHP: 8.0
+ * Requires at least: 6.9
+ * Requires PHP: 8.1
+ * Requires Plugins: stripe-integration
  *
  * @package Spawn
  */
@@ -23,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SPAWN_VERSION', '0.1.0' );
+define( 'SPAWN_VERSION', '0.2.0' );
 define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );
@@ -61,7 +62,7 @@ function init(): void {
  * @param array $settings    Auto-refill settings.
  */
 function handle_auto_refill( int $customer_id, array $settings ): void {
-	$result = Stripe::process_auto_refill( $customer_id, $settings );
+	$result = Payment_Helpers::process_auto_refill( $customer_id, $settings );
 
 	if ( is_wp_error( $result ) ) {
 		// Log the error but don't throw - the deduction already happened.

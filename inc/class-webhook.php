@@ -2,8 +2,13 @@
 /**
  * Webhook handlers.
  *
+ * Uses stripe-integration plugin for Stripe webhooks.
+ * Keeps provisioner webhook for Sweatpants callbacks.
+ *
  * @package Spawn
  */
+
+declare(strict_types=1);
 
 namespace Spawn;
 
@@ -12,31 +17,46 @@ use WP_REST_Response;
 use WP_Error;
 
 /**
- * Handles incoming webhooks from Stripe.
+ * Handles incoming webhooks.
  */
 class Webhook {
+
+	/**
+	 * Tier to VPS and AI tier mapping.
+	 */
+	private const TIER_MAP = [
+		'starter'  => [
+			'vps' => 'cx22',
+			'ai'  => '1k',
+		],
+		'pro'      => [
+			'vps' => 'cx32',
+			'ai'  => '5k',
+		],
+		'business' => [
+			'vps' => 'cx42',
+			'ai'  => '20k',
+		],
+	];
 
 	/**
 	 * Initialize webhooks.
 	 */
 	public static function init(): void {
+		// Register provisioner webhook route.
 		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
+
+		// Hook into stripe-integration webhook events.
+		add_action( 'stripe_integration_webhook_checkout_session_completed', [ __CLASS__, 'handle_checkout_completed' ], 10, 2 );
+		add_action( 'stripe_integration_webhook_invoice_paid', [ __CLASS__, 'handle_invoice_paid' ], 10, 2 );
+		add_action( 'stripe_integration_webhook_invoice_payment_failed', [ __CLASS__, 'handle_payment_failed' ], 10, 2 );
+		add_action( 'stripe_integration_webhook_customer_subscription_deleted', [ __CLASS__, 'handle_subscription_cancelled' ], 10, 2 );
 	}
 
 	/**
-	 * Register webhook routes.
+	 * Register webhook routes (provisioner only, Stripe is handled by stripe-integration).
 	 */
 	public static function register_routes(): void {
-		register_rest_route(
-			'spawn/v1',
-			'/webhook/stripe',
-			[
-				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'handle_stripe_webhook' ],
-				'permission_callback' => '__return_true', // Verified via signature.
-			]
-		);
-
 		register_rest_route(
 			'spawn/v1',
 			'/webhook/provisioner',
@@ -55,13 +75,11 @@ class Webhook {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public static function verify_provisioner_webhook( WP_REST_Request $request ): bool|WP_Error {
-		// Check for internal key (same as used for credits deduction).
 		$api_key      = $request->get_header( 'X-Spawn-Internal-Key' );
 		$expected_key = get_option( 'spawn_internal_api_key', '' );
 
-		// Also accept sweatpants token for backward compat.
-		$sweatpants_token   = $request->get_header( 'Authorization' );
-		$expected_sp_token  = get_option( 'spawn_sweatpants_token', '' );
+		$sweatpants_token  = $request->get_header( 'Authorization' );
+		$expected_sp_token = get_option( 'spawn_sweatpants_token', '' );
 
 		if ( ! empty( $expected_key ) && hash_equals( $expected_key, $api_key ?? '' ) ) {
 			return true;
@@ -71,7 +89,6 @@ class Webhook {
 			return true;
 		}
 
-		// Allow if no keys configured (for initial setup).
 		if ( empty( $expected_key ) && empty( $expected_sp_token ) ) {
 			return true;
 		}
@@ -90,8 +107,7 @@ class Webhook {
 	 * @return WP_REST_Response|WP_Error Response.
 	 */
 	public static function handle_provisioner_webhook( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$data = $request->get_json_params();
-
+		$data  = $request->get_json_params();
 		$event = $data['event'] ?? '';
 
 		if ( 'provisioning_complete' !== $event ) {
@@ -120,111 +136,65 @@ class Webhook {
 	}
 
 	/**
-	 * Handle Stripe webhook.
+	 * Handle successful checkout from stripe-integration webhook.
 	 *
-	 * @param WP_REST_Request $request Request object.
-	 * @return WP_REST_Response|WP_Error Response.
+	 * @param object|array $session Checkout session data.
+	 * @param object       $event   Full Stripe event.
 	 */
-	public static function handle_stripe_webhook( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$payload   = $request->get_body();
-		$sig_header = $request->get_header( 'stripe-signature' );
-
-		// Verify webhook signature.
-		$event = Stripe::verify_webhook( $payload, $sig_header );
-
-		if ( is_wp_error( $event ) ) {
-			return $event;
-		}
-
-		// Handle the event.
-		switch ( $event['type'] ) {
-			case 'checkout.session.completed':
-				self::handle_checkout_completed( $event['data']['object'] );
-				break;
-
-			case 'invoice.paid':
-				self::handle_invoice_paid( $event['data']['object'] );
-				break;
-
-			case 'invoice.payment_failed':
-				self::handle_payment_failed( $event['data']['object'] );
-				break;
-
-			case 'customer.subscription.deleted':
-				self::handle_subscription_cancelled( $event['data']['object'] );
-				break;
-
-			default:
-				// Log unhandled event types.
-				error_log( sprintf( '[Spawn] Unhandled Stripe event: %s', $event['type'] ) );
-		}
-
-		return new WP_REST_Response( [ 'received' => true ] );
-	}
-
-	/**
-	 * Tier to VPS and AI tier mapping.
-	 */
-	private const TIER_MAP = [
-		'starter'  => [
-			'vps' => 'cx22',
-			'ai'  => '1k',
-		],
-		'pro'      => [
-			'vps' => 'cx32',
-			'ai'  => '5k',
-		],
-		'business' => [
-			'vps' => 'cx42',
-			'ai'  => '20k',
-		],
-	];
-
-	/**
-	 * Handle successful checkout.
-	 *
-	 * @param array $session Checkout session data.
-	 */
-	private static function handle_checkout_completed( array $session ): void {
+	public static function handle_checkout_completed( $session, $event ): void {
+		$session  = is_object( $session ) ? $session->toArray() : (array) $session;
 		$metadata = $session['metadata'] ?? [];
 
-		// Check if this is a credit purchase (handled separately).
+		// Only handle Spawn events.
+		$source = $metadata['source'] ?? '';
+		if ( $source !== 'spawn' && $source !== '' ) {
+			// Check for legacy metadata without source.
+			if ( ! isset( $metadata['domain'] ) && ! isset( $metadata['type'] ) ) {
+				return; // Not ours.
+			}
+		}
+
+		// Check if this is a credit purchase.
 		if ( ( $metadata['type'] ?? '' ) === 'credit_purchase' ) {
-			$result = Stripe::handle_credit_purchase( [ 'data' => [ 'object' => $session ] ] );
+			$result = Payment_Helpers::handle_credit_purchase( $session );
 			if ( is_wp_error( $result ) ) {
 				error_log( sprintf( '[Spawn] Credit purchase failed: %s', $result->get_error_message() ) );
 			}
 			return;
 		}
 
-		// Extract checkout metadata.
+		// Handle subscription checkout.
+		self::process_subscription_checkout( $session, $metadata );
+	}
+
+	/**
+	 * Process subscription checkout completion.
+	 *
+	 * @param array $session  Checkout session data.
+	 * @param array $metadata Session metadata.
+	 */
+	private static function process_subscription_checkout( array $session, array $metadata ): void {
 		$domain       = $metadata['domain'] ?? '';
 		$domain_type  = $metadata['domain_type'] ?? 'subdomain';
 		$domain_price = (float) ( $metadata['domain_price'] ?? 0 );
 		$tier         = $metadata['tier'] ?? 'starter';
 		$email        = $session['customer_email'] ?? '';
 
-		// Validate required fields.
 		if ( empty( $domain ) || empty( $email ) ) {
 			error_log( '[Spawn] Checkout completed but missing domain or email' );
 			error_log( sprintf( '[Spawn] Session data: %s', wp_json_encode( $session ) ) );
 			return;
 		}
 
-		// Map tier to VPS and AI tiers.
-		$tier_config = self::TIER_MAP[ $tier ] ?? self::TIER_MAP['starter'];
-
-		// Determine if this is a subdomain.
+		$tier_config  = self::TIER_MAP[ $tier ] ?? self::TIER_MAP['starter'];
 		$is_subdomain = 'subdomain' === $domain_type;
 
-		// Check for duplicate domain.
 		$existing = Database::get_customer_by_domain( $domain );
 		if ( $existing ) {
 			error_log( sprintf( '[Spawn] Domain already exists in database: %s', $domain ) );
 			return;
 		}
 
-		// Create customer record.
 		$customer_id = Database::create_customer( [
 			'email'               => $email,
 			'domain'              => $domain,
@@ -246,7 +216,6 @@ class Webhook {
 
 		error_log( sprintf( '[Spawn] Created customer #%d for %s (%s)', $customer_id, $domain, $email ) );
 
-		// Trigger VPS provisioning via Sweatpants.
 		$result = Provisioner::trigger( [
 			'customer_id'    => $customer_id,
 			'customer_email' => $email,
@@ -267,16 +236,17 @@ class Webhook {
 	/**
 	 * Handle successful invoice payment (subscription renewal).
 	 *
-	 * @param array $invoice Invoice data.
+	 * @param object|array $invoice Invoice data.
+	 * @param object       $event   Full Stripe event.
 	 */
-	private static function handle_invoice_paid( array $invoice ): void {
+	public static function handle_invoice_paid( $invoice, $event ): void {
+		$invoice         = is_object( $invoice ) ? $invoice->toArray() : (array) $invoice;
 		$subscription_id = $invoice['subscription'] ?? '';
-		
+
 		if ( empty( $subscription_id ) ) {
 			return;
 		}
 
-		// Update customer status.
 		$customer = Database::get_customer_by_subscription( $subscription_id );
 		if ( $customer ) {
 			Database::update_customer( $customer['id'], [
@@ -289,11 +259,13 @@ class Webhook {
 	/**
 	 * Handle failed payment.
 	 *
-	 * @param array $invoice Invoice data.
+	 * @param object|array $invoice Invoice data.
+	 * @param object       $event   Full Stripe event.
 	 */
-	private static function handle_payment_failed( array $invoice ): void {
+	public static function handle_payment_failed( $invoice, $event ): void {
+		$invoice         = is_object( $invoice ) ? $invoice->toArray() : (array) $invoice;
 		$subscription_id = $invoice['subscription'] ?? '';
-		
+
 		if ( empty( $subscription_id ) ) {
 			return;
 		}
@@ -303,20 +275,19 @@ class Webhook {
 			Database::update_customer( $customer['id'], [
 				'status' => 'payment_failed',
 			] );
-
-			// TODO: Send notification email.
-			// TODO: Start grace period countdown.
 		}
 	}
 
 	/**
 	 * Handle subscription cancellation.
 	 *
-	 * @param array $subscription Subscription data.
+	 * @param object|array $subscription Subscription data.
+	 * @param object       $event        Full Stripe event.
 	 */
-	private static function handle_subscription_cancelled( array $subscription ): void {
+	public static function handle_subscription_cancelled( $subscription, $event ): void {
+		$subscription    = is_object( $subscription ) ? $subscription->toArray() : (array) $subscription;
 		$subscription_id = $subscription['id'] ?? '';
-		
+
 		if ( empty( $subscription_id ) ) {
 			return;
 		}
@@ -327,9 +298,6 @@ class Webhook {
 				'status'       => 'cancelled',
 				'cancelled_at' => current_time( 'mysql' ),
 			] );
-
-			// TODO: Schedule VPS deletion after grace period.
-			// TODO: Send notification email.
 		}
 	}
 }

@@ -8,7 +8,6 @@
 namespace Spawn\Abilities;
 
 use Spawn\Database;
-use Spawn\Stripe;
 use WP_Error;
 
 /**

@@ -8,7 +8,7 @@
 namespace Spawn\Abilities;
 
 use Spawn\Database;
-use Spawn\Stripe;
+use StripeIntegration\StripeClient;
 use WP_Error;
 
 /**
@@ -34,17 +34,20 @@ class Ability_Manage_Billing {
 			return new WP_Error( 'no_stripe', __( 'No billing account found', 'spawn' ) );
 		}
 
-		// Get portal URL.
+		// Get portal URL via shared stripe-integration plugin.
 		$return_url = home_url( '/spawn/dashboard/' );
-		$portal_url = Stripe::create_portal_session( $customer['stripe_customer'], $return_url );
+		$portal     = StripeClient::create_billing_portal_session(
+			$customer['stripe_customer'],
+			$return_url
+		);
 
-		if ( is_wp_error( $portal_url ) ) {
-			return $portal_url;
+		if ( is_wp_error( $portal ) ) {
+			return $portal;
 		}
 
 		return [
 			'success'    => true,
-			'portal_url' => $portal_url,
+			'portal_url' => $portal['url'] ?? '',
 		];
 	}
 

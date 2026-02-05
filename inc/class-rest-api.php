@@ -7,6 +7,7 @@
 
 namespace Spawn;
 
+use StripeIntegration\StripeClient;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -453,22 +454,24 @@ class REST_API {
 			];
 		}
 
-		// Create Stripe checkout session.
+		// Create Stripe checkout session using shared stripe-integration plugin.
 		// Save payment method for future charges (auto-refill credits).
-		$session = Stripe::create_checkout_session( [
+		$session = StripeClient::create_checkout_session( [
 			'customer_email'    => $email,
 			'metadata'          => [
 				'domain'       => $domain,
 				'domain_type'  => $domain_type,
 				'domain_price' => $domain_price,
 				'tier'         => $tier,
+				'source'       => 'spawn',
 			],
 			'line_items'        => $line_items,
 			'mode'              => 'subscription',
 			'payment_method_collection' => 'always',
 			'subscription_data' => [
 				'metadata' => [
-					'tier' => $tier,
+					'tier'   => $tier,
+					'source' => 'spawn',
 				],
 			],
 			'success_url'       => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
@@ -678,7 +681,7 @@ class REST_API {
 			);
 		}
 
-		$portal = Stripe::create_billing_portal_session(
+		$portal = StripeClient::create_billing_portal_session(
 			$customer['stripe_customer'],
 			home_url( '/spawn/dashboard/' )
 		);
@@ -731,7 +734,7 @@ class REST_API {
 
 		// Update Stripe subscription if we have a subscription ID and price ID.
 		if ( ! empty( $customer['stripe_subscription'] ) && ! empty( $new_price_id ) ) {
-			$result = Stripe::update_subscription_price(
+			$result = Payment_Helpers::update_subscription_price(
 				$customer['stripe_subscription'],
 				$new_price_id
 			);
@@ -770,7 +773,7 @@ class REST_API {
 
 		// Cancel at period end in Stripe.
 		if ( ! empty( $customer['stripe_subscription'] ) ) {
-			$result = Stripe::cancel_subscription( $customer['stripe_subscription'] );
+			$result = StripeClient::cancel_subscription( $customer['stripe_subscription'] );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -805,7 +808,7 @@ class REST_API {
 			);
 		}
 
-		$invoices = Stripe::get_invoices( $customer['stripe_customer'] );
+		$invoices = StripeClient::get_invoices( $customer['stripe_customer'] );
 
 		if ( is_wp_error( $invoices ) ) {
 			return $invoices;
@@ -872,8 +875,8 @@ class REST_API {
 		// Credits = dollars * 100 (1 credit = $0.01).
 		$credits = $amount * 100;
 
-		// Create Stripe checkout session for one-time payment.
-		$session = Stripe::create_credit_checkout_session( [
+		// Create Stripe checkout session for one-time payment using Payment_Helpers.
+		$session = Payment_Helpers::create_credit_checkout_session( [
 			'customer_id'       => $customer['stripe_customer'] ?? null,
 			'customer_email'    => $customer['email'],
 			'amount'            => $amount * 100, // Stripe uses cents.
