@@ -189,6 +189,7 @@ class Provisioner {
 		$server_id           = $data['server_id'] ?? '';
 		$openclaw_token      = $data['openclaw_token'] ?? '';
 		$cloudflare_record_id = $data['cloudflare_record_id'] ?? '';
+		$wp_admin_password   = $data['wp_admin_password'] ?? '';
 		$success             = $data['success'] ?? false;
 
 		if ( empty( $domain ) ) {
@@ -239,8 +240,8 @@ class Provisioner {
 				$server_ip
 			) );
 
-			// Send welcome email.
-			self::send_welcome_email( $customer['email'], $domain );
+			// Send welcome email with WordPress credentials.
+			self::send_welcome_email( $customer['email'], $domain, $wp_admin_password );
 
 			// Fire action for other integrations.
 			do_action( 'spawn_provisioning_complete', $customer['id'], $domain, $server_ip );
@@ -273,26 +274,50 @@ class Provisioner {
 	 * @param string $email  Customer email.
 	 * @param string $domain Customer domain.
 	 */
-	private static function send_welcome_email( string $email, string $domain ): void {
+	private static function send_welcome_email( string $email, string $domain, string $wp_admin_password = '' ): void {
 		$subject = sprintf(
 			/* translators: %s: domain name */
 			__( 'Your website %s is ready!', 'spawn' ),
 			$domain
 		);
 
+		// Build credentials section if password provided.
+		$credentials = '';
+		if ( ! empty( $wp_admin_password ) ) {
+			$credentials = sprintf(
+				"\n\nWORDPRESS LOGIN:\n" .
+				"Admin URL: https://%s/wp-admin/\n" .
+				"Username: admin\n" .
+				"Password: %s\n" .
+				"(Save this password - you won't receive it again)\n",
+				$domain,
+				$wp_admin_password
+			);
+		}
+
+		$chat_url = home_url( '/chat/' );
+
 		$message = sprintf(
-			/* translators: 1: domain name, 2: WordPress admin URL */
 			__(
 				"Great news! Your AI-powered website is now live.\n\n" .
-				"Website: https://%1\$s\n" .
-				"Admin: https://%1\$s/wp-admin/\n\n" .
-				"Your AI assistant is ready to help you build and manage your site. " .
-				"Log in to your Spawn dashboard to start chatting with your AI.\n\n" .
+				"YOUR WEBSITE: https://%1\$s\n" .
+				"%2\$s\n" .
+				"TALK TO YOUR AI:\n" .
+				"Visit %3\$s to chat with your AI assistant.\n" .
+				"Your AI can help you:\n" .
+				"- Build pages and write content\n" .
+				"- Install plugins and customize your site\n" .
+				"- Answer questions about WordPress\n" .
+				"- Export your site anytime\n\n" .
+				"You own your website and all your data. You can export everything\n" .
+				"and move to any host at any time - no lock-in.\n\n" .
 				"Welcome aboard!\n" .
-				"- The Spawn Team",
+				"- Sarai @ Spawn",
 				'spawn'
 			),
-			$domain
+			$domain,
+			$credentials,
+			$chat_url
 		);
 
 		wp_mail( $email, $subject, $message );
