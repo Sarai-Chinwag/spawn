@@ -45,7 +45,8 @@ function init(): void {
 	Webhook::init();
 	Abilities\Abilities::init();
 	User_Role::init();
-	
+	Cron::init();
+
 	// Admin settings.
 	if ( is_admin() ) {
 		Admin::init();
@@ -80,10 +81,13 @@ function handle_auto_refill( int $customer_id, array $settings ): void {
 function activate(): void {
 	// Create database tables if needed.
 	Database::create_tables();
-	
+
 	// Register user role.
 	User_Role::register_role();
-	
+
+	// Schedule cron events.
+	Cron::schedule_events();
+
 	// Flush rewrite rules.
 	flush_rewrite_rules();
 }
@@ -95,7 +99,10 @@ register_activation_hook( __FILE__, __NAMESPACE__ . '\\activate' );
 function deactivate(): void {
 	// Unregister user role.
 	User_Role::unregister_role();
-	
+
+	// Unschedule cron events.
+	Cron::unschedule_events();
+
 	flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, __NAMESPACE__ . '\\deactivate' );

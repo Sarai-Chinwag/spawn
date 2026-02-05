@@ -163,4 +163,65 @@ class Name_Com {
 
 		return $available;
 	}
+
+	/**
+	 * Get domain details including expiration.
+	 *
+	 * @param string $domain Domain name.
+	 * @return array|WP_Error Domain details or error.
+	 */
+	public static function get_domain( string $domain ): array|WP_Error {
+		return self::request( '/domains/' . rawurlencode( $domain ) );
+	}
+
+	/**
+	 * Renew a domain for specified years.
+	 *
+	 * @param string $domain Domain to renew.
+	 * @param int    $years  Number of years to renew (default: 1).
+	 * @return array|WP_Error Renewal result with new expiration or error.
+	 */
+	public static function renew( string $domain, int $years = 1 ): array|WP_Error {
+		$result = self::request(
+			'/domains/' . rawurlencode( $domain ) . ':renew',
+			'POST',
+			[ 'years' => $years ]
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return [
+			'domain'     => $result['domainName'] ?? $domain,
+			'expires_at' => $result['expireDate'] ?? null,
+			'renewed'    => true,
+		];
+	}
+
+	/**
+	 * Get renewal price for a domain.
+	 *
+	 * @param string $domain Domain name.
+	 * @return float|WP_Error Renewal price in dollars or error.
+	 */
+	public static function get_renewal_price( string $domain ): float|WP_Error {
+		$domain_info = self::get_domain( $domain );
+
+		if ( is_wp_error( $domain_info ) ) {
+			return $domain_info;
+		}
+
+		$renewal_price = $domain_info['renewalPrice'] ?? null;
+
+		if ( null === $renewal_price ) {
+			return new WP_Error(
+				'no_renewal_price',
+				__( 'Unable to determine renewal price', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return (float) $renewal_price;
+	}
 }
