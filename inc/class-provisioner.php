@@ -21,7 +21,7 @@ class Provisioner {
 	 */
 	private static function get_config(): array {
 		return [
-			'url'   => get_option( 'spawn_sweatpants_url', 'http://localhost:8585' ),
+			'url'   => get_option( 'spawn_sweatpants_url', 'http://127.0.0.1:8420' ),
 			'token' => get_option( 'spawn_sweatpants_token', '' ),
 		];
 	}
@@ -45,7 +45,7 @@ class Provisioner {
 
 		// Build the job request.
 		$job_data = [
-			'module' => 'vps-provisioner',
+			'module_id' => 'vps-provisioner',
 			'inputs' => [
 				'customer_email'           => $params['customer_email'],
 				'domain'                   => $params['domain'],
@@ -71,7 +71,7 @@ class Provisioner {
 			$args['headers']['Authorization'] = 'Bearer ' . $config['token'];
 		}
 
-		$response = wp_remote_request( $config['url'] . '/api/jobs', $args );
+		$response = wp_remote_request( $config['url'] . '/jobs', $args );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -129,7 +129,7 @@ class Provisioner {
 			$args['headers']['Authorization'] = 'Bearer ' . $config['token'];
 		}
 
-		$response = wp_remote_request( $config['url'] . '/api/jobs/' . $job_id, $args );
+		$response = wp_remote_request( $config['url'] . '/jobs/' . $job_id, $args );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
