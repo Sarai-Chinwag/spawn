@@ -1276,10 +1276,11 @@ class REST_API {
 			] );
 		}
 
-		// sessions_send returns the agent's reply in result.
-		$result = $body['result'] ?? [];
+		// sessions_send returns the agent's reply in result.details.reply.
+		$result  = $body['result'] ?? [];
+		$details = $result['details'] ?? [];
 		return new WP_REST_Response( [
-			'reply' => $result['reply'] ?? $result['response'] ?? "Message sent! (Agent is processing...)",
+			'reply' => $details['reply'] ?? $result['reply'] ?? "Message sent! (Agent is processing...)",
 		] );
 	}
 }
