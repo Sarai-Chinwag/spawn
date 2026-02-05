@@ -176,12 +176,13 @@ class Webhook {
 	 * @param array $metadata Session metadata.
 	 */
 	private static function process_subscription_checkout( array $session, array $metadata ): void {
-		$domain        = $metadata['domain'] ?? '';
-		$domain_type   = $metadata['domain_type'] ?? 'subdomain';
-		$domain_price  = (float) ( $metadata['domain_price'] ?? 0 );
-		$tier          = $metadata['tier'] ?? 'starter';
-		$wants_website = filter_var( $metadata['wants_website'] ?? true, FILTER_VALIDATE_BOOLEAN );
-		$email         = $session['customer_email'] ?? '';
+		$domain          = $metadata['domain'] ?? '';
+		$domain_type     = $metadata['domain_type'] ?? 'subdomain';
+		$domain_price    = (float) ( $metadata['domain_price'] ?? 0 );
+		$tier            = $metadata['tier'] ?? 'starter';
+		$wants_website   = filter_var( $metadata['wants_website'] ?? true, FILTER_VALIDATE_BOOLEAN );
+		$customer_region = sanitize_text_field( $metadata['customer_region'] ?? 'us' );
+		$email           = $session['customer_email'] ?? '';
 
 		// Email is always required.
 		if ( empty( $email ) ) {
@@ -215,6 +216,7 @@ class Webhook {
 			'subdomain'           => $is_subdomain,
 			'tier'                => $tier,
 			'wants_website'       => $wants_website,
+			'customer_region'     => $customer_region,
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
 			'status'              => 'provisioning',
@@ -226,7 +228,7 @@ class Webhook {
 			return;
 		}
 
-		error_log( sprintf( '[Spawn] Created customer #%d for %s (tier: %s, wants_website: %s)', $customer_id, $email, $tier, $wants_website ? 'yes' : 'no' ) );
+		error_log( sprintf( '[Spawn] Created customer #%d for %s (tier: %s, wants_website: %s, region: %s)', $customer_id, $email, $tier, $wants_website ? 'yes' : 'no', $customer_region ) );
 
 		$result = Provisioner::trigger( [
 			'customer_id'    => $customer_id,

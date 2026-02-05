@@ -63,6 +63,7 @@ class Database {
 			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
 			renewal_warnings_sent text DEFAULT NULL,
 			domain_auto_renew tinyint(1) NOT NULL DEFAULT 0,
+			customer_region varchar(10) NOT NULL DEFAULT 'us',
 			PRIMARY KEY (id),
 			KEY user_id (user_id),
 			KEY email (email),
@@ -86,9 +87,10 @@ class Database {
 	public static function create_customer( array $data ): int|false {
 		global $wpdb;
 
-		$tier          = $data['tier'] ?? 'starter';
-		$wants_website = isset( $data['wants_website'] ) ? (bool) $data['wants_website'] : true;
-		$server_config = Config::get_server_config( $tier, $wants_website );
+		$tier            = $data['tier'] ?? 'starter';
+		$wants_website   = isset( $data['wants_website'] ) ? (bool) $data['wants_website'] : true;
+		$customer_region = $data['customer_region'] ?? 'us';
+		$server_config   = Config::get_server_config( $tier, $wants_website, $customer_region );
 
 		if ( ! $server_config ) {
 			// Invalid tier, fall back to starter.
@@ -122,9 +124,10 @@ class Database {
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
 				'credit_balance'      => $data['credit_balance'] ?? Config::get_included_credits( $tier ),
+				'customer_region'     => $customer_region,
 				'created_at'          => current_time( 'mysql' ),
 			],
-			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s' ]
+			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s' ]
 		);
 
 		return $result ? $wpdb->insert_id : false;

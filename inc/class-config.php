@@ -135,55 +135,68 @@ class Config {
 	/**
 	 * Get Hetzner type for a tier based on location preference.
 	 *
-	 * @param string $tier_id       Tier ID.
-	 * @param bool   $wants_website Whether customer wants a website.
+	 * @param string $tier_id         Tier ID.
+	 * @param bool   $wants_website   Whether customer wants a website.
+	 * @param string $customer_region Customer region ('us' or 'eu').
 	 * @return string|null Hetzner type or null if tier not found.
 	 */
-	public static function get_hetzner_type( string $tier_id, bool $wants_website = true ): ?string {
+	public static function get_hetzner_type( string $tier_id, bool $wants_website = true, string $customer_region = 'us' ): ?string {
 		$tier = self::get_tier( $tier_id );
 		if ( ! $tier ) {
 			return null;
 		}
 
-		// US server for websites (latency matters), EU for AI-only (cheaper).
-		return $wants_website ? $tier['hetzner_type_us'] : $tier['hetzner_type_eu'];
+		// Location determines type: EU location uses _eu types, US uses _us types.
+		$location = self::get_server_location( $wants_website, $customer_region );
+		return 'fsn1' === $location ? $tier['hetzner_type_eu'] : $tier['hetzner_type_us'];
 	}
 
 	/**
-	 * Get server location based on website preference.
+	 * Get server location based on website preference and customer region.
 	 *
-	 * @param bool $wants_website Whether customer wants a website.
+	 * EU customers always get EU servers (lower latency for them, cheaper for us).
+	 * US customers get US servers if they want websites (latency), EU if AI-only (cheaper).
+	 *
+	 * @param bool   $wants_website   Whether customer wants a website.
+	 * @param string $customer_region Customer region ('us' or 'eu').
 	 * @return string Hetzner location code.
 	 */
-	public static function get_server_location( bool $wants_website ): string {
-		// US (Ashburn) for websites, EU (Falkenstein) for AI-only.
+	public static function get_server_location( bool $wants_website, string $customer_region = 'us' ): string {
+		// EU customers always get EU servers (cheaper, better latency for them).
+		if ( 'eu' === $customer_region ) {
+			return 'fsn1';
+		}
+
+		// US customers: US if website (latency matters), EU if AI-only (cheaper).
 		return $wants_website ? 'ash' : 'fsn1';
 	}
 
 	/**
-	 * Get full server configuration for a tier and website preference.
+	 * Get full server configuration for a tier, website preference, and region.
 	 *
-	 * @param string $tier_id       Tier ID.
-	 * @param bool   $wants_website Whether customer wants a website.
+	 * @param string $tier_id         Tier ID.
+	 * @param bool   $wants_website   Whether customer wants a website.
+	 * @param string $customer_region Customer region ('us' or 'eu').
 	 * @return array|null Server configuration or null if tier not found.
 	 */
-	public static function get_server_config( string $tier_id, bool $wants_website ): ?array {
+	public static function get_server_config( string $tier_id, bool $wants_website, string $customer_region = 'us' ): ?array {
 		$tier = self::get_tier( $tier_id );
 		if ( ! $tier ) {
 			return null;
 		}
 
-		$location = self::get_server_location( $wants_website );
-		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website );
+		$location     = self::get_server_location( $wants_website, $customer_region );
+		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website, $customer_region );
 
 		return [
-			'tier'         => $tier_id,
-			'hetzner_type' => $hetzner_type,
-			'location'     => $location,
-			'vcpu'         => $tier['vcpu'],
-			'vcpu_shared'  => $tier['vcpu_shared'],
-			'ram_gb'       => $tier['ram_gb'],
-			'disk_gb'      => $tier['disk_gb'],
+			'tier'            => $tier_id,
+			'hetzner_type'    => $hetzner_type,
+			'location'        => $location,
+			'customer_region' => $customer_region,
+			'vcpu'            => $tier['vcpu'],
+			'vcpu_shared'     => $tier['vcpu_shared'],
+			'ram_gb'          => $tier['ram_gb'],
+			'disk_gb'         => $tier['disk_gb'],
 		];
 	}
 

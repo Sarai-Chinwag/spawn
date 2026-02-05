@@ -581,18 +581,58 @@ class REST_API {
 	}
 
 	/**
+	 * European country codes for region detection.
+	 */
+	private const EU_COUNTRIES = [
+		'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+		'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
+		'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', // EU members
+		'GB', 'CH', 'NO', 'IS', 'LI', 'UA', 'BY', 'MD', 'RS', 'BA',
+		'ME', 'MK', 'AL', 'XK', // Other European countries
+	];
+
+	/**
+	 * Detect customer region from IP/headers.
+	 *
+	 * Uses Cloudflare CF-IPCountry header if available, otherwise defaults to 'us'.
+	 *
+	 * @return string Region code ('us' or 'eu').
+	 */
+	private static function detect_customer_region(): string {
+		// Cloudflare provides country code via CF-IPCountry header.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$country_code = isset( $_SERVER['HTTP_CF_IPCOUNTRY'] )
+			? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) )
+			: '';
+
+		if ( empty( $country_code ) || 'XX' === $country_code ) {
+			// Fallback: default to US.
+			return 'us';
+		}
+
+		// Check if country is in EU region.
+		if ( in_array( $country_code, self::EU_COUNTRIES, true ) ) {
+			return 'eu';
+		}
+
+		// Americas and rest of world default to US servers.
+		return 'us';
+	}
+
+	/**
 	 * Create Stripe checkout session.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function create_checkout_session( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$email         = sanitize_email( $request->get_param( 'email' ) );
-		$tier          = sanitize_text_field( $request->get_param( 'tier' ) ?? 'starter' );
-		$wants_website = (bool) $request->get_param( 'wants_website' );
-		$domain        = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
-		$domain_type   = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
-		$domain_price  = (float) $request->get_param( 'domain_price' );
+		$email           = sanitize_email( $request->get_param( 'email' ) );
+		$tier            = sanitize_text_field( $request->get_param( 'tier' ) ?? 'starter' );
+		$wants_website   = (bool) $request->get_param( 'wants_website' );
+		$domain          = sanitize_text_field( $request->get_param( 'domain' ) ?? '' );
+		$domain_type     = sanitize_text_field( $request->get_param( 'domain_type' ) ?? 'subdomain' );
+		$domain_price    = (float) $request->get_param( 'domain_price' );
+		$customer_region = self::detect_customer_region();
 
 		// Get tier pricing.
 		$tier_config = Config::get_tier( $tier );
@@ -636,12 +676,13 @@ class REST_API {
 		$session = StripeClient::create_checkout_session( [
 			'customer_email'    => $email,
 			'metadata'          => [
-				'tier'          => $tier,
-				'wants_website' => $wants_website ? 'true' : 'false',
-				'domain'        => $domain,
-				'domain_type'   => $domain_type,
-				'domain_price'  => $domain_price,
-				'source'        => 'spawn',
+				'tier'            => $tier,
+				'wants_website'   => $wants_website ? 'true' : 'false',
+				'domain'          => $domain,
+				'domain_type'     => $domain_type,
+				'domain_price'    => $domain_price,
+				'customer_region' => $customer_region,
+				'source'          => 'spawn',
 			],
 			'line_items'        => $line_items,
 			'mode'              => 'subscription',
@@ -984,12 +1025,34 @@ class REST_API {
 			}
 		}
 
+		// Pro-rate credits on upgrade.
+		$old_tier    = $customer['tier'] ?? 'starter';
+		$old_credits = Config::get_included_credits( $old_tier );
+		$new_credits = Config::get_included_credits( $new_tier );
+		$credits_to_add = 0;
+
+		if ( $new_credits > $old_credits ) {
+			$credits_to_add = $new_credits - $old_credits;
+			Database::add_credits( (int) $customer['id'], $credits_to_add );
+
+			error_log( sprintf(
+				'[Spawn] Pro-rated credits for customer #%d: %s → %s, added $%.2f',
+				$customer['id'],
+				$old_tier,
+				$new_tier,
+				$credits_to_add
+			) );
+		}
+		// On downgrade: don't remove credits (they already paid for them).
+
 		// Update database.
 		Database::update_tier( (int) $customer['id'], $new_tier );
 
 		return new WP_REST_Response( [
-			'success' => true,
-			'tier'    => $new_tier,
+			'success'       => true,
+			'tier'          => $new_tier,
+			'credits_added' => $credits_to_add,
+			'new_balance'   => Database::get_credit_balance( (int) $customer['id'] ),
 		] );
 	}
 
