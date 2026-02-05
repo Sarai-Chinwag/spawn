@@ -17,9 +17,9 @@ class Config {
 
 	/**
 	 * Default free credits for new customers.
-	 * Starter tier gets this amount, Pro = 2x, Business = 4x.
+	 * Starter = $5, Pro = $20, Business = $40.
 	 */
-	public const DEFAULT_STARTER_CREDITS = 10.00;
+	public const DEFAULT_STARTER_CREDITS = 5.00;
 
 	/**
 	 * Get all tier configurations.
@@ -63,7 +63,7 @@ class Config {
 				'included_credits' => self::DEFAULT_STARTER_CREDITS,
 				'features'        => [
 					__( '4 GB RAM, 80 GB SSD', 'spawn' ),
-					__( '$10 AI credits included', 'spawn' ),
+					__( '$5 AI credits included', 'spawn' ),
 					__( 'Custom domain (optional)', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
 				],
@@ -99,7 +99,7 @@ class Config {
 				'vcpu_shared'     => true,
 				'ram_gb'          => 16,
 				'disk_gb'         => 240, // cpx41=240, cpx42=320
-				'included_credits' => self::DEFAULT_STARTER_CREDITS * 4,
+				'included_credits' => self::DEFAULT_STARTER_CREDITS * 8,
 				'features'        => [
 					__( '16 GB RAM, 240+ GB SSD', 'spawn' ),
 					__( '$40 AI credits included', 'spawn' ),
