@@ -238,6 +238,27 @@ class Database {
 	}
 
 	/**
+	 * Get customer by server IP.
+	 *
+	 * @param string $ip Server IP address.
+	 * @return array|null Customer data or null.
+	 */
+	public static function get_customer_by_server_ip( string $ip ): ?array {
+		global $wpdb;
+
+		$result = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE server_ip = %s",
+				self::get_table_name(),
+				$ip
+			),
+			ARRAY_A
+		);
+
+		return $result ?: null;
+	}
+
+	/**
 	 * Update VPS tier for customer.
 	 *
 	 * @param int    $id       Customer ID.

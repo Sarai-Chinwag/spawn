@@ -1455,9 +1455,28 @@ class REST_API {
 			$spawn_customer_id = (int) $body['user'];
 		}
 
+		// Try to identify customer by IP if no ID provided.
+		if ( ! $spawn_customer_id ) {
+			$client_ip = $body['litellm_params']['metadata']['client_ip'] ?? '';
+			if ( ! $client_ip ) {
+				// Try X-Forwarded-For from the original request.
+				$client_ip = $request->get_header( 'X-Forwarded-For' ) ?? '';
+				$client_ip = explode( ',', $client_ip )[0] ?? '';
+				$client_ip = trim( $client_ip );
+			}
+			
+			if ( $client_ip ) {
+				$customer = Database::get_customer_by_server_ip( $client_ip );
+				if ( $customer ) {
+					$spawn_customer_id = (int) $customer['id'];
+					error_log( "LiteLLM callback: Identified customer $spawn_customer_id by IP $client_ip" );
+				}
+			}
+		}
+
 		if ( ! $spawn_customer_id ) {
 			// Log but don't fail - might be a test or admin request.
-			error_log( 'LiteLLM callback: No spawn_customer_id in metadata' );
+			error_log( 'LiteLLM callback: No spawn_customer_id in metadata or by IP' );
 			return new WP_REST_Response( [
 				'status'  => 'skipped',
 				'message' => 'No customer ID in metadata.',
