@@ -2,7 +2,48 @@
 	/* Width controlled by theme's responsive rules */
 	margin-top: 2rem;
 	margin-bottom: 2rem;
-	padding: 2rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 1.5rem;
+}
+
+/* Dashboard card shared styles */
+.spawn-dashboard__card {
+	background: #fff;
+	padding: 1.5rem;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.spawn-dashboard__card h3 {
+	margin: 0 0 1rem;
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+.spawn-dashboard__card p {
+	margin: 0.5rem 0;
+	color: #374151;
+}
+
+.spawn-dashboard__button {
+	display: inline-block;
+	padding: 0.6rem 1.2rem;
+	background: #007cba;
+	color: #fff;
+	border: 2px solid #007cba;
+	border-radius: 4px;
+	text-decoration: none;
+	font-weight: 500;
+	margin-top: 0.5rem;
+	margin-right: 0.5rem;
+	transition: all 0.2s;
+}
+
+.spawn-dashboard__button:hover {
+	background: #005a87;
+	border-color: #005a87;
+	color: #fff;
 }
 
 .wp-block-spawn-dashboard__loading {
