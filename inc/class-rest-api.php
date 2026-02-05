@@ -317,6 +317,17 @@ class REST_API {
 			]
 		);
 
+		// LiteLLM: Usage callback for credit deduction.
+		register_rest_route(
+			self::NAMESPACE,
+			'/litellm/callback',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'litellm_callback' ],
+				'permission_callback' => [ __CLASS__, 'verify_litellm_callback' ],
+			]
+		);
+
 		// Chat: Send message to customer's AI.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1301,6 +1312,145 @@ class REST_API {
 		$details = $result['details'] ?? [];
 		return new WP_REST_Response( [
 			'reply' => $details['reply'] ?? $result['reply'] ?? 'Message sent!',
+		] );
+	}
+
+	/**
+	 * Verify LiteLLM callback request.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error True if valid, error otherwise.
+	 */
+	public static function verify_litellm_callback( WP_REST_Request $request ): bool|WP_Error {
+		$auth_header = $request->get_header( 'Authorization' );
+		$expected    = get_option( 'spawn_litellm_callback_secret', '' );
+
+		// If no secret configured, allow (for initial setup).
+		if ( empty( $expected ) ) {
+			return true;
+		}
+
+		$token = str_replace( 'Bearer ', '', $auth_header ?? '' );
+		if ( $token !== $expected ) {
+			return new WP_Error(
+				'unauthorized',
+				__( 'Invalid callback secret.', 'spawn' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Anthropic model pricing per MTok (pass-through, no markup).
+	 */
+	private const ANTHROPIC_PRICING = [
+		'claude-opus-4-20250514'     => [ 'input' => 5.0, 'output' => 25.0 ],
+		'claude-opus-4.5'            => [ 'input' => 5.0, 'output' => 25.0 ],
+		'claude-sonnet-4-20250514'   => [ 'input' => 3.0, 'output' => 15.0 ],
+		'claude-sonnet-4'            => [ 'input' => 3.0, 'output' => 15.0 ],
+		'claude-3-5-haiku-20241022'  => [ 'input' => 1.0, 'output' => 5.0 ],
+		'claude-haiku-3.5'           => [ 'input' => 1.0, 'output' => 5.0 ],
+		// Default for unknown models.
+		'default'                    => [ 'input' => 5.0, 'output' => 25.0 ],
+	];
+
+	/**
+	 * Handle LiteLLM usage callback.
+	 *
+	 * Deducts credits based on actual token usage at pass-through pricing.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public static function litellm_callback( WP_REST_Request $request ): WP_REST_Response {
+		$body = $request->get_json_params();
+
+		// LiteLLM sends usage data in various formats depending on callback type.
+		// Standard format: model, usage.prompt_tokens, usage.completion_tokens, metadata.
+		$model             = $body['model'] ?? $body['model_id'] ?? '';
+		$usage             = $body['usage'] ?? [];
+		$prompt_tokens     = (int) ( $usage['prompt_tokens'] ?? 0 );
+		$completion_tokens = (int) ( $usage['completion_tokens'] ?? 0 );
+		$metadata          = $body['metadata'] ?? $body['litellm_params']['metadata'] ?? [];
+		$spawn_customer_id = (int) ( $metadata['spawn_customer_id'] ?? 0 );
+
+		// Also check for user field (can be set as customer ID).
+		if ( ! $spawn_customer_id && ! empty( $body['user'] ) ) {
+			$spawn_customer_id = (int) $body['user'];
+		}
+
+		if ( ! $spawn_customer_id ) {
+			// Log but don't fail - might be a test or admin request.
+			error_log( 'LiteLLM callback: No spawn_customer_id in metadata' );
+			return new WP_REST_Response( [
+				'status'  => 'skipped',
+				'message' => 'No customer ID in metadata.',
+			] );
+		}
+
+		if ( $prompt_tokens === 0 && $completion_tokens === 0 ) {
+			return new WP_REST_Response( [
+				'status'  => 'skipped',
+				'message' => 'No tokens to charge.',
+			] );
+		}
+
+		// Calculate cost based on model pricing.
+		$pricing = self::ANTHROPIC_PRICING[ $model ] ?? self::ANTHROPIC_PRICING['default'];
+		
+		// Cost in dollars: (tokens / 1M) * price_per_MTok.
+		$input_cost  = ( $prompt_tokens / 1_000_000 ) * $pricing['input'];
+		$output_cost = ( $completion_tokens / 1_000_000 ) * $pricing['output'];
+		$total_cost  = $input_cost + $output_cost;
+
+		// Convert to credits (1 credit = $0.01).
+		$credits_to_deduct = $total_cost * 100;
+
+		// Minimum deduction of 0.01 credits to avoid rounding to zero.
+		$credits_to_deduct = max( 0.01, round( $credits_to_deduct, 2 ) );
+
+		// Deduct from customer.
+		$customer = Database::get_customer( $spawn_customer_id );
+		if ( ! $customer ) {
+			error_log( "LiteLLM callback: Customer $spawn_customer_id not found" );
+			return new WP_REST_Response( [
+				'status'  => 'error',
+				'message' => 'Customer not found.',
+			], 404 );
+		}
+
+		$current_balance = (float) $customer['credit_balance'];
+
+		// Deduct even if it goes negative (we'll handle blocking in pre-request).
+		$success = Database::deduct_credits( $spawn_customer_id, $credits_to_deduct );
+
+		if ( ! $success ) {
+			error_log( "LiteLLM callback: Failed to deduct credits for customer $spawn_customer_id" );
+			return new WP_REST_Response( [
+				'status'  => 'error',
+				'message' => 'Failed to deduct credits.',
+			], 500 );
+		}
+
+		$new_balance = Database::get_credit_balance( $spawn_customer_id );
+
+		// Check if auto-refill is needed.
+		$auto_refill = Database::get_auto_refill_settings( $spawn_customer_id );
+		if ( $auto_refill && $auto_refill['enabled'] && $new_balance < $auto_refill['threshold'] ) {
+			do_action( 'spawn_credits_auto_refill_needed', $spawn_customer_id, $auto_refill );
+		}
+
+		return new WP_REST_Response( [
+			'status'           => 'success',
+			'model'            => $model,
+			'prompt_tokens'    => $prompt_tokens,
+			'completion_tokens'=> $completion_tokens,
+			'cost_usd'         => round( $total_cost, 6 ),
+			'credits_deducted' => $credits_to_deduct,
+			'previous_balance' => $current_balance,
+			'new_balance'      => $new_balance,
 		] );
 	}
 }
