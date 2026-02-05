@@ -70,12 +70,8 @@ if ( $is_admin && ! $customer ) {
 	<div class="wp-block-spawn-chat__container">
 		<div class="wp-block-spawn-chat__topnav">
 			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-					<path d="M2 17l10 5 10-5"></path>
-					<path d="M2 12l10 5 10-5"></path>
-				</svg>
-				<span>Spawn</span>
+				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+				<span>Spawn <em>by Sarai Chinwag</em></span>
 			</a>
 			<nav class="wp-block-spawn-chat__nav">
 				<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>

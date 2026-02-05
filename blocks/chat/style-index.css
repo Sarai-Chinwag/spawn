@@ -42,19 +42,28 @@
 .wp-block-spawn-chat__logo {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	color: var(--color-background, #fff);
 	text-decoration: none;
 	font-weight: bold;
-	font-size: 1.1em;
+	font-size: 1em;
 }
 
 .wp-block-spawn-chat__logo:hover {
 	color: var(--color-primary, #1fc5e2);
 }
 
-.wp-block-spawn-chat__logo svg {
-	stroke: currentColor;
+.wp-block-spawn-chat__logo img {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.wp-block-spawn-chat__logo em {
+	font-weight: normal;
+	font-style: normal;
+	opacity: 0.7;
 }
 
 .wp-block-spawn-chat__nav {
