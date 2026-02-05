@@ -41,6 +41,7 @@
 	display: flex;
 	flex-direction: column;
 	transition: margin-left 0.3s ease;
+	border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 .wp-block-spawn-chat__sidebar-header {
@@ -374,6 +375,10 @@
 
 /* ===== MOBILE RESPONSIVE ===== */
 @media (max-width: 768px) {
+	.wp-block-spawn-chat__layout {
+		position: relative;
+	}
+
 	.wp-block-spawn-chat__sidebar {
 		position: absolute;
 		left: 0;
@@ -381,6 +386,8 @@
 		bottom: 0;
 		z-index: 100;
 		margin-left: -260px;
+		border-top: none;
+		box-shadow: 2px 0 10px rgba(0,0,0,0.3);
 	}
 
 	.wp-block-spawn-chat__sidebar--open {
@@ -391,8 +398,17 @@
 		display: flex;
 	}
 
-	.wp-block-spawn-chat__layout {
-		position: relative;
+	/* Smaller input area on mobile */
+	.wp-block-spawn-chat__input-area {
+		padding: 10px;
+	}
+
+	.wp-block-spawn-chat__messages {
+		padding: 10px;
+	}
+
+	.chat-message {
+		max-width: 90%;
 	}
 }
 
