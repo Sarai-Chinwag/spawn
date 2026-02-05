@@ -98,10 +98,13 @@ class Webhook {
 		}
 
 		$success = Provisioner::handle_completion( [
-			'domain'         => $data['domain'] ?? '',
-			'server_ip'      => $data['server_ip'] ?? '',
-			'openclaw_token' => $data['openclaw_token'] ?? '',
-			'success'        => true,
+			'domain'               => $data['domain'] ?? '',
+			'server_ip'            => $data['server_ip'] ?? '',
+			'server_id'            => $data['server_id'] ?? '',
+			'openclaw_token'       => $data['openclaw_token'] ?? '',
+			'cloudflare_record_id' => $data['cloudflare_record_id'] ?? '',
+			'wp_admin_password'    => $data['wp_admin_password'] ?? '',
+			'success'              => true,
 		] );
 
 		if ( ! $success ) {
