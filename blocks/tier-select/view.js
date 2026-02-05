@@ -83,18 +83,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				} );
 
 				container.appendChild( cardsContainer );
-
-				// Trust signals footer
-				const trustFooter = document.createElement( 'div' );
-				trustFooter.className = 'wp-block-spawn-tier-select__trust';
-				trustFooter.innerHTML = `
-					<p class="trust-text">
-						<strong>Cancel anytime.</strong> No contracts, no hidden fees.
-						<br>
-						<span class="powered-by">Powered by <a href="https://extrachill.com" target="_blank" rel="noopener">Extra Chill</a></span>
-					</p>
-				`;
-				container.appendChild( trustFooter );
 			} )
 			.catch( function () {
 				container.innerHTML =

@@ -146,36 +146,3 @@
         max-width: 100%;
     }
 }
-
-/* Trust footer */
-.wp-block-spawn-tier-select__trust {
-	text-align: center;
-	margin-top: var(--space-lg, 20px);
-	padding-top: var(--space-md, 15px);
-	border-top: 1px solid var(--color-border, #ddd);
-}
-
-.wp-block-spawn-tier-select__trust .trust-text {
-	color: var(--color-text-light, #666);
-	font-size: var(--font-size-small, 0.85em);
-	margin: 0;
-	line-height: 1.6;
-}
-
-.wp-block-spawn-tier-select__trust .trust-text strong {
-	color: var(--color-text, #333);
-}
-
-.wp-block-spawn-tier-select__trust .powered-by {
-	font-size: 0.9em;
-	opacity: 0.8;
-}
-
-.wp-block-spawn-tier-select__trust .powered-by a {
-	color: var(--color-primary, #1fc5e2);
-	text-decoration: none;
-}
-
-.wp-block-spawn-tier-select__trust .powered-by a:hover {
-	text-decoration: underline;
-}
