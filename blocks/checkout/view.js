@@ -7,6 +7,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		let selectedDomain = null;
 		let selectedTier = null;
 		let orderSummary = null;
+		let wantsWebsite = true; // Default to including website
 
 		// Clear loading state
 		block.innerHTML = '';
@@ -79,6 +80,35 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			emailInput.className = 'wp-block-spawn-checkout__input';
 			emailInput.required = true;
 
+			// Website toggle
+			const websiteToggle = document.createElement( 'div' );
+			websiteToggle.className = 'wp-block-spawn-checkout__website-toggle';
+
+			const websiteLabel = document.createElement( 'label' );
+			websiteLabel.className = 'wp-block-spawn-checkout__website-label';
+
+			const websiteCheckbox = document.createElement( 'input' );
+			websiteCheckbox.type = 'checkbox';
+			websiteCheckbox.checked = wantsWebsite;
+			websiteCheckbox.className = 'wp-block-spawn-checkout__website-checkbox';
+			websiteCheckbox.addEventListener( 'change', function () {
+				wantsWebsite = websiteCheckbox.checked;
+			} );
+
+			const websiteLabelText = document.createElement( 'span' );
+			websiteLabelText.textContent = 'Include WordPress website';
+
+			websiteLabel.appendChild( websiteCheckbox );
+			websiteLabel.appendChild( websiteLabelText );
+
+			const websiteHelp = document.createElement( 'p' );
+			websiteHelp.className = 'wp-block-spawn-checkout__website-help';
+			websiteHelp.textContent =
+				'Your AI can build and manage a website for you. Uncheck for AI assistant only (no website).';
+
+			websiteToggle.appendChild( websiteLabel );
+			websiteToggle.appendChild( websiteHelp );
+
 			const checkoutButton = document.createElement( 'button' );
 			checkoutButton.type = 'submit';
 			checkoutButton.textContent =
@@ -86,6 +116,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			checkoutButton.className = 'wp-block-spawn-checkout__button';
 
 			form.appendChild( emailInput );
+			form.appendChild( websiteToggle );
 			form.appendChild( checkoutButton );
 			container.appendChild( form );
 
@@ -112,6 +143,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 								? selectedDomain.price
 								: 0,
 						tier: selectedTier.id,
+						wants_website: wantsWebsite,
 						email,
 					},
 				} )

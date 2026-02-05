@@ -109,6 +109,33 @@
 	color: var(--color-text-light, #666);
 }
 
+/* Website toggle */
+.wp-block-spawn-checkout__website-toggle {
+	padding: var(--space-sm, 10px) 0;
+}
+
+.wp-block-spawn-checkout__website-label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm, 10px);
+	cursor: pointer;
+	font-weight: 500;
+}
+
+.wp-block-spawn-checkout__website-checkbox {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--color-primary, #1fc5e2);
+	cursor: pointer;
+}
+
+.wp-block-spawn-checkout__website-help {
+	margin: var(--space-xs, 5px) 0 0 28px;
+	font-size: var(--font-size-small, 0.85em);
+	color: var(--color-text-light, #666);
+	line-height: 1.4;
+}
+
 /* Responsive width - don't go edge-to-edge on mobile */
 .wp-block-spawn-checkout {
     width: 92%;
