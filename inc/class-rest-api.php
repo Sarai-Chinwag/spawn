@@ -395,6 +395,39 @@ class REST_API {
 			]
 		);
 
+		// Chat: List sessions from customer's OpenClaw.
+		register_rest_route(
+			self::NAMESPACE,
+			'/chat/sessions',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'chat_sessions_list' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Chat: Get session history from customer's OpenClaw.
+		register_rest_route(
+			self::NAMESPACE,
+			'/chat/sessions/(?P<sessionKey>[a-zA-Z0-9_:-]+)/history',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'chat_session_history' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'sessionKey' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'limit'      => [
+						'type'    => 'integer',
+						'default' => 50,
+					],
+				],
+			]
+		);
+
 		// Account: Get domain auto-renew setting.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1890,5 +1923,140 @@ class REST_API {
 		);
 
 		wp_mail( $email, $subject, $message );
+	}
+
+	/**
+	 * List chat sessions from customer's OpenClaw.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function chat_sessions_list(): WP_REST_Response|WP_Error {
+		$user_id = get_current_user_id();
+
+		// Admin uses control plane.
+		if ( current_user_can( 'manage_options' ) ) {
+			$gateway_url   = get_option( 'spawn_openclaw_gateway_url', '' );
+			$gateway_token = get_option( 'spawn_openclaw_token', '' );
+
+			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
+				return new WP_REST_Response( [ 'sessions' => [] ] );
+			}
+
+			return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', [] );
+		}
+
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
+			return new WP_REST_Response( [ 'sessions' => [] ] );
+		}
+
+		$gateway_url   = 'http://' . $customer['server_ip'] . ':18789';
+		$gateway_token = $customer['openclaw_token'];
+
+		return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', [] );
+	}
+
+	/**
+	 * Get chat session history from customer's OpenClaw.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function chat_session_history( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id     = get_current_user_id();
+		$session_key = sanitize_text_field( $request->get_param( 'sessionKey' ) );
+		$limit       = (int) $request->get_param( 'limit' );
+
+		// Admin uses control plane.
+		if ( current_user_can( 'manage_options' ) ) {
+			$gateway_url   = get_option( 'spawn_openclaw_gateway_url', '' );
+			$gateway_token = get_option( 'spawn_openclaw_token', '' );
+
+			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
+				return new WP_REST_Response( [ 'messages' => [] ] );
+			}
+
+			return self::invoke_openclaw_tool(
+				$gateway_url,
+				$gateway_token,
+				'sessions_history',
+				[
+					'sessionKey' => $session_key,
+					'limit'      => $limit,
+				]
+			);
+		}
+
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
+			return new WP_REST_Response( [ 'messages' => [] ] );
+		}
+
+		$gateway_url   = 'http://' . $customer['server_ip'] . ':18789';
+		$gateway_token = $customer['openclaw_token'];
+
+		return self::invoke_openclaw_tool(
+			$gateway_url,
+			$gateway_token,
+			'sessions_history',
+			[
+				'sessionKey' => $session_key,
+				'limit'      => $limit,
+			]
+		);
+	}
+
+	/**
+	 * Invoke an OpenClaw tool via the /tools/invoke endpoint.
+	 *
+	 * @param string $gateway_url   Base URL of the OpenClaw gateway.
+	 * @param string $gateway_token Auth token.
+	 * @param string $tool          Tool name.
+	 * @param array  $args          Tool arguments.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	private static function invoke_openclaw_tool(
+		string $gateway_url,
+		string $gateway_token,
+		string $tool,
+		array $args
+	): WP_REST_Response|WP_Error {
+		$url = rtrim( $gateway_url, '/' ) . '/tools/invoke';
+
+		$response = wp_remote_post( $url, [
+			'headers' => [
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $gateway_token,
+			],
+			'body'    => wp_json_encode( [
+				'tool' => $tool,
+				'args' => $args,
+			] ),
+			'timeout' => 30,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error(
+				'openclaw_error',
+				__( 'Failed to connect to OpenClaw', 'spawn' ),
+				[ 'status' => 502 ]
+			);
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code >= 400 ) {
+			return new WP_Error(
+				'openclaw_error',
+				$body['error']['message'] ?? __( 'OpenClaw request failed', 'spawn' ),
+				[ 'status' => $code ]
+			);
+		}
+
+		// Return the result from the tool invocation.
+		return new WP_REST_Response( $body['result'] ?? $body );
 	}
 }
