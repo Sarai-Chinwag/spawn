@@ -416,6 +416,34 @@ class REST_API {
 				'permission_callback' => 'is_user_logged_in',
 			]
 		);
+
+		// Account: Get domain auto-renew setting.
+		register_rest_route(
+			self::NAMESPACE,
+			'/account/domain-auto-renew',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_domain_auto_renew' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Account: Update domain auto-renew setting.
+		register_rest_route(
+			self::NAMESPACE,
+			'/account/domain-auto-renew',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'update_domain_auto_renew' ],
+				'permission_callback' => [ __CLASS__, 'can_set_domain_auto_renew' ],
+				'args'                => [
+					'enabled' => [
+						'required' => true,
+						'type'     => 'boolean',
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -1701,6 +1729,151 @@ class REST_API {
 	}
 
 	/**
+	 * Check if current user can set domain auto-renew.
+	 *
+	 * @return bool|WP_Error True if allowed, error otherwise.
+	 */
+	public static function can_set_domain_auto_renew(): bool|WP_Error {
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'not_logged_in',
+				__( 'You must be logged in.', 'spawn' ),
+				[ 'status' => 401 ]
+			);
+		}
+
+		// Check capability if it exists (for future role-based restrictions).
+		if ( ! current_user_can( 'spawn_set_domain_auto_renew' ) && ! current_user_can( 'manage_options' ) ) {
+			// For now, allow all logged-in customers with a Spawn account.
+			$user_id  = get_current_user_id();
+			$customer = Database::get_customer_by_user_id( $user_id );
+			if ( ! $customer ) {
+				return new WP_Error(
+					'no_customer',
+					__( 'No customer account found.', 'spawn' ),
+					[ 'status' => 404 ]
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get domain auto-renew setting for current customer.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_domain_auto_renew(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Check if this is a registered domain.
+		$is_renewable = 'register' === ( $customer['domain_type'] ?? '' );
+
+		return new WP_REST_Response( [
+			'enabled'     => (bool) ( $customer['domain_auto_renew'] ?? false ),
+			'domain'      => $customer['domain'],
+			'domain_type' => $customer['domain_type'] ?? 'subdomain',
+			'renewable'   => $is_renewable,
+		] );
+	}
+
+	/**
+	 * Update domain auto-renew setting for current customer.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function update_domain_auto_renew( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'no_customer',
+				__( 'No customer account found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Validate domain type.
+		if ( 'register' !== ( $customer['domain_type'] ?? '' ) ) {
+			return new WP_Error(
+				'not_renewable',
+				__( 'Auto-renewal is only available for registered domains.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$enabled = (bool) $request->get_param( 'enabled' );
+
+		// If enabling, verify payment method exists.
+		if ( $enabled ) {
+			$stripe_customer = $customer['stripe_customer'] ?? '';
+			$payment_method  = $customer['stripe_payment_method'] ?? '';
+
+			if ( empty( $stripe_customer ) ) {
+				return new WP_Error(
+					'no_payment_method',
+					__( 'A payment method is required for auto-renewal. Please add a payment method first.', 'spawn' ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			// Try to get default payment method if not stored.
+			if ( empty( $payment_method ) ) {
+				$payment_method = Payment_Helpers::get_default_payment_method( $stripe_customer );
+				if ( is_wp_error( $payment_method ) ) {
+					return new WP_Error(
+						'no_payment_method',
+						__( 'No valid payment method found. Please add a payment method in the billing portal.', 'spawn' ),
+						[ 'status' => 400 ]
+					);
+				}
+			}
+		}
+
+		$success = Database::update_customer( (int) $customer['id'], [
+			'domain_auto_renew' => $enabled ? 1 : 0,
+		] );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update auto-renewal setting.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		// Log the change.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf(
+			'[Spawn] Domain auto-renew %s for customer #%d (%s)',
+			$enabled ? 'enabled' : 'disabled',
+			$customer['id'],
+			$customer['domain']
+		) );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'enabled' => $enabled,
+			'domain'  => $customer['domain'],
+			'message' => $enabled
+				? __( 'Auto-renewal enabled. Your domain will be automatically renewed 7 days before expiry.', 'spawn' )
+				: __( 'Auto-renewal disabled. You will receive warning emails before your domain expires.', 'spawn' ),
+		] );
+	}
+
+	/**
 	 * Get domain renewal information for current customer.
 	 *
 	 * Returns expiration date, renewal price, and warnings sent.
@@ -1761,6 +1934,7 @@ class REST_API {
 			'renewal_price_error'=> $price_error,
 			'is_expired'         => $days_until_expiry < 0,
 			'is_expiring_soon'   => $days_until_expiry <= 30 && $days_until_expiry >= 0,
+			'auto_renew_enabled' => (bool) ( $customer['domain_auto_renew'] ?? false ),
 		] );
 	}
 

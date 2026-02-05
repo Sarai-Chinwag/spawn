@@ -27,6 +27,11 @@ class Cron {
 	private const WARNING_INTERVALS = [ 30, 14, 7, 1 ];
 
 	/**
+	 * Days before expiry to trigger auto-renewal (if enabled).
+	 */
+	private const AUTO_RENEW_THRESHOLD_DAYS = 7;
+
+	/**
 	 * Low balance threshold for warning email (in dollars).
 	 */
 	private const LOW_BALANCE_WARNING_THRESHOLD = 2.00;
@@ -86,15 +91,19 @@ class Cron {
 	/**
 	 * Process renewal warnings for a single customer.
 	 *
-	 * Sends warning emails at 30, 14, 7, and 1 day(s) before expiry.
+	 * Behavior depends on domain_auto_renew setting:
+	 * - OFF: Sends warning emails at 30, 14, 7, and 1 day(s) before expiry
+	 * - ON: Sends warnings at 30, 14 days; auto-renews at 7 days
+	 *
 	 * Each warning level is only sent once.
 	 *
 	 * @param array $customer Customer data from database.
 	 */
 	private static function process_renewal_warnings( array $customer ): void {
-		$customer_id = (int) $customer['id'];
-		$domain      = $customer['domain'];
-		$expires_at  = $customer['domain_expires_at'];
+		$customer_id    = (int) $customer['id'];
+		$domain         = $customer['domain'];
+		$expires_at     = $customer['domain_expires_at'];
+		$auto_renew     = (bool) ( $customer['domain_auto_renew'] ?? false );
 
 		// Calculate days until expiry.
 		$expires_timestamp = strtotime( $expires_at );
@@ -102,12 +111,27 @@ class Cron {
 		$days_until_expiry = (int) ceil( ( $expires_timestamp - $now_timestamp ) / DAY_IN_SECONDS );
 
 		self::log( sprintf(
-			'Checking renewal warnings for customer #%d, domain: %s, expires: %s (in %d days)',
+			'Checking renewal for customer #%d, domain: %s, expires: %s (in %d days), auto_renew: %s',
 			$customer_id,
 			$domain,
 			$expires_at,
-			$days_until_expiry
+			$days_until_expiry,
+			$auto_renew ? 'ON' : 'OFF'
 		) );
+
+		// Check if auto-renewal should be attempted.
+		if ( $auto_renew && $days_until_expiry <= self::AUTO_RENEW_THRESHOLD_DAYS ) {
+			$renewed = self::attempt_auto_renewal( $customer );
+			if ( $renewed ) {
+				// Success - no need for further warnings.
+				return;
+			}
+			// Auto-renewal failed - fall through to send warning emails.
+			self::log( sprintf(
+				'Auto-renewal failed for %s, falling back to warning emails',
+				$domain
+			), 'warning' );
+		}
 
 		// Get warnings already sent.
 		$warnings_sent = self::get_warnings_sent( $customer_id );
@@ -133,7 +157,7 @@ class Cron {
 		}
 
 		// Send the warning email.
-		$sent = self::send_renewal_warning( $customer, $warning_to_send, $days_until_expiry );
+		$sent = self::send_renewal_warning( $customer, $warning_to_send, $days_until_expiry, $auto_renew );
 
 		if ( $sent ) {
 			// Record that this warning was sent.
@@ -147,6 +171,285 @@ class Cron {
 				$customer['email']
 			) );
 		}
+	}
+
+	/**
+	 * Attempt automatic domain renewal.
+	 *
+	 * Charges the customer's payment method and renews the domain via Name.com.
+	 *
+	 * @param array $customer Customer data.
+	 * @return bool True if renewal succeeded, false otherwise.
+	 */
+	private static function attempt_auto_renewal( array $customer ): bool {
+		$customer_id = (int) $customer['id'];
+		$domain      = $customer['domain'];
+		$email       = $customer['email'];
+
+		self::log( sprintf(
+			'Attempting auto-renewal for customer #%d, domain: %s',
+			$customer_id,
+			$domain
+		) );
+
+		// Get renewal price from Name.com.
+		$renewal_price = Name_Com::get_renewal_price( $domain );
+
+		if ( is_wp_error( $renewal_price ) ) {
+			self::log( sprintf(
+				'Failed to get renewal price for %s: %s',
+				$domain,
+				$renewal_price->get_error_message()
+			), 'error' );
+			self::send_auto_renewal_failure_notification( $customer, $renewal_price->get_error_message() );
+			return false;
+		}
+
+		// Apply markup.
+		$markup        = (float) get_option( 'spawn_domain_markup', 1.5 );
+		$marked_up_price = round( $renewal_price * $markup, 2 );
+
+		self::log( sprintf( 'Renewal price for %s: $%.2f (with markup)', $domain, $marked_up_price ) );
+
+		// Charge customer's payment method.
+		$charge_result = self::charge_for_renewal( $customer, $marked_up_price );
+
+		if ( is_wp_error( $charge_result ) ) {
+			self::log( sprintf(
+				'Payment failed for %s: %s',
+				$domain,
+				$charge_result->get_error_message()
+			), 'error' );
+			self::send_auto_renewal_failure_notification( $customer, 'Payment failed: ' . $charge_result->get_error_message() );
+			return false;
+		}
+
+		self::log( sprintf( 'Payment successful for %s, PaymentIntent: %s', $domain, $charge_result['id'] ?? 'unknown' ) );
+
+		// Renew domain via Name.com API.
+		$renewal_result = Name_Com::renew( $domain, 1 );
+
+		if ( is_wp_error( $renewal_result ) ) {
+			self::log( sprintf(
+				'Name.com renewal failed for %s: %s',
+				$domain,
+				$renewal_result->get_error_message()
+			), 'error' );
+			// Payment succeeded but renewal failed - this needs manual intervention.
+			self::send_auto_renewal_failure_notification(
+				$customer,
+				'Domain renewal API failed after successful payment. Manual intervention required: ' . $renewal_result->get_error_message()
+			);
+			// Notify admin urgently.
+			$admin_email = get_option( 'admin_email' );
+			wp_mail(
+				$admin_email,
+				sprintf( '[Spawn] URGENT: Auto-renewal failed after payment: %s', $domain ),
+				sprintf(
+					"Domain auto-renewal API call failed after successful payment.\n\n" .
+					"Customer ID: %d\nDomain: %s\nEmail: %s\nError: %s\n\n" .
+					"MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.",
+					$customer_id,
+					$domain,
+					$email,
+					$renewal_result->get_error_message()
+				)
+			);
+			return false;
+		}
+
+		// Update database with new expiration.
+		$db_updated = Database::renew_domain( $customer_id );
+
+		if ( ! $db_updated ) {
+			self::log( sprintf( 'Failed to update database for customer #%d', $customer_id ), 'error' );
+		}
+
+		// Clear renewal warnings.
+		self::clear_warnings_sent( $customer_id );
+
+		self::log( sprintf(
+			'Successfully auto-renewed %s for customer #%d, new expiration: %s',
+			$domain,
+			$customer_id,
+			$renewal_result['expires_at'] ?? 'unknown'
+		) );
+
+		// Send success notification.
+		self::send_auto_renewal_success_notification( $customer, $marked_up_price, $renewal_result['expires_at'] ?? null );
+
+		/**
+		 * Fires after a domain is successfully auto-renewed.
+		 *
+		 * @param int    $customer_id   Spawn customer ID.
+		 * @param string $domain        Domain name.
+		 * @param float  $renewal_price Price charged for renewal.
+		 * @param array  $renewal_result Result from Name.com API.
+		 */
+		do_action( 'spawn_domain_auto_renewed', $customer_id, $domain, $marked_up_price, $renewal_result );
+
+		return true;
+	}
+
+	/**
+	 * Charge customer for domain renewal.
+	 *
+	 * @param array $customer      Customer data.
+	 * @param float $renewal_price Price in dollars.
+	 * @return array|\WP_Error PaymentIntent result or error.
+	 */
+	private static function charge_for_renewal( array $customer, float $renewal_price ): array|\WP_Error {
+		$stripe_customer_id = $customer['stripe_customer'] ?? '';
+		$payment_method_id  = $customer['stripe_payment_method'] ?? '';
+		$customer_id        = (int) $customer['id'];
+
+		if ( empty( $stripe_customer_id ) ) {
+			return new \WP_Error(
+				'no_stripe_customer',
+				__( 'No Stripe customer ID on file', 'spawn' )
+			);
+		}
+
+		// Get payment method if not stored locally.
+		if ( empty( $payment_method_id ) ) {
+			$payment_method_id = Payment_Helpers::get_default_payment_method( $stripe_customer_id );
+
+			if ( is_wp_error( $payment_method_id ) ) {
+				return $payment_method_id;
+			}
+
+			// Cache it for future use.
+			Database::update_payment_method( $customer_id, $payment_method_id );
+		}
+
+		$amount_cents = (int) round( $renewal_price * 100 );
+
+		return \StripeIntegration\StripeClient::create_payment_intent( [
+			'amount'         => $amount_cents,
+			'currency'       => 'usd',
+			'customer'       => $stripe_customer_id,
+			'payment_method' => $payment_method_id,
+			'off_session'    => true,
+			'confirm'        => true,
+			'description'    => sprintf(
+				/* translators: %s: domain name */
+				__( 'Domain renewal: %s (1 year)', 'spawn' ),
+				$customer['domain']
+			),
+			'metadata'       => [
+				'type'              => 'domain_auto_renewal',
+				'domain'            => $customer['domain'],
+				'spawn_customer_id' => $customer_id,
+				'source'            => 'spawn',
+			],
+		] );
+	}
+
+	/**
+	 * Send auto-renewal success notification email.
+	 *
+	 * @param array       $customer      Customer data.
+	 * @param float       $renewal_price Price charged.
+	 * @param string|null $new_expires   New expiration date.
+	 */
+	private static function send_auto_renewal_success_notification( array $customer, float $renewal_price, ?string $new_expires ): void {
+		$email   = $customer['email'];
+		$domain  = $customer['domain'];
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'Your domain %s has been automatically renewed', 'spawn' ),
+			$domain
+		);
+
+		$expires_formatted = $new_expires
+			? wp_date( 'F j, Y', strtotime( $new_expires ) )
+			: __( 'in approximately one year', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain name, 2: price, 3: expiration date */
+			__(
+				"Hello,\n\n" .
+				"Your domain %1\$s has been automatically renewed for one year.\n\n" .
+				"Amount charged: $%2\$.2f\n" .
+				"New expiration date: %3\$s\n\n" .
+				"You can manage your auto-renewal settings in your dashboard under Settings → Domain.\n\n" .
+				"Thank you for using Spawn!\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$renewal_price,
+			$expires_formatted
+		);
+
+		$sent = wp_mail( $email, $subject, $message );
+
+		if ( ! $sent ) {
+			self::log( sprintf( 'Failed to send auto-renewal success email to %s', $email ), 'error' );
+		}
+	}
+
+	/**
+	 * Send auto-renewal failure notification email.
+	 *
+	 * @param array  $customer Customer data.
+	 * @param string $reason   Failure reason.
+	 */
+	private static function send_auto_renewal_failure_notification( array $customer, string $reason ): void {
+		$email   = $customer['email'];
+		$domain  = $customer['domain'];
+		$expires = $customer['domain_expires_at'];
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'Action required: Domain auto-renewal failed for %s', 'spawn' ),
+			$domain
+		);
+
+		$expires_formatted = wp_date( 'F j, Y', strtotime( $expires ) );
+		$renewal_url       = add_query_arg( [
+			'action' => 'renew',
+			'domain' => $domain,
+		], home_url( '/spawn/dashboard/' ) );
+
+		$message = sprintf(
+			/* translators: 1: domain name, 2: expiration date, 3: failure reason, 4: renewal URL */
+			__(
+				"Hello,\n\n" .
+				"We were unable to automatically renew your domain %1\$s.\n\n" .
+				"Current expiration date: %2\$s\n" .
+				"Reason: %3\$s\n\n" .
+				"Please renew manually to avoid losing your domain:\n%4\$s\n\n" .
+				"You may need to update your payment method in your dashboard under Settings → Billing.\n\n" .
+				"—The Spawn Team",
+				'spawn'
+			),
+			$domain,
+			$expires_formatted,
+			$reason,
+			$renewal_url
+		);
+
+		$sent = wp_mail( $email, $subject, $message );
+
+		if ( ! $sent ) {
+			self::log( sprintf( 'Failed to send auto-renewal failure email to %s', $email ), 'error' );
+		}
+
+		// Also notify admin.
+		$admin_email = get_option( 'admin_email' );
+		wp_mail(
+			$admin_email,
+			sprintf( '[Spawn] Domain auto-renewal failed: %s', $domain ),
+			sprintf(
+				"Domain auto-renewal failed for customer #%d\n\n" .
+				"Domain: %s\nEmail: %s\nExpires: %s\nReason: %s",
+				$customer['id'],
+				$domain,
+				$email,
+				$expires_formatted,
+				$reason
+			)
+		);
 	}
 
 	/**
@@ -194,9 +497,10 @@ class Cron {
 	 * @param array $customer           Customer data.
 	 * @param int   $warning_interval   Warning interval (30, 14, 7, or 1).
 	 * @param int   $days_until_expiry  Actual days until expiry.
+	 * @param bool  $auto_renew_enabled Whether auto-renewal is enabled for this customer.
 	 * @return bool Whether the email was sent.
 	 */
-	private static function send_renewal_warning( array $customer, int $warning_interval, int $days_until_expiry ): bool {
+	private static function send_renewal_warning( array $customer, int $warning_interval, int $days_until_expiry, bool $auto_renew_enabled = false ): bool {
 		$email   = $customer['email'];
 		$domain  = $customer['domain'];
 		$expires = $customer['domain_expires_at'];
@@ -227,8 +531,24 @@ class Cron {
 			default => __( "Your domain registration is expiring soon.", 'spawn' ),
 		};
 
+		// Add auto-renewal status info.
+		$auto_renew_note = '';
+		if ( $auto_renew_enabled ) {
+			if ( $warning_interval > self::AUTO_RENEW_THRESHOLD_DAYS ) {
+				$auto_renew_note = sprintf(
+					__( "\n\nNote: You have auto-renewal enabled. Your domain will be automatically renewed when it reaches %d days before expiry, provided your payment method is valid.", 'spawn' ),
+					self::AUTO_RENEW_THRESHOLD_DAYS
+				);
+			} else {
+				// Auto-renewal was supposed to happen but failed.
+				$auto_renew_note = __( "\n\nNote: Auto-renewal was attempted but failed. Please renew manually or update your payment method.", 'spawn' );
+			}
+		} else {
+			$auto_renew_note = __( "\n\nTip: Enable auto-renewal in your dashboard to automatically renew your domain before it expires.", 'spawn' );
+		}
+
 		$message = sprintf(
-			/* translators: 1: urgency intro, 2: domain name, 3: expiration date, 4: renewal URL */
+			/* translators: 1: urgency intro, 2: domain name, 3: expiration date, 4: renewal URL, 5: auto-renew note */
 			__(
 				"Hello,\n\n" .
 				"%1\$s\n\n" .
@@ -236,7 +556,7 @@ class Cron {
 				"Expiration date: %3\$s\n\n" .
 				"To renew your domain, please visit your dashboard:\n" .
 				"%4\$s\n\n" .
-				"If you do not renew before the expiration date, your domain may become available for others to register.\n\n" .
+				"If you do not renew before the expiration date, your domain may become available for others to register.%5\$s\n\n" .
 				"If you have any questions, please contact support.\n\n" .
 				"—The Spawn Team",
 				'spawn'
@@ -244,7 +564,8 @@ class Cron {
 			$urgency_intro,
 			$domain,
 			$expires_formatted,
-			$renewal_url
+			$renewal_url,
+			$auto_renew_note
 		);
 
 		// Set content type for potential HTML in future.

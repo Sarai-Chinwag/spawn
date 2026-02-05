@@ -28,9 +28,16 @@ class User_Role {
 			'spawn_customer',
 			__( 'Spawn Customer', 'spawn' ),
 			array(
-				'read' => true,
+				'read'                        => true,
+				'spawn_set_domain_auto_renew' => true,
 			)
 		);
+
+		// Also add the capability to existing spawn_customer role if upgrading.
+		$role = get_role( 'spawn_customer' );
+		if ( $role && ! $role->has_cap( 'spawn_set_domain_auto_renew' ) ) {
+			$role->add_cap( 'spawn_set_domain_auto_renew' );
+		}
 	}
 
 	/**
