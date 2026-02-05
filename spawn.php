@@ -96,19 +96,42 @@ function maybe_disable_grow(): void {
 		echo '<style>#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-faves-site-id] { display: none !important; }</style>';
 	}, 999 );
 
-	// Remove Grow elements via JS after they load.
+	// Remove Grow elements via MutationObserver - catches dynamic loads.
 	add_action( 'wp_footer', function () {
 		?>
 		<script>
 		(function() {
+			var growSelectors = '#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-initializer], [data-grow-faves-site-id], iframe[src*="grow.me"], [id*="grow-me"]';
+			
 			function removeGrow() {
-				var els = document.querySelectorAll('#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-initializer], [data-grow-faves-site-id]');
-				els.forEach(function(el) { el.remove(); });
+				document.querySelectorAll(growSelectors).forEach(function(el) { 
+					el.remove(); 
+				});
 			}
+			
+			// Remove existing elements.
 			removeGrow();
-			// Run again after Grow might have loaded dynamically.
-			setTimeout(removeGrow, 1000);
-			setTimeout(removeGrow, 3000);
+			
+			// Watch for new elements being added.
+			var observer = new MutationObserver(function(mutations) {
+				mutations.forEach(function(mutation) {
+					mutation.addedNodes.forEach(function(node) {
+						if (node.nodeType === 1) {
+							if (node.matches && node.matches(growSelectors)) {
+								node.remove();
+							}
+							// Also check children.
+							var children = node.querySelectorAll ? node.querySelectorAll(growSelectors) : [];
+							children.forEach(function(child) { child.remove(); });
+						}
+					});
+				});
+			});
+			
+			observer.observe(document.body, { childList: true, subtree: true });
+			
+			// Also run periodically just in case.
+			setInterval(removeGrow, 2000);
 		})();
 		</script>
 		<?php
