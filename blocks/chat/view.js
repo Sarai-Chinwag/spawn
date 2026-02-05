@@ -18,12 +18,32 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		let isLoading = false;
-		const messages = [];
 
 		const blockSessionKey = ( block.dataset.sessionKey || '' ).trim();
 
 		// Session management.
 		const SESSION_KEY_STORAGE = 'spawn_chat_session_key';
+		const MESSAGES_STORAGE = 'spawn_chat_messages';
+
+		// Load persisted messages or start fresh.
+		function loadMessages() {
+			try {
+				const stored = localStorage.getItem( MESSAGES_STORAGE );
+				return stored ? JSON.parse( stored ) : [];
+			} catch ( e ) {
+				return [];
+			}
+		}
+
+		function saveMessages( msgs ) {
+			try {
+				localStorage.setItem( MESSAGES_STORAGE, JSON.stringify( msgs ) );
+			} catch ( e ) {
+				// Storage full or unavailable - ignore.
+			}
+		}
+
+		const messages = loadMessages();
 
 		function generateSessionKey() {
 			return 'webchat-' + Date.now() + '-' + Math.random().toString( 36 ).substr( 2, 9 );
@@ -42,16 +62,12 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		function resetSession() {
-			if ( blockSessionKey ) {
-				messages.length = 0;
-				renderMessages();
-				updateSessionIndicator();
-				showWelcomeMessage();
-				return;
-			}
-			const newKey = generateSessionKey();
-			localStorage.setItem( SESSION_KEY_STORAGE, newKey );
 			messages.length = 0;
+			saveMessages( messages );
+			if ( ! blockSessionKey ) {
+				const newKey = generateSessionKey();
+				localStorage.setItem( SESSION_KEY_STORAGE, newKey );
+			}
 			renderMessages();
 			updateSessionIndicator();
 			showWelcomeMessage();
@@ -71,6 +87,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		function addMessage( role, content ) {
 			messages.push( { role, content } );
+			saveMessages( messages );
 			renderMessages();
 		}
 
@@ -182,7 +199,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		input.addEventListener( 'input', autoResizeInput );
 
-		// Show initial welcome.
-		showWelcomeMessage();
+		// Render any persisted messages, or show welcome.
+		if ( messages.length > 0 ) {
+			renderMessages();
+		} else {
+			showWelcomeMessage();
+		}
 	} );
 } );
