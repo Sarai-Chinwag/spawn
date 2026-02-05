@@ -1143,6 +1143,12 @@ class REST_API {
 		$session_key = sanitize_text_field( $request->get_param( 'sessionKey' ) );
 		$context     = $request->get_param( 'context' );
 
+		// Allow external code to intercept chat (e.g., admin chat with control plane).
+		$filtered = apply_filters( 'spawn_chat_response', null, $user_id, $message, $session_key );
+		if ( $filtered instanceof WP_REST_Response ) {
+			return $filtered;
+		}
+
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer ) {
