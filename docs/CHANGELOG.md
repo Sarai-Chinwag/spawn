@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## Unreleased
+
+- Add wants_website checkbox to checkout block for AI-only option
+
 ## [0.5.0] - 2025-02-05
 
 ### Added
