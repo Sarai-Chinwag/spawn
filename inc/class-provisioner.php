@@ -49,6 +49,10 @@ class Provisioner {
 		$is_subdomain              = $params['subdomain'] ?? false;
 		$skip_domain_registration  = $is_subdomain; // Subdomains use saraichinwag.com.
 
+		// Check if Stripe is in test mode - use dry_run for provisioner.
+		$stripe_settings = get_option( 'stripe_integration_settings', [] );
+		$is_test_mode    = ! empty( $stripe_settings['test_mode'] );
+
 		// Build the job request.
 		$job_data = [
 			'module_id' => 'vps-provisioner',
@@ -59,8 +63,13 @@ class Provisioner {
 				'tier'                     => $params['tier'] ?? 'starter',
 				'site_title'               => $params['site_title'] ?? '',
 				'skip_domain_registration' => $skip_domain_registration,
+				'dry_run'                  => $is_test_mode,
 			],
 		];
+
+		if ( $is_test_mode ) {
+			error_log( '[Spawn Provisioner] Test mode active - using dry_run' );
+		}
 
 		error_log( sprintf(
 			'[Spawn Provisioner] Triggering job for %s (tier: %s, subdomain: %s)',
