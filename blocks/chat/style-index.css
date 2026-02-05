@@ -191,6 +191,47 @@
 	}
 }
 
+/* Markdown styles */
+.chat-message__content code {
+	background: rgba(0, 0, 0, 0.1);
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-family: ui-monospace, monospace;
+	font-size: 0.9em;
+}
+
+.chat-message--user .chat-message__content code {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-message__content pre {
+	background: #1e1e1e;
+	color: #d4d4d4;
+	padding: 12px;
+	border-radius: 6px;
+	overflow-x: auto;
+	margin: 8px 0;
+}
+
+.chat-message__content pre code {
+	background: none;
+	padding: 0;
+	color: inherit;
+}
+
+.chat-message__content a {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.chat-message__content strong {
+	font-weight: 600;
+}
+
+.chat-message__content em {
+	font-style: italic;
+}
+
 .wp-block-spawn-chat__login-required,
 .wp-block-spawn-chat__no-subscription {
 	text-align: center;

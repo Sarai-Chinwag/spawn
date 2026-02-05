@@ -96,7 +96,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				.map(
 					( msg ) =>
 						`<div class="chat-message chat-message--${ msg.role }">
-						<div class="chat-message__content">${ escapeHtml(
+						<div class="chat-message__content">${ parseMarkdown(
 							msg.content
 						) }</div>
 					</div>`
@@ -108,7 +108,36 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		function escapeHtml( text ) {
 			const div = document.createElement( 'div' );
 			div.textContent = text;
-			return div.innerHTML.replace( /\n/g, '<br>' );
+			return div.innerHTML;
+		}
+
+		function parseMarkdown( text ) {
+			// First escape HTML to prevent XSS
+			let html = escapeHtml( text );
+
+			// Code blocks (``` ... ```)
+			html = html.replace( /```(\w*)\n?([\s\S]*?)```/g, ( match, lang, code ) => {
+				return `<pre><code class="language-${ lang }">${ code.trim() }</code></pre>`;
+			} );
+
+			// Inline code (`code`)
+			html = html.replace( /`([^`]+)`/g, '<code>$1</code>' );
+
+			// Bold (**text** or __text__)
+			html = html.replace( /\*\*([^*]+)\*\*/g, '<strong>$1</strong>' );
+			html = html.replace( /__([^_]+)__/g, '<strong>$1</strong>' );
+
+			// Italic (*text* or _text_)
+			html = html.replace( /\*([^*]+)\*/g, '<em>$1</em>' );
+			html = html.replace( /_([^_]+)_/g, '<em>$1</em>' );
+
+			// Links [text](url)
+			html = html.replace( /\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>' );
+
+			// Line breaks
+			html = html.replace( /\n/g, '<br>' );
+
+			return html;
 		}
 
 		function showTypingIndicator() {
