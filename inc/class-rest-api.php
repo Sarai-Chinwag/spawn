@@ -1272,12 +1272,37 @@ class REST_API {
 		// Use OpenAI-compatible chat completions endpoint for synchronous response.
 		$chat_url = $gateway_base . '/v1/chat/completions';
 
+		// Get current user info for context.
+		$current_user = wp_get_current_user();
+		$site_name    = get_bloginfo( 'name' );
+		$site_url     = home_url();
+
+		$system_prompt = sprintf(
+			"You are chatting with the admin of %s (%s) via the Spawn admin chat widget.\n\n" .
+			"User: %s (%s)\n" .
+			"Role: Site Administrator\n\n" .
+			"This is the Spawn control plane chat. The admin can:\n" .
+			"- Ask you to help manage their WordPress site\n" .
+			"- Configure their AI agent settings\n" .
+			"- Get help with Spawn features\n" .
+			"- Ask about their site's status, content, or settings\n\n" .
+			"You have full access to their WordPress installation. Be helpful and direct.",
+			$site_name,
+			$site_url,
+			$current_user->display_name ?: $current_user->user_login,
+			$current_user->user_email
+		);
+
 		$payload = [
 			'model'    => 'openclaw:main',
 			'messages' => [
 				[
+					'role'    => 'system',
+					'content' => $system_prompt,
+				],
+				[
 					'role'    => 'user',
-					'content' => '[Spawn Admin Chat] ' . $message,
+					'content' => $message,
 				],
 			],
 		];
