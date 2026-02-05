@@ -44,11 +44,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			'feather', 'sunflower', 'twilight', 'aurora', 'ember',
 		];
 
-		// Quick fallback while AI generates
+		// Quick fallback while AI generates (code name format: adjective-noun)
 		function generateFallbackName() {
 			const adj = sessionWordBank[ Math.floor( Math.random() * 15 ) ]; // First 15 are adjectives
 			const noun = sessionWordBank[ 15 + Math.floor( Math.random() * 15 ) ]; // Rest are nouns
-			return adj.charAt( 0 ).toUpperCase() + adj.slice( 1 ) + ' ' + noun.charAt( 0 ).toUpperCase() + noun.slice( 1 );
+			return adj.toLowerCase() + '-' + noun.toLowerCase();
 		}
 
 		// Generate AI-powered session title via system agent

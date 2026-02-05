@@ -1553,16 +1553,16 @@ class REST_API {
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_base ) || empty( $gateway_token ) ) {
-			// Fallback: simple random combo.
+			// Fallback: simple random combo in code name format.
 			$words = explode( ', ', $word_bank );
-			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
 			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
 		}
 
 		$prompt = sprintf(
-			"Generate a creative, whimsical chat session title (2-4 words) for a user named '%s'. " .
-			"Be inspired by these vibes: %s. " .
-			"Make it fun and memorable. Return ONLY the title, nothing else.",
+			"Generate a two-word code name like 'azure-phoenix' or 'cosmic-owl' for user '%s'. " .
+			"Use words from this bank: %s. " .
+			"Format: adjective-noun, lowercase, hyphenated. Return ONLY the code name.",
 			$username,
 			$word_bank
 		);
@@ -1585,18 +1585,19 @@ class REST_API {
 		if ( is_wp_error( $response ) ) {
 			// Fallback on error.
 			$words = explode( ', ', $word_bank );
-			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
 			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		$title = trim( $body['choices'][0]['message']['content'] ?? '' );
-		$title = trim( $title, '"\'.' );
+		$title = trim( $title, '"\'.`' );
+		$title = strtolower( $title ); // Ensure lowercase
 
-		if ( empty( $title ) || strlen( $title ) > 50 ) {
+		if ( empty( $title ) || strlen( $title ) > 40 ) {
 			// Fallback if response is weird.
 			$words = explode( ', ', $word_bank );
-			$title = ucfirst( $words[ array_rand( $words ) ] ) . ' ' . ucfirst( $words[ array_rand( $words ) ] );
+			$title = strtolower( $words[ array_rand( $words ) ] ) . '-' . strtolower( $words[ array_rand( $words ) ] );
 			return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
 		}
 
