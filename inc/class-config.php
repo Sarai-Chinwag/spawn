@@ -25,10 +25,15 @@ class Config {
 	 *
 	 * This is THE source of truth for tier data. All other code reads from here.
 	 *
-	 * VPS specs verified from Hetzner CLI (hcloud server-type list):
-	 * - cpx11: 2 vCPU (shared), 2 GB RAM, 40 GB SSD
-	 * - cpx21: 3 vCPU (shared), 4 GB RAM, 80 GB SSD
-	 * - cpx31: 4 vCPU (shared), 8 GB RAM, 160 GB SSD
+	 * VPS specs verified from Hetzner CLI (hcloud server-type describe):
+	 * - cpx21: 3 vCPU (shared), 4 GB RAM, 80 GB SSD   - $9.99/mo (ash)
+	 * - cpx31: 4 vCPU (shared), 8 GB RAM, 160 GB SSD  - $17.99/mo (ash)
+	 * - cpx41: 8 vCPU (shared), 16 GB RAM, 240 GB SSD - $33.49/mo (ash)
+	 *
+	 * Pricing confirmed by Chubes 2026-02-05:
+	 * - Starter: $25 (cpx21 $9.99 + $10 credits = $19.99 cost, $5.01 margin)
+	 * - Pro:     $50 (cpx31 $17.99 + $20 credits = $37.99 cost, $12.01 margin)
+	 * - Business: $100 (cpx41 $33.49 + $40 credits = $73.49 cost, $26.51 margin)
 	 *
 	 * @return array Tier configurations keyed by tier ID.
 	 */
@@ -39,17 +44,17 @@ class Config {
 		return [
 			'starter'  => [
 				'name'            => __( 'Starter', 'spawn' ),
-				'price'           => 20,
+				'price'           => 25,
 				'description'     => __( 'Perfect for personal sites and blogs', 'spawn' ),
 				'stripe_price_id' => $prices['vps_starter'] ?? '',
-				'hetzner_type'    => 'cpx11',
-				'vcpu'            => 2,
+				'hetzner_type'    => 'cpx21',
+				'vcpu'            => 3,
 				'vcpu_shared'     => true,
-				'ram_gb'          => 2,
-				'disk_gb'         => 40,
+				'ram_gb'          => 4,
+				'disk_gb'         => 80,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS,
 				'features'        => [
-					__( '2 vCPU, 2 GB RAM, 40 GB SSD', 'spawn' ),
+					__( '3 vCPU, 4 GB RAM, 80 GB SSD', 'spawn' ),
 					__( '$10 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
@@ -57,17 +62,17 @@ class Config {
 			],
 			'pro'      => [
 				'name'            => __( 'Pro', 'spawn' ),
-				'price'           => 40,
+				'price'           => 50,
 				'description'     => __( 'For growing businesses', 'spawn' ),
 				'stripe_price_id' => $prices['vps_pro'] ?? '',
-				'hetzner_type'    => 'cpx21',
-				'vcpu'            => 3,
+				'hetzner_type'    => 'cpx31',
+				'vcpu'            => 4,
 				'vcpu_shared'     => true,
-				'ram_gb'          => 4,
-				'disk_gb'         => 80,
+				'ram_gb'          => 8,
+				'disk_gb'         => 160,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 2,
 				'features'        => [
-					__( '3 vCPU, 4 GB RAM, 80 GB SSD', 'spawn' ),
+					__( '4 vCPU, 8 GB RAM, 160 GB SSD', 'spawn' ),
 					__( '$20 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),
@@ -79,14 +84,14 @@ class Config {
 				'price'           => 100,
 				'description'     => __( 'For high-traffic sites', 'spawn' ),
 				'stripe_price_id' => $prices['vps_business'] ?? '',
-				'hetzner_type'    => 'cpx31',
-				'vcpu'            => 4,
+				'hetzner_type'    => 'cpx41',
+				'vcpu'            => 8,
 				'vcpu_shared'     => true,
-				'ram_gb'          => 8,
-				'disk_gb'         => 160,
+				'ram_gb'          => 16,
+				'disk_gb'         => 240,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 4,
 				'features'        => [
-					__( '4 vCPU, 8 GB RAM, 160 GB SSD', 'spawn' ),
+					__( '8 vCPU, 16 GB RAM, 240 GB SSD', 'spawn' ),
 					__( '$40 AI credits included', 'spawn' ),
 					__( 'Custom domain', 'spawn' ),
 					__( 'SSL included', 'spawn' ),

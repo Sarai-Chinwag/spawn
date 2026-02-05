@@ -6,6 +6,7 @@ All notable changes to the Spawn plugin will be documented in this file.
 
 - Add domain renewal abilities (spawn_get_domain_renewal_info, spawn_renew_domain)
 - Create single source of truth for tier configuration
+- Update pricing: Starter $25/cpx21, Pro $50/cpx31, Business $100/cpx41 (confirmed by Chubes)
 
 ## [0.2.0] - 2025-02-09
 
