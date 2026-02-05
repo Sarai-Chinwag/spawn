@@ -26,11 +26,34 @@ class Admin {
 	 * Add admin menu.
 	 */
 	public static function add_menu(): void {
-		add_options_page(
-			__( 'Spawn Settings', 'spawn' ),
+		// Main Spawn menu.
+		add_menu_page(
+			__( 'Spawn', 'spawn' ),
 			__( 'Spawn', 'spawn' ),
 			'manage_options',
 			'spawn',
+			[ __CLASS__, 'render_customers_page' ],
+			'dashicons-cloud',
+			30
+		);
+
+		// Customers submenu (default).
+		add_submenu_page(
+			'spawn',
+			__( 'Customers', 'spawn' ),
+			__( 'Customers', 'spawn' ),
+			'manage_options',
+			'spawn',
+			[ __CLASS__, 'render_customers_page' ]
+		);
+
+		// Settings submenu.
+		add_submenu_page(
+			'spawn',
+			__( 'Spawn Settings', 'spawn' ),
+			__( 'Settings', 'spawn' ),
+			'manage_options',
+			'spawn-settings',
 			[ __CLASS__, 'render_settings_page' ]
 		);
 	}
@@ -61,7 +84,7 @@ class Admin {
 			'spawn_stripe_section',
 			__( 'Stripe Configuration', 'spawn' ),
 			[ __CLASS__, 'render_stripe_section_description' ],
-			'spawn'
+			'spawn-settings'
 		);
 
 		// Price IDs (spawn-specific).
@@ -69,7 +92,7 @@ class Admin {
 			'spawn_stripe_price_starter',
 			__( 'Starter Price ID', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_stripe_section',
 			[ 'name' => 'spawn_stripe_price_starter', 'description' => __( 'Stripe Price ID for Starter tier', 'spawn' ) ]
 		);
@@ -78,7 +101,7 @@ class Admin {
 			'spawn_stripe_price_pro',
 			__( 'Pro Price ID', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_stripe_section',
 			[ 'name' => 'spawn_stripe_price_pro', 'description' => __( 'Stripe Price ID for Pro tier', 'spawn' ) ]
 		);
@@ -87,7 +110,7 @@ class Admin {
 			'spawn_stripe_price_business',
 			__( 'Business Price ID', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_stripe_section',
 			[ 'name' => 'spawn_stripe_price_business', 'description' => __( 'Stripe Price ID for Business tier', 'spawn' ) ]
 		);
@@ -99,14 +122,14 @@ class Admin {
 			function() {
 				echo '<p>' . esc_html__( 'Configure Name.com API for domain registration.', 'spawn' ) . '</p>';
 			},
-			'spawn'
+			'spawn-settings'
 		);
 
 		add_settings_field(
 			'spawn_namecom_username',
 			__( 'Username', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_namecom_section',
 			[ 'name' => 'spawn_namecom_username' ]
 		);
@@ -115,7 +138,7 @@ class Admin {
 			'spawn_namecom_token',
 			__( 'API Token', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_namecom_section',
 			[ 'name' => 'spawn_namecom_token', 'type' => 'password' ]
 		);
@@ -127,14 +150,14 @@ class Admin {
 			function() {
 				echo '<p>' . esc_html__( 'Configure Sweatpants for VPS provisioning.', 'spawn' ) . '</p>';
 			},
-			'spawn'
+			'spawn-settings'
 		);
 
 		add_settings_field(
 			'spawn_sweatpants_url',
 			__( 'API URL', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_sweatpants_section',
 			[ 'name' => 'spawn_sweatpants_url', 'placeholder' => 'http://localhost:8585' ]
 		);
@@ -143,7 +166,7 @@ class Admin {
 			'spawn_sweatpants_token',
 			__( 'API Token', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_sweatpants_section',
 			[ 'name' => 'spawn_sweatpants_token', 'type' => 'password' ]
 		);
@@ -155,14 +178,14 @@ class Admin {
 			function() {
 				echo '<p>' . esc_html__( 'Configure your OpenClaw gateway for admin chat. This lets you (the SaaS operator) chat with your own agent.', 'spawn' ) . '</p>';
 			},
-			'spawn'
+			'spawn-settings'
 		);
 
 		add_settings_field(
 			'spawn_openclaw_gateway_url',
 			__( 'Gateway URL', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_openclaw_section',
 			[ 'name' => 'spawn_openclaw_gateway_url', 'placeholder' => 'http://127.0.0.1:18789' ]
 		);
@@ -171,7 +194,7 @@ class Admin {
 			'spawn_openclaw_token',
 			__( 'Auth Token', 'spawn' ),
 			[ __CLASS__, 'render_text_field' ],
-			'spawn',
+			'spawn-settings',
 			'spawn_openclaw_section',
 			[ 'name' => 'spawn_openclaw_token', 'type' => 'password' ]
 		);
@@ -231,11 +254,122 @@ class Admin {
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'spawn_settings' );
-				do_settings_sections( 'spawn' );
+				do_settings_sections( 'spawn-settings' );
 				submit_button();
 				?>
 			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Render customers page.
+	 */
+	public static function render_customers_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$customers = Database::get_all_customers();
+
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Spawn Customers', 'spawn' ); ?></h1>
+
+			<?php if ( empty( $customers ) ) : ?>
+				<p><?php esc_html_e( 'No customers yet.', 'spawn' ); ?></p>
+			<?php else : ?>
+				<table class="wp-list-table widefat fixed striped">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'ID', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Email', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Domain', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Tier', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Status', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Credits', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Created', 'spawn' ); ?></th>
+							<th><?php esc_html_e( 'Actions', 'spawn' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $customers as $customer ) : ?>
+							<?php
+							$status_class = self::get_status_class( $customer['status'] );
+							$is_subdomain = ! empty( $customer['subdomain'] );
+							$full_domain  = $is_subdomain
+								? $customer['domain'] . '.saraichinwag.com'
+								: $customer['domain'];
+							?>
+							<tr>
+								<td><?php echo esc_html( $customer['id'] ); ?></td>
+								<td><?php echo esc_html( $customer['email'] ); ?></td>
+								<td>
+									<?php if ( 'active' === $customer['status'] && ! empty( $customer['server_ip'] ) ) : ?>
+										<a href="https://<?php echo esc_attr( $full_domain ); ?>" target="_blank">
+											<?php echo esc_html( $full_domain ); ?>
+										</a>
+									<?php else : ?>
+										<?php echo esc_html( $full_domain ); ?>
+									<?php endif; ?>
+								</td>
+								<td><?php echo esc_html( $customer['vps_tier'] ); ?></td>
+								<td>
+									<span class="spawn-status spawn-status--<?php echo esc_attr( $status_class ); ?>">
+										<?php echo esc_html( ucfirst( $customer['status'] ) ); ?>
+									</span>
+								</td>
+								<td>$<?php echo esc_html( number_format( (float) $customer['credit_balance'], 2 ) ); ?></td>
+								<td><?php echo esc_html( $customer['created_at'] ); ?></td>
+								<td>
+									<?php if ( ! empty( $customer['server_ip'] ) ) : ?>
+										<a href="https://<?php echo esc_attr( $full_domain ); ?>/wp-admin/" target="_blank" class="button button-small">
+											<?php esc_html_e( 'WP Admin', 'spawn' ); ?>
+										</a>
+									<?php endif; ?>
+									<?php if ( ! empty( $customer['stripe_customer'] ) ) : ?>
+										<a href="https://dashboard.stripe.com/customers/<?php echo esc_attr( $customer['stripe_customer'] ); ?>" target="_blank" class="button button-small">
+											<?php esc_html_e( 'Stripe', 'spawn' ); ?>
+										</a>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+
+				<style>
+					.spawn-status {
+						display: inline-block;
+						padding: 3px 8px;
+						border-radius: 3px;
+						font-size: 12px;
+						font-weight: 500;
+					}
+					.spawn-status--success { background: #d4edda; color: #155724; }
+					.spawn-status--warning { background: #fff3cd; color: #856404; }
+					.spawn-status--danger { background: #f8d7da; color: #721c24; }
+					.spawn-status--info { background: #d1ecf1; color: #0c5460; }
+				</style>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Get status CSS class.
+	 *
+	 * @param string $status Customer status.
+	 * @return string CSS class.
+	 */
+	private static function get_status_class( string $status ): string {
+		return match ( $status ) {
+			'active'        => 'success',
+			'provisioning'  => 'info',
+			'pending'       => 'info',
+			'payment_failed', 'failed' => 'danger',
+			'cancelling', 'cancelled' => 'warning',
+			default         => 'info',
+		};
 	}
 }

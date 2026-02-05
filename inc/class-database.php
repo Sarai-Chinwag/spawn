@@ -154,6 +154,32 @@ class Database {
 	}
 
 	/**
+	 * Get all customers.
+	 *
+	 * @param string $order_by Column to order by.
+	 * @param string $order    Order direction (ASC/DESC).
+	 * @return array List of customers.
+	 */
+	public static function get_all_customers( string $order_by = 'created_at', string $order = 'DESC' ): array {
+		global $wpdb;
+
+		$allowed_columns = [ 'id', 'email', 'domain', 'status', 'created_at', 'credit_balance' ];
+		$order_by        = in_array( $order_by, $allowed_columns, true ) ? $order_by : 'created_at';
+		$order           = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Column name validated above.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i ORDER BY {$order_by} {$order}",
+				self::get_table_name()
+			),
+			ARRAY_A
+		);
+
+		return $results ?: [];
+	}
+
+	/**
 	 * Get customer by Stripe subscription ID.
 	 *
 	 * @param string $subscription_id Stripe subscription ID.
