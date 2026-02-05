@@ -91,10 +91,28 @@ function maybe_disable_grow(): void {
 		wp_deregister_script( 'grow-for-wp' );
 	}, 999 );
 
-	// Hide Grow widget elements via CSS (be specific, don't use wildcards).
+	// Hide Grow widget via CSS + JS removal (Grow loads dynamically after footer).
 	add_action( 'wp_head', function () {
-		echo '<style>#grow-me-container, .grow-me-widget, #grow-wp-data { display: none !important; }</style>';
+		echo '<style>#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-faves-site-id] { display: none !important; }</style>';
 	}, 999 );
+
+	// Remove Grow elements via JS after they load.
+	add_action( 'wp_footer', function () {
+		?>
+		<script>
+		(function() {
+			function removeGrow() {
+				var els = document.querySelectorAll('#grow-me-container, .grow-me-widget, #grow-wp-data, [data-grow-initializer], [data-grow-faves-site-id]');
+				els.forEach(function(el) { el.remove(); });
+			}
+			removeGrow();
+			// Run again after Grow might have loaded dynamically.
+			setTimeout(removeGrow, 1000);
+			setTimeout(removeGrow, 3000);
+		})();
+		</script>
+		<?php
+	}, 9999 );
 }
 
 /**
