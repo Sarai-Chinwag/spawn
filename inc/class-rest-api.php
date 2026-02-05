@@ -330,8 +330,9 @@ class REST_API {
 						'type'     => 'string',
 					],
 					'sessionKey' => [
-						'type'    => 'string',
-						'default' => '',
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
 					],
 					'context'    => [
 						'type'    => 'object',
@@ -1243,8 +1244,16 @@ class REST_API {
 			] );
 		}
 
-		// Use provided session key or default to main.
-		$target_session = ! empty( $session_key ) ? $session_key : 'main';
+		$payload = [
+			'tool' => 'sessions_send',
+			'args' => [
+				'message' => '[Spawn Chat] ' . $message,
+			],
+		];
+		if ( ! empty( $session_key ) ) {
+			$payload['sessionKey'] = $session_key;
+			$payload['args']['sessionKey'] = $session_key;
+		}
 
 		// Use sessions_send tool to send message to the session.
 		$response = wp_remote_post( $gateway_url, [
@@ -1252,14 +1261,7 @@ class REST_API {
 				'Content-Type'  => 'application/json',
 				'Authorization' => 'Bearer ' . $gateway_token,
 			],
-			'body'    => wp_json_encode( [
-				'tool'       => 'sessions_send',
-				'sessionKey' => $target_session,
-				'args'       => [
-					'message'    => '[Spawn Chat] ' . $message,
-					'sessionKey' => $target_session,
-				],
-			] ),
+			'body'    => wp_json_encode( $payload ),
 			'timeout' => 90,
 		] );
 

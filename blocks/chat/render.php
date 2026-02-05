@@ -13,7 +13,11 @@
 $is_fullpage = ! empty( $attributes['fullpage'] );
 $extra_class = $is_fullpage ? 'wp-block-spawn-chat--fullpage' : '';
 
-$wrapper_attributes = get_block_wrapper_attributes( [ 'class' => $extra_class ] );
+$session_key = isset( $attributes['sessionKey'] ) ? $attributes['sessionKey'] : '';
+$wrapper_attributes = get_block_wrapper_attributes( [
+	'class'            => $extra_class,
+	'data-session-key' => $session_key,
+] );
 
 // Check if user is logged in.
 if ( ! is_user_logged_in() ) {

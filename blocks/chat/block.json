@@ -15,6 +15,10 @@
 		"fullpage": {
 			"type": "boolean",
 			"default": false
+		},
+		"sessionKey": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"textdomain": "spawn",

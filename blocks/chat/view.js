@@ -20,6 +20,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		let isLoading = false;
 		const messages = [];
 
+		const blockSessionKey = ( block.dataset.sessionKey || '' ).trim();
+
 		// Session management.
 		const SESSION_KEY_STORAGE = 'spawn_chat_session_key';
 
@@ -28,6 +30,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		function getSessionKey() {
+			if ( blockSessionKey ) {
+				return blockSessionKey;
+			}
 			let key = localStorage.getItem( SESSION_KEY_STORAGE );
 			if ( ! key ) {
 				key = generateSessionKey();
@@ -37,6 +42,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		}
 
 		function resetSession() {
+			if ( blockSessionKey ) {
+				messages.length = 0;
+				renderMessages();
+				updateSessionIndicator();
+				showWelcomeMessage();
+				return;
+			}
 			const newKey = generateSessionKey();
 			localStorage.setItem( SESSION_KEY_STORAGE, newKey );
 			messages.length = 0;
@@ -48,7 +60,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		function updateSessionIndicator() {
 			if ( sessionIndicator ) {
 				const key = getSessionKey();
-				sessionIndicator.textContent = 'Session: ' + key.substr( -8 );
+				sessionIndicator.textContent = blockSessionKey
+					? 'Session: set'
+					: 'Session: ' + key.substr( -8 );
 			}
 		}
 
