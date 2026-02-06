@@ -936,6 +936,181 @@ class REST_API {
 	}
 
 	/**
+	 * Get checkout/provisioning status by Stripe session ID.
+	 *
+	 * This endpoint is used by the success page to poll for provisioning status
+	 * after a Stripe checkout is completed.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_checkout_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$session_id = $request->get_param( 'session_id' );
+
+		if ( empty( $session_id ) ) {
+			return new WP_Error(
+				'missing_session_id',
+				__( 'Missing session ID.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Retrieve the Stripe checkout session to get customer info.
+		$session = StripeClient::retrieve_checkout_session( $session_id );
+
+		if ( is_wp_error( $session ) ) {
+			return new WP_REST_Response( [
+				'success' => false,
+				'status'  => 'not_found',
+				'error'   => __( 'Session not found or expired.', 'spawn' ),
+			] );
+		}
+
+		// Get customer email from session.
+		$customer_email = $session['customer_email'] ?? $session['customer_details']['email'] ?? '';
+
+		if ( empty( $customer_email ) ) {
+			// Try to get from Stripe customer object.
+			if ( ! empty( $session['customer'] ) ) {
+				$stripe_customer = StripeClient::retrieve_customer( $session['customer'] );
+				if ( ! is_wp_error( $stripe_customer ) ) {
+					$customer_email = $stripe_customer['email'] ?? '';
+				}
+			}
+		}
+
+		if ( empty( $customer_email ) ) {
+			return new WP_REST_Response( [
+				'success' => false,
+				'status'  => 'not_found',
+				'error'   => __( 'Could not determine customer from session.', 'spawn' ),
+			] );
+		}
+
+		// Look up customer in our database by email.
+		$customer = Database::get_customer_by_email( $customer_email );
+
+		if ( ! $customer ) {
+			// Customer record not yet created - webhook may not have fired yet.
+			return new WP_REST_Response( [
+				'success' => true,
+				'status'  => 'pending',
+				'message' => __( 'Payment received. Setting up your account...', 'spawn' ),
+				'progress' => [
+					'payment'   => true,
+					'server'    => false,
+					'wordpress' => false,
+					'ai'        => false,
+					'percent'   => 10,
+				],
+			] );
+		}
+
+		// Map customer status to provisioning progress.
+		$status   = $customer['status'] ?? 'pending';
+		$progress = self::get_provisioning_progress( $status, $customer );
+
+		// Build response based on status.
+		switch ( $status ) {
+			case 'active':
+			case 'ready':
+				return new WP_REST_Response( [
+					'success'  => true,
+					'status'   => 'active',
+					'customer' => [
+						'id'        => (int) $customer['id'],
+						'domain'    => $customer['domain'] ?? '',
+						'status'    => $status,
+						'server_ip' => $customer['server_ip'] ?? null,
+						'tier'      => $customer['tier'] ?? 'starter',
+					],
+					'progress'     => $progress,
+					'redirect_url' => home_url( '/spawn/dashboard/' ),
+				] );
+
+			case 'failed':
+			case 'error':
+				return new WP_REST_Response( [
+					'success' => true,
+					'status'  => 'failed',
+					'error'   => __( 'Server setup failed. Our team has been notified.', 'spawn' ),
+					'customer' => [
+						'id'     => (int) $customer['id'],
+						'domain' => $customer['domain'] ?? '',
+						'status' => $status,
+						'tier'   => $customer['tier'] ?? 'starter',
+					],
+				] );
+
+			case 'pending':
+			case 'provisioning':
+			case 'creating':
+			case 'configuring':
+			default:
+				return new WP_REST_Response( [
+					'success'  => true,
+					'status'   => 'provisioning',
+					'customer' => [
+						'id'        => (int) $customer['id'],
+						'domain'    => $customer['domain'] ?? '',
+						'status'    => $status,
+						'server_ip' => $customer['server_ip'] ?? null,
+						'tier'      => $customer['tier'] ?? 'starter',
+					],
+					'progress' => $progress,
+				] );
+		}
+	}
+
+	/**
+	 * Calculate provisioning progress based on customer status.
+	 *
+	 * @param string $status   Customer status.
+	 * @param array  $customer Customer data.
+	 * @return array Progress data.
+	 */
+	private static function get_provisioning_progress( string $status, array $customer ): array {
+		$has_server_id = ! empty( $customer['hetzner_server_id'] ) || ! empty( $customer['server_id'] );
+		$has_server_ip = ! empty( $customer['server_ip'] );
+		$has_wordpress = ! empty( $customer['openclaw_token'] );
+		$is_active     = in_array( $status, [ 'active', 'ready' ], true );
+
+		// Determine which steps are complete.
+		$payment_done   = true; // If we got here, payment is done.
+		$server_done    = $has_server_id || $has_server_ip || $is_active;
+		$wordpress_done = $has_wordpress || $is_active;
+		$ai_done        = $is_active;
+
+		// Calculate percentage.
+		$steps_done = (int) $payment_done + (int) $server_done + (int) $wordpress_done + (int) $ai_done;
+		$percent    = (int) ( ( $steps_done / 4 ) * 100 );
+
+		// Adjust for in-progress states.
+		if ( ! $is_active && $percent < 100 ) {
+			// Add a bit more granularity based on status.
+			switch ( $status ) {
+				case 'creating':
+					$percent = max( $percent, 25 );
+					break;
+				case 'provisioning':
+					$percent = max( $percent, 50 );
+					break;
+				case 'configuring':
+					$percent = max( $percent, 75 );
+					break;
+			}
+		}
+
+		return [
+			'payment'   => $payment_done,
+			'server'    => $server_done,
+			'wordpress' => $wordpress_done,
+			'ai'        => $ai_done,
+			'percent'   => $percent,
+		];
+	}
+
+	/**
 	 * Handle user login.
 	 *
 	 * @param WP_REST_Request $request Request object.
