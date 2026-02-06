@@ -723,6 +723,17 @@ class REST_API {
 				],
 			]
 		);
+
+		// Provisioning status (for success page polling).
+		register_rest_route(
+			self::NAMESPACE,
+			'/provisioning/status',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_provisioning_status' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
 	}
 
 	/**
@@ -2699,6 +2710,65 @@ class REST_API {
 			'domain'      => $customer['domain'],
 			'domain_type' => $customer['domain_type'] ?? 'subdomain',
 			'renewable'   => $is_renewable,
+		] );
+	}
+
+	/**
+	 * Get provisioning status for current customer.
+	 *
+	 * Used by the success page to poll for completion.
+	 *
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_provisioning_status(): WP_REST_Response|WP_Error {
+		$user_id  = get_current_user_id();
+		$customer = Database::get_customer_by_user_id( $user_id );
+
+		if ( ! $customer ) {
+			return new WP_REST_Response( [
+				'status'  => 'not_found',
+				'message' => __( 'No customer account found. Your account may still be processing.', 'spawn' ),
+			] );
+		}
+
+		$status = $customer['status'] ?? 'pending';
+
+		// Determine provisioning progress.
+		$progress = match ( $status ) {
+			'pending'       => [
+				'percent' => 10,
+				'step'    => 'payment',
+				'message' => __( 'Payment confirmed, starting setup...', 'spawn' ),
+			],
+			'provisioning'  => [
+				'percent' => 50,
+				'step'    => 'provisioning',
+				'message' => __( 'Setting up your server...', 'spawn' ),
+			],
+			'active'        => [
+				'percent' => 100,
+				'step'    => 'complete',
+				'message' => __( 'Your AI is ready!', 'spawn' ),
+			],
+			'failed'        => [
+				'percent' => 0,
+				'step'    => 'failed',
+				'message' => __( 'Setup failed. We\'ve been notified and will contact you.', 'spawn' ),
+			],
+			default         => [
+				'percent' => 0,
+				'step'    => 'unknown',
+				'message' => __( 'Checking status...', 'spawn' ),
+			],
+		};
+
+		return new WP_REST_Response( [
+			'status'       => $status,
+			'progress'     => $progress,
+			'domain'       => $customer['domain'] ?? '',
+			'server_ip'    => $customer['server_ip'] ?? '',
+			'chat_url'     => home_url( '/spawn/chat/' ),
+			'dashboard_url' => home_url( '/spawn/dashboard/' ),
 		] );
 	}
 
