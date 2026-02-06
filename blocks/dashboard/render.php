@@ -48,6 +48,45 @@ $servers  = \Spawn\Database::get_servers_by_user( $user_id );
 $domains  = \Spawn\Database::get_domains_by_user( $user_id );
 $customer = \Spawn\Database::get_customer_by_user_id( $user_id );
 
+// Admin self-reflection: when admin views without being a customer,
+// show aggregate data for all customers (site management mode).
+$is_admin_mode = $is_admin && ! $customer;
+if ( $is_admin_mode ) {
+	// Get aggregate stats for all customers.
+	global $wpdb;
+	$customers_table = $wpdb->prefix . 'spawn_customers';
+	$usage_table     = $wpdb->prefix . 'spawn_usage';
+
+	// Total credit balance across all customers.
+	$total_credits = (float) $wpdb->get_var( "SELECT SUM(credit_balance) FROM $customers_table" );
+
+	// Total usage this month.
+	$period_start = gmdate( 'Y-m-01' );
+	$total_usage  = $wpdb->get_row( $wpdb->prepare(
+		"SELECT SUM(credits_used) as credits_used, SUM(requests_count) as requests_count, 
+		        SUM(tokens_input) as tokens_input, SUM(tokens_output) as tokens_output 
+		 FROM $usage_table WHERE period_start = %s",
+		$period_start
+	), ARRAY_A );
+
+	// Customer count.
+	$customer_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $customers_table WHERE status = 'active'" );
+
+	// Server and domain counts (all).
+	$servers_table = $wpdb->prefix . 'spawn_servers';
+	$domains_table = $wpdb->prefix . 'spawn_domains';
+	$servers       = $wpdb->get_results( "SELECT * FROM $servers_table", ARRAY_A ) ?: [];
+	$domains       = $wpdb->get_results( "SELECT * FROM $domains_table", ARRAY_A ) ?: [];
+
+	// Create synthetic admin "customer" for display.
+	$customer = [
+		'id'             => 0,
+		'tier'           => 'admin',
+		'credit_balance' => $total_credits ?: 0,
+		'status'         => 'admin',
+	];
+}
+
 if ( ! $customer && ! $is_admin ) {
 	?>
 	<div <?php echo $wrapper_attributes; ?>>
@@ -83,16 +122,27 @@ $active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab']
 $active_tab     = in_array( $active_tab, [ 'overview', 'servers', 'domains' ], true ) ? $active_tab : 'overview';
 
 // Fetch AI usage data for this month.
-$tier             = $customer ? ( $customer['tier'] ?? 'starter' ) : 'starter';
-$tier_config      = \Spawn\Config::get_tier( $tier );
-$included_credits = $tier_config['included_credits'] ?? 5.0;
-$usage_data       = $customer ? \Spawn\Database::get_server_usage( (int) $customer['id'], 1 ) : [];
-$current_usage    = $usage_data[0] ?? null;
-$credits_used     = (float) ( $current_usage['credits_used'] ?? 0 );
-$requests_count   = (int) ( $current_usage['requests_count'] ?? 0 );
-$tokens_input     = (int) ( $current_usage['tokens_input'] ?? 0 );
-$tokens_output    = (int) ( $current_usage['tokens_output'] ?? 0 );
-$usage_percent    = $included_credits > 0 ? min( 100, ( $credits_used / $included_credits ) * 100 ) : 0;
+if ( $is_admin_mode ) {
+	// Admin mode: use aggregate data already fetched.
+	$tier             = 'admin';
+	$included_credits = 0; // No limit for admin view.
+	$credits_used     = (float) ( $total_usage['credits_used'] ?? 0 );
+	$requests_count   = (int) ( $total_usage['requests_count'] ?? 0 );
+	$tokens_input     = (int) ( $total_usage['tokens_input'] ?? 0 );
+	$tokens_output    = (int) ( $total_usage['tokens_output'] ?? 0 );
+	$usage_percent    = 0; // No percentage for unlimited admin.
+} else {
+	$tier             = $customer ? ( $customer['tier'] ?? 'starter' ) : 'starter';
+	$tier_config      = \Spawn\Config::get_tier( $tier );
+	$included_credits = $tier_config['included_credits'] ?? 5.0;
+	$usage_data       = $customer ? \Spawn\Database::get_server_usage( (int) $customer['id'], 1 ) : [];
+	$current_usage    = $usage_data[0] ?? null;
+	$credits_used     = (float) ( $current_usage['credits_used'] ?? 0 );
+	$requests_count   = (int) ( $current_usage['requests_count'] ?? 0 );
+	$tokens_input     = (int) ( $current_usage['tokens_input'] ?? 0 );
+	$tokens_output    = (int) ( $current_usage['tokens_output'] ?? 0 );
+	$usage_percent    = $included_credits > 0 ? min( 100, ( $credits_used / $included_credits ) * 100 ) : 0;
+}
 
 $overview_url       = add_query_arg( [ 'tab' => 'overview' ], home_url( '/spawn/dashboard/' ) );
 $servers_url        = add_query_arg( [ 'tab' => 'servers' ], home_url( '/spawn/dashboard/' ) );
@@ -127,11 +177,18 @@ foreach ( $servers as $server ) {
 
 	<header class="spawn-dashboard__header">
 		<div class="spawn-dashboard__header-text">
-			<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Spawn Dashboard', 'spawn' ); ?></p>
-			<h2 class="spawn-dashboard__title"><?php echo esc_html__( 'Manage your AI servers', 'spawn' ); ?></h2>
+			<?php if ( $is_admin_mode ) : ?>
+				<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Admin Dashboard', 'spawn' ); ?></p>
+				<h2 class="spawn-dashboard__title"><?php echo esc_html__( 'Site Management', 'spawn' ); ?></h2>
+			<?php else : ?>
+				<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Spawn Dashboard', 'spawn' ); ?></p>
+				<h2 class="spawn-dashboard__title"><?php echo esc_html__( 'Manage your AI servers', 'spawn' ); ?></h2>
+			<?php endif; ?>
 		</div>
 		<div class="spawn-dashboard__credit">
-			<span class="spawn-dashboard__credit-label"><?php echo esc_html__( 'Credit Balance', 'spawn' ); ?></span>
+			<span class="spawn-dashboard__credit-label">
+				<?php echo $is_admin_mode ? esc_html__( 'Total Customer Credits', 'spawn' ) : esc_html__( 'Credit Balance', 'spawn' ); ?>
+			</span>
 			<span class="spawn-dashboard__credit-value">
 				<?php echo esc_html( number_format_i18n( $credit_balance, 2 ) ); ?>
 				<span class="spawn-dashboard__credit-unit"><?php echo esc_html__( 'credits', 'spawn' ); ?></span>
@@ -172,17 +229,23 @@ foreach ( $servers as $server ) {
 				</a>
 			</div>
 			<div class="spawn-dashboard__card spawn-dashboard__card--usage">
-				<h3><?php echo esc_html__( 'AI Usage This Month', 'spawn' ); ?></h3>
+				<h3><?php echo $is_admin_mode ? esc_html__( 'Total AI Usage This Month', 'spawn' ) : esc_html__( 'AI Usage This Month', 'spawn' ); ?></h3>
 				<div class="spawn-dashboard__usage-stats">
 					<div class="spawn-dashboard__usage-main">
 						<span class="spawn-dashboard__usage-value">$<?php echo esc_html( number_format( $credits_used, 2 ) ); ?></span>
-						<span class="spawn-dashboard__usage-of"><?php echo esc_html__( 'of', 'spawn' ); ?></span>
-						<span class="spawn-dashboard__usage-total">$<?php echo esc_html( number_format( $included_credits, 2 ) ); ?></span>
-						<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'included', 'spawn' ); ?></span>
+						<?php if ( ! $is_admin_mode ) : ?>
+							<span class="spawn-dashboard__usage-of"><?php echo esc_html__( 'of', 'spawn' ); ?></span>
+							<span class="spawn-dashboard__usage-total">$<?php echo esc_html( number_format( $included_credits, 2 ) ); ?></span>
+							<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'included', 'spawn' ); ?></span>
+						<?php else : ?>
+							<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'Anthropic cost', 'spawn' ); ?></span>
+						<?php endif; ?>
 					</div>
-					<div class="spawn-dashboard__usage-bar">
-						<div class="spawn-dashboard__usage-bar-fill" style="width: <?php echo esc_attr( $usage_percent ); ?>%;"></div>
-					</div>
+					<?php if ( ! $is_admin_mode ) : ?>
+						<div class="spawn-dashboard__usage-bar">
+							<div class="spawn-dashboard__usage-bar-fill" style="width: <?php echo esc_attr( $usage_percent ); ?>%;"></div>
+						</div>
+					<?php endif; ?>
 					<div class="spawn-dashboard__usage-details">
 						<span title="<?php echo esc_attr__( 'API Requests', 'spawn' ); ?>">
 							<strong><?php echo esc_html( number_format_i18n( $requests_count ) ); ?></strong> <?php echo esc_html__( 'requests', 'spawn' ); ?>
@@ -195,8 +258,11 @@ foreach ( $servers as $server ) {
 						</span>
 					</div>
 				</div>
-				<?php if ( $credits_used >= $included_credits ) : ?>
+				<?php if ( ! $is_admin_mode && $credits_used >= $included_credits ) : ?>
 					<p class="spawn-dashboard__usage-warning"><?php echo esc_html__( 'You\'ve used your included credits. Additional usage draws from your balance.', 'spawn' ); ?></p>
+				<?php endif; ?>
+				<?php if ( $is_admin_mode && isset( $customer_count ) ) : ?>
+					<p class="spawn-dashboard__muted"><?php echo sprintf( esc_html__( 'Across %d active customers', 'spawn' ), $customer_count ); ?></p>
 				<?php endif; ?>
 			</div>
 			<div class="spawn-dashboard__card">
