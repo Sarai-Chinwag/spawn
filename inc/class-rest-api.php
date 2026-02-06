@@ -1463,6 +1463,7 @@ class REST_API {
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
 				'tier'           => $customer['tier'] ?? 'starter',
+				'billing_mode'   => $customer['billing_mode'] ?? 'managed',
 				'wants_website'  => (bool) ( $customer['wants_website'] ?? true ),
 				'hetzner_type'   => $customer['hetzner_type'] ?? 'cpx21',
 				'credit_balance' => (float) $customer['credit_balance'],

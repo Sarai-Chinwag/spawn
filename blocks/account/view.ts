@@ -16,6 +16,7 @@ interface Customer {
 	vps_tier: string;
 	credit_balance?: number;
 	tier?: string;
+	billing_mode?: string;
 	[ key: string ]: unknown;
 }
 
@@ -132,22 +133,16 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 
 	function renderAccount( block: HTMLElement, customer: Customer ): void {
 		const currentTier = getCurrentTier( customer.vps_tier );
+		const isByok = customer.billing_mode === 'byok';
 
-		block.innerHTML = `
-			<div class="wp-block-spawn-account__container">
-				<h2>Account Settings</h2>
-				
-				<div class="wp-block-spawn-account__section">
-					<h3>Current Plan</h3>
-					<div class="current-plan">
-						<span class="plan-name">${ currentTier.name }</span>
-						<span class="plan-price">$${ currentTier.price }/mo</span>
-					</div>
-					<p class="plan-details">
-						${ currentTier.aiLimit.toLocaleString() } AI calls/month
-					</p>
+		// Credits section HTML (only for managed billing).
+		const creditsSection = isByok ? `
+				<div class="wp-block-spawn-account__section section-byok">
+					<h3>Bring Your Own Key</h3>
+					<p>You're using your own API key. Usage is billed directly by your AI provider.</p>
+					<p class="byok-hint">Ask your AI to switch to managed credits if you'd like us to handle billing.</p>
 				</div>
-
+		` : `
 				<div class="wp-block-spawn-account__section section-credits">
 					<h3>Credits</h3>
 					<div class="credits-balance">
@@ -193,6 +188,24 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 						</div>
 					</div>
 				</div>
+		`;
+
+		block.innerHTML = `
+			<div class="wp-block-spawn-account__container">
+				<h2>Account Settings</h2>
+				
+				<div class="wp-block-spawn-account__section">
+					<h3>Current Plan</h3>
+					<div class="current-plan">
+						<span class="plan-name">${ currentTier.name }</span>
+						<span class="plan-price">$${ currentTier.price }/mo</span>
+					</div>
+					<p class="plan-details">
+						${ currentTier.aiLimit.toLocaleString() } AI calls/month
+					</p>
+				</div>
+
+				${ creditsSection }
 				
 				<div class="wp-block-spawn-account__section">
 					<h3>Change Plan</h3>
@@ -276,44 +289,46 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 			} );
 		} );
 
-		// Load credits balance and auto-refill settings
-		loadCreditsData( block, statusDiv );
+		// Credits functionality (only for managed billing mode)
+		if ( ! isByok ) {
+			// Load credits balance and auto-refill settings
+			loadCreditsData( block, statusDiv );
 
-		// Purchase credits button
-		const purchaseBtn = block.querySelector< HTMLButtonElement >( '.btn-purchase' )!;
-		const creditsInput = block.querySelector< HTMLInputElement >( '#credits-amount' )!;
-		purchaseBtn.addEventListener( 'click', function (): void {
-			const amount = parseInt( creditsInput.value, 10 );
-			if ( amount < 10 ) {
-				showStatus( statusDiv, 'Minimum purchase is $10.', 'error' );
-				return;
-			}
+			// Purchase credits button
+			const purchaseBtn = block.querySelector< HTMLButtonElement >( '.btn-purchase' )!;
+			const creditsInput = block.querySelector< HTMLInputElement >( '#credits-amount' )!;
+			purchaseBtn.addEventListener( 'click', function (): void {
+				const amount = parseInt( creditsInput.value, 10 );
+				if ( amount < 10 ) {
+					showStatus( statusDiv, 'Minimum purchase is $10.', 'error' );
+					return;
+				}
 
-			purchaseBtn.disabled = true;
-			purchaseBtn.textContent = 'Processing...';
+				purchaseBtn.disabled = true;
+				purchaseBtn.textContent = 'Processing...';
 
-			apiFetch< PurchaseResponse >( {
-				path: '/spawn/v1/credits/purchase',
-				method: 'POST',
-				data: { amount },
-			} )
-				.then( function ( response: PurchaseResponse ): void {
-					if ( response.checkout_url ) {
-						window.location.href = response.checkout_url;
-					}
+				apiFetch< PurchaseResponse >( {
+					path: '/spawn/v1/credits/purchase',
+					method: 'POST',
+					data: { amount },
 				} )
-				.catch( function ( error: ApiError ): void {
-					showStatus( statusDiv, error.message || 'Failed to create checkout.', 'error' );
-					purchaseBtn.disabled = false;
-					purchaseBtn.textContent = 'Buy Credits';
-				} );
-		} );
+					.then( function ( response: PurchaseResponse ): void {
+						if ( response.checkout_url ) {
+							window.location.href = response.checkout_url;
+						}
+					} )
+					.catch( function ( error: ApiError ): void {
+						showStatus( statusDiv, error.message || 'Failed to create checkout.', 'error' );
+						purchaseBtn.disabled = false;
+						purchaseBtn.textContent = 'Buy Credits';
+					} );
+			} );
 
-		// Auto-refill toggle
-		const autoRefillCheckbox = block.querySelector< HTMLInputElement >( '#auto-refill-enabled' )!;
-		const autoRefillSettings = block.querySelector< HTMLElement >( '.auto-refill-settings' )!;
-		autoRefillCheckbox.addEventListener( 'change', function (): void {
-			autoRefillSettings.style.display = this.checked ? 'block' : 'none';
+			// Auto-refill toggle
+			const autoRefillCheckbox = block.querySelector< HTMLInputElement >( '#auto-refill-enabled' )!;
+			const autoRefillSettings = block.querySelector< HTMLElement >( '.auto-refill-settings' )!;
+			autoRefillCheckbox.addEventListener( 'change', function (): void {
+				autoRefillSettings.style.display = this.checked ? 'block' : 'none';
 			if ( ! this.checked ) {
 				// Disable auto-refill immediately when unchecked
 				apiFetch( {
@@ -328,44 +343,45 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 						showStatus( statusDiv, error.message || 'Failed to update auto-refill.', 'error' );
 					} );
 			}
-		} );
+			} );
 
-		// Save auto-refill settings
-		const saveAutoRefillBtn = block.querySelector< HTMLButtonElement >( '.btn-save-auto-refill' )!;
-		const thresholdInput = block.querySelector< HTMLInputElement >( '#auto-refill-threshold' )!;
-		const amountInput = block.querySelector< HTMLInputElement >( '#auto-refill-amount' )!;
-		saveAutoRefillBtn.addEventListener( 'click', function (): void {
-			const threshold = parseFloat( thresholdInput.value );
-			const amount = parseFloat( amountInput.value );
+			// Save auto-refill settings
+			const saveAutoRefillBtn = block.querySelector< HTMLButtonElement >( '.btn-save-auto-refill' )!;
+			const thresholdInput = block.querySelector< HTMLInputElement >( '#auto-refill-threshold' )!;
+			const amountInput = block.querySelector< HTMLInputElement >( '#auto-refill-amount' )!;
+			saveAutoRefillBtn.addEventListener( 'click', function (): void {
+				const threshold = parseFloat( thresholdInput.value );
+				const amount = parseFloat( amountInput.value );
 
-			if ( threshold < 1 || threshold > 100 ) {
-				showStatus( statusDiv, 'Threshold must be between $1 and $100.', 'error' );
-				return;
-			}
-			if ( amount < 10 || amount > 100 ) {
-				showStatus( statusDiv, 'Refill amount must be between $10 and $100.', 'error' );
-				return;
-			}
+				if ( threshold < 1 || threshold > 100 ) {
+					showStatus( statusDiv, 'Threshold must be between $1 and $100.', 'error' );
+					return;
+				}
+				if ( amount < 10 || amount > 100 ) {
+					showStatus( statusDiv, 'Refill amount must be between $10 and $100.', 'error' );
+					return;
+				}
 
-			saveAutoRefillBtn.disabled = true;
-			saveAutoRefillBtn.textContent = 'Saving...';
+				saveAutoRefillBtn.disabled = true;
+				saveAutoRefillBtn.textContent = 'Saving...';
 
-			apiFetch( {
-				path: '/spawn/v1/account/auto-refill',
-				method: 'POST',
-				data: { enabled: true, threshold, amount },
-			} )
-				.then( function (): void {
-					showStatus( statusDiv, 'Auto-refill settings saved!', 'success' );
-					saveAutoRefillBtn.disabled = false;
-					saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
+				apiFetch( {
+					path: '/spawn/v1/account/auto-refill',
+					method: 'POST',
+					data: { enabled: true, threshold, amount },
 				} )
-				.catch( function ( error: ApiError ): void {
-					showStatus( statusDiv, error.message || 'Failed to save settings.', 'error' );
-					saveAutoRefillBtn.disabled = false;
-					saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
-				} );
-		} );
+					.then( function (): void {
+						showStatus( statusDiv, 'Auto-refill settings saved!', 'success' );
+						saveAutoRefillBtn.disabled = false;
+						saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
+					} )
+					.catch( function ( error: ApiError ): void {
+						showStatus( statusDiv, error.message || 'Failed to save settings.', 'error' );
+						saveAutoRefillBtn.disabled = false;
+						saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
+					} );
+			} );
+		} // End of if ( ! isByok )
 
 		// Invoices button
 		const invoicesBtn = block.querySelector< HTMLButtonElement >( '.btn-invoices' )!;
