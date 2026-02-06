@@ -16,6 +16,16 @@ $is_admin           = current_user_can( 'manage_options' );
 if ( ! $user_id ) {
 	?>
 	<div <?php echo $wrapper_attributes; ?>>
+		<!-- Top navigation bar (Spawn branding) - always show -->
+		<nav class="spawn-topnav">
+			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
+				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+				<span>Spawn <em>by Sarai Chinwag</em></span>
+			</a>
+			<div class="spawn-topnav__links">
+				<a href="<?php echo esc_url( home_url( '/spawn/login/' ) ); ?>">Log in</a>
+			</div>
+		</nav>
 		<div class="spawn-dashboard__card">
 			<h3><?php echo esc_html__( 'Log In Required', 'spawn' ); ?></h3>
 			<p><?php echo esc_html__( 'Please log in to view your dashboard.', 'spawn' ); ?></p>
@@ -35,6 +45,17 @@ $customer = \Spawn\Database::get_customer_by_user_id( $user_id );
 if ( ! $customer && ! $is_admin ) {
 	?>
 	<div <?php echo $wrapper_attributes; ?>>
+		<!-- Top navigation bar (Spawn branding) - always show -->
+		<nav class="spawn-topnav">
+			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
+				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+				<span>Spawn <em>by Sarai Chinwag</em></span>
+			</a>
+			<div class="spawn-topnav__links">
+				<a href="<?php echo esc_url( home_url( '/spawn/chat/' ) ); ?>">Chat</a>
+				<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+			</div>
+		</nav>
 		<div class="spawn-dashboard__card">
 			<h3><?php echo esc_html__( 'No Active Subscription', 'spawn' ); ?></h3>
 			<p><?php echo esc_html__( "You don't have an active Spawn subscription yet.", 'spawn' ); ?></p>

@@ -23,6 +23,16 @@ $wrapper_attributes = get_block_wrapper_attributes( [
 if ( ! is_user_logged_in() ) {
 	?>
 	<div <?php echo $wrapper_attributes; ?>>
+		<!-- Top navigation bar (Spawn branding) - always show -->
+		<div class="wp-block-spawn-chat__topnav">
+			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
+				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+				<span>Spawn <em>by Sarai Chinwag</em></span>
+			</a>
+			<nav class="wp-block-spawn-chat__nav">
+				<a href="<?php echo esc_url( home_url( '/spawn/login/' ) ); ?>">Log in</a>
+			</nav>
+		</div>
 		<div class="wp-block-spawn-chat__login-required">
 			<p>Please <a href="<?php echo esc_url( home_url( '/spawn/login/' ) ); ?>">log in</a> to chat with your AI.</p>
 		</div>
@@ -39,6 +49,16 @@ $is_admin = current_user_can( 'manage_options' );
 if ( ! $customer && ! $is_admin ) {
 	?>
 	<div <?php echo $wrapper_attributes; ?>>
+		<!-- Top navigation bar (Spawn branding) - always show -->
+		<div class="wp-block-spawn-chat__topnav">
+			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
+				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+				<span>Spawn <em>by Sarai Chinwag</em></span>
+			</a>
+			<nav class="wp-block-spawn-chat__nav">
+				<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+			</nav>
+		</div>
 		<div class="wp-block-spawn-chat__no-subscription">
 			<p>You don't have an active subscription. <a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>">Get started</a></p>
 		</div>
