@@ -78,9 +78,9 @@ class Config {
 				'vcpu_shared'     => true,
 				'ram_gb'          => 8,
 				'disk_gb'         => 160,
-				'included_credits' => self::DEFAULT_STARTER_CREDITS * 2,
+				'included_credits' => 20.00,
 				'features'        => [
-					__( '$10 AI credits/month', 'spawn' ),
+					__( '$20 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),

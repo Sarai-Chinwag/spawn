@@ -5,6 +5,7 @@ All notable changes to the Spawn plugin will be documented in this file.
 ## Unreleased
 
 - Fix documentation drift: README pricing (Pro=0), add missing abilities/blocks, sync version constant, update cost-breakdown with final decisions
+- Fix Pro tier credits: $10 → $20 (Config class was wrong, README was right)
 
 ## [0.6.0] - 2026-02-06
 

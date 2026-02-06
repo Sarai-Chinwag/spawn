@@ -35,7 +35,7 @@ See `inc/class-config.php` for the single source of truth. Current tiers:
 | Tier | Monthly | Included Credits |
 |------|---------|------------------|
 | Starter | $20 | $5 |
-| Pro | $50 | $10 |
+| Pro | $50 | $20 |
 | Business | $100 | $40 |
 
 - Credits are pass-through (no markup) — we charge what the AI providers charge
