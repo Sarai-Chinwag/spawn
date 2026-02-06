@@ -505,6 +505,150 @@ class REST_API {
 			]
 		);
 
+		// Servers: List servers.
+		register_rest_route(
+			self::NAMESPACE,
+			'/servers',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_servers' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Servers: Get server details.
+		register_rest_route(
+			self::NAMESPACE,
+			'/servers/(?P<id>\d+)',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_server' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'id' => [
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+				],
+			]
+		);
+
+		// Servers: Scale server tier.
+		register_rest_route(
+			self::NAMESPACE,
+			'/servers/(?P<id>\d+)/scale',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'scale_server' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'id'   => [
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+					'tier' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
+		// Servers: Delete server.
+		register_rest_route(
+			self::NAMESPACE,
+			'/servers/(?P<id>\d+)',
+			[
+				'methods'             => 'DELETE',
+				'callback'            => [ __CLASS__, 'delete_server' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'id' => [
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+				],
+			]
+		);
+
+		// Domains: List domains.
+		register_rest_route(
+			self::NAMESPACE,
+			'/domains',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_domains' ],
+				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Domains: Assign domain to server.
+		register_rest_route(
+			self::NAMESPACE,
+			'/domains/(?P<id>\d+)/assign',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'assign_domain' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'id'        => [
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+					'server_id' => [
+						'required'          => false,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+				],
+			]
+		);
+
+		// Domains: Toggle auto-renew.
+		register_rest_route(
+			self::NAMESPACE,
+			'/domains/(?P<id>\d+)/auto-renew',
+			[
+				'methods'             => 'PUT',
+				'callback'            => [ __CLASS__, 'update_domain_auto_renew_for_domain' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'id'      => [
+						'required'          => true,
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					],
+					'enabled' => [
+						'required' => true,
+						'type'     => 'boolean',
+					],
+				],
+			]
+		);
+
+		// Usage: Get usage summary.
+		register_rest_route(
+			self::NAMESPACE,
+			'/usage',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_usage' ],
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => [
+					'months' => [
+						'type'              => 'integer',
+						'default'           => 3,
+						'sanitize_callback' => 'absint',
+					],
+				],
+			]
+		);
+
 		// Account: Get domain auto-renew setting.
 		register_rest_route(
 			self::NAMESPACE,
@@ -1304,6 +1448,355 @@ class REST_API {
 	 */
 	public static function get_credit_packages(): WP_REST_Response {
 		return new WP_REST_Response( self::get_credit_packages_config() );
+	}
+
+	/**
+	 * List servers for current user.
+	 *
+	 * @return WP_REST_Response Response.
+	 */
+	public static function get_servers(): WP_REST_Response {
+		$user_id = get_current_user_id();
+		$servers = Database::get_servers_by_user( $user_id );
+
+		return new WP_REST_Response( [
+			'servers' => array_map( [ __CLASS__, 'format_server' ], $servers ),
+		] );
+	}
+
+	/**
+	 * Get a server for current user.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function get_server( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$server_id = (int) $request->get_param( 'id' );
+		$server    = Database::get_server( $server_id );
+
+		if ( ! $server ) {
+			return new WP_Error(
+				'server_not_found',
+				__( 'Server not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( (int) $server['user_id'] !== get_current_user_id() ) {
+			return new WP_Error(
+				'forbidden',
+				__( 'You do not have access to this server.', 'spawn' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		return new WP_REST_Response( [
+			'server' => self::format_server( $server ),
+		] );
+	}
+
+	/**
+	 * Scale a server tier.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function scale_server( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$server_id = (int) $request->get_param( 'id' );
+		$new_tier  = sanitize_text_field( $request->get_param( 'tier' ) );
+		$server    = Database::get_server( $server_id );
+
+		if ( ! $server ) {
+			return new WP_Error(
+				'server_not_found',
+				__( 'Server not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( (int) $server['user_id'] !== get_current_user_id() ) {
+			return new WP_Error(
+				'forbidden',
+				__( 'You do not have access to this server.', 'spawn' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		if ( empty( $new_tier ) ) {
+			return new WP_Error(
+				'missing_tier',
+				__( 'Tier is required.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$tier_config = Config::get_tier( $new_tier );
+		if ( ! $tier_config ) {
+			return new WP_Error(
+				'invalid_tier',
+				__( 'Invalid tier selected.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$updated = Database::update_server( $server_id, [
+			'tier' => $new_tier,
+		] );
+
+		if ( ! $updated ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update server.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$server = Database::get_server( $server_id );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'server'  => self::format_server( $server ?? [] ),
+		] );
+	}
+
+	/**
+	 * Delete a server.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function delete_server( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$server_id = (int) $request->get_param( 'id' );
+		$server    = Database::get_server( $server_id );
+
+		if ( ! $server ) {
+			return new WP_Error(
+				'server_not_found',
+				__( 'Server not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( (int) $server['user_id'] !== get_current_user_id() ) {
+			return new WP_Error(
+				'forbidden',
+				__( 'You do not have access to this server.', 'spawn' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		$deleted = Database::delete_server( $server_id );
+
+		if ( ! $deleted ) {
+			return new WP_Error(
+				'delete_failed',
+				__( 'Failed to delete server.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [
+			'success' => true,
+		] );
+	}
+
+	/**
+	 * List domains for current user.
+	 *
+	 * @return WP_REST_Response Response.
+	 */
+	public static function get_domains(): WP_REST_Response {
+		$user_id = get_current_user_id();
+		$domains = Database::get_domains_by_user( $user_id );
+
+		return new WP_REST_Response( [
+			'domains' => array_map( [ __CLASS__, 'format_domain' ], $domains ),
+		] );
+	}
+
+	/**
+	 * Assign a domain to a server.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function assign_domain( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$domain_id = (int) $request->get_param( 'id' );
+		$server_id = $request->get_param( 'server_id' );
+		if ( null === $server_id || '' === $server_id || 0 === (int) $server_id ) {
+			$server_id = null;
+		} else {
+			$server_id = (int) $server_id;
+		}
+		$domain    = Database::get_domain( $domain_id );
+
+		if ( ! $domain ) {
+			return new WP_Error(
+				'domain_not_found',
+				__( 'Domain not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( (int) $domain['user_id'] !== get_current_user_id() ) {
+			return new WP_Error(
+				'forbidden',
+				__( 'You do not have access to this domain.', 'spawn' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		if ( null !== $server_id ) {
+			$server = Database::get_server( $server_id );
+			if ( ! $server ) {
+				return new WP_Error(
+					'server_not_found',
+					__( 'Server not found.', 'spawn' ),
+					[ 'status' => 404 ]
+				);
+			}
+
+			if ( (int) $server['user_id'] !== get_current_user_id() ) {
+				return new WP_Error(
+					'forbidden',
+					__( 'You do not have access to this server.', 'spawn' ),
+					[ 'status' => 403 ]
+				);
+			}
+		}
+
+		$updated = Database::assign_domain_to_server( $domain_id, $server_id );
+
+		if ( ! $updated ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to assign domain.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$domain = Database::get_domain( $domain_id );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'domain'  => self::format_domain( $domain ?? [] ),
+		] );
+	}
+
+	/**
+	 * Update domain auto-renew for a specific domain.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function update_domain_auto_renew_for_domain( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$domain_id = (int) $request->get_param( 'id' );
+		$enabled   = (bool) $request->get_param( 'enabled' );
+		$domain    = Database::get_domain( $domain_id );
+
+		if ( ! $domain ) {
+			return new WP_Error(
+				'domain_not_found',
+				__( 'Domain not found.', 'spawn' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		if ( (int) $domain['user_id'] !== get_current_user_id() ) {
+			return new WP_Error(
+				'forbidden',
+				__( 'You do not have access to this domain.', 'spawn' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		$updated = Database::update_domain( $domain_id, [
+			'auto_renew' => $enabled ? 1 : 0,
+		] );
+
+		if ( ! $updated ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update domain.', 'spawn' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$domain = Database::get_domain( $domain_id );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'domain'  => self::format_domain( $domain ?? [] ),
+		] );
+	}
+
+	/**
+	 * Get usage summary for current user.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public static function get_usage( WP_REST_Request $request ): WP_REST_Response {
+		$user_id = get_current_user_id();
+		$months  = (int) $request->get_param( 'months' );
+		$months  = $months > 0 ? $months : 3;
+		$usage   = Database::get_user_usage( $user_id, $months );
+
+		return new WP_REST_Response( [
+			'usage' => array_map( [ __CLASS__, 'format_usage_period' ], $usage ),
+		] );
+	}
+
+	/**
+	 * Format server response for frontend.
+	 *
+	 * @param array $server Server data.
+	 * @return array Formatted server.
+	 */
+	private static function format_server( array $server ): array {
+		return [
+			'id'            => (int) ( $server['id'] ?? 0 ),
+			'name'          => $server['name'] ?? '',
+			'tier'          => $server['tier'] ?? 'starter',
+			'status'        => $server['status'] ?? 'pending',
+			'server_ip'     => $server['server_ip'] ?? null,
+			'has_wordpress' => ! empty( $server['has_wordpress'] ),
+			'created_at'    => $server['created_at'] ?? null,
+		];
+	}
+
+	/**
+	 * Format domain response for frontend.
+	 *
+	 * @param array $domain Domain data.
+	 * @return array Formatted domain.
+	 */
+	private static function format_domain( array $domain ): array {
+		$server_id = $domain['server_id'] ?? null;
+		return [
+			'id'         => (int) ( $domain['id'] ?? 0 ),
+			'domain'     => $domain['domain'] ?? '',
+			'server_id'  => is_null( $server_id ) ? null : (int) $server_id,
+			'expires_at' => $domain['expires_at'] ?? null,
+			'auto_renew' => ! empty( $domain['auto_renew'] ),
+		];
+	}
+
+	/**
+	 * Format usage period response for frontend.
+	 *
+	 * @param array $usage Usage data.
+	 * @return array Formatted usage.
+	 */
+	private static function format_usage_period( array $usage ): array {
+		return [
+			'period_start'   => $usage['period_start'] ?? null,
+			'period_end'     => $usage['period_end'] ?? null,
+			'credits_used'   => (float) ( $usage['credits_used'] ?? 0 ),
+			'requests_count' => (int) ( $usage['requests_count'] ?? 0 ),
+			'tokens_input'   => (int) ( $usage['tokens_input'] ?? 0 ),
+			'tokens_output'  => (int) ( $usage['tokens_output'] ?? 0 ),
+		];
 	}
 
 	/**
