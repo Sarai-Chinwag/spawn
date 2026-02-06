@@ -119,7 +119,7 @@ $credit_balance = $customer ? (float) ( $customer['credit_balance'] ?? 0 ) : 0.0
 $server_count   = count( $servers );
 $domain_count   = count( $domains );
 $active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
-$active_tab     = in_array( $active_tab, [ 'overview', 'servers', 'domains' ], true ) ? $active_tab : 'overview';
+$active_tab     = in_array( $active_tab, [ 'overview', 'ai', 'servers', 'domains' ], true ) ? $active_tab : 'overview';
 
 // Fetch AI usage data for this month.
 if ( $is_admin_mode ) {
@@ -145,9 +145,11 @@ if ( $is_admin_mode ) {
 }
 
 $overview_url       = add_query_arg( [ 'tab' => 'overview' ], home_url( '/spawn/dashboard/' ) );
+$ai_url             = add_query_arg( [ 'tab' => 'ai' ], home_url( '/spawn/dashboard/' ) );
 $servers_url        = add_query_arg( [ 'tab' => 'servers' ], home_url( '/spawn/dashboard/' ) );
 $domains_url        = add_query_arg( [ 'tab' => 'domains' ], home_url( '/spawn/dashboard/' ) );
 $overview_is_active = ( 'overview' === $active_tab );
+$ai_is_active       = ( 'ai' === $active_tab );
 $servers_is_active  = ( 'servers' === $active_tab );
 $domains_is_active  = ( 'domains' === $active_tab );
 
@@ -200,6 +202,9 @@ foreach ( $servers as $server ) {
 		<a class="spawn-dashboard__tab<?php echo $overview_is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $overview_url ); ?>" data-tab="overview" aria-current="<?php echo esc_attr( $overview_is_active ? 'page' : 'false' ); ?>">
 			<?php echo esc_html__( 'Overview', 'spawn' ); ?>
 		</a>
+		<a class="spawn-dashboard__tab<?php echo $ai_is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $ai_url ); ?>" data-tab="ai" aria-current="<?php echo esc_attr( $ai_is_active ? 'page' : 'false' ); ?>">
+			<?php echo esc_html__( 'AI', 'spawn' ); ?>
+		</a>
 		<a class="spawn-dashboard__tab<?php echo $servers_is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $servers_url ); ?>" data-tab="servers" aria-current="<?php echo esc_attr( $servers_is_active ? 'page' : 'false' ); ?>">
 			<?php echo esc_html__( 'Servers', 'spawn' ); ?>
 		</a>
@@ -228,7 +233,39 @@ foreach ( $servers as $server ) {
 					<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
 				</a>
 			</div>
-			<div class="spawn-dashboard__card spawn-dashboard__card--usage">
+			<div class="spawn-dashboard__card">
+				<h3><?php echo esc_html__( 'Servers', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__balance">
+					<?php echo esc_html( number_format_i18n( $server_count ) ); ?>
+					<span><?php echo esc_html__( 'active', 'spawn' ); ?></span>
+				</p>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Manage tiers, status, and WordPress installs.', 'spawn' ); ?></p>
+			</div>
+			<div class="spawn-dashboard__card">
+				<h3><?php echo esc_html__( 'Domains', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__balance">
+					<?php echo esc_html( number_format_i18n( $domain_count ) ); ?>
+					<span><?php echo esc_html__( 'registered', 'spawn' ); ?></span>
+				</p>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Track renewals and assign domains.', 'spawn' ); ?></p>
+			</div>
+			<div class="spawn-dashboard__card">
+				<h3><?php echo esc_html__( 'Quick Actions', 'spawn' ); ?></h3>
+				<div class="spawn-dashboard__actions">
+					<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/checkout/' ) ); ?>">
+						<?php echo esc_html__( 'Spawn New AI', 'spawn' ); ?>
+					</a>
+					<a class="spawn-dashboard__button spawn-dashboard__button--ghost" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
+						<?php echo esc_html__( 'Manage Account', 'spawn' ); ?>
+					</a>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="spawn-dashboard__panel<?php echo $ai_is_active ? ' is-active' : ''; ?>" data-panel="ai">
+		<div class="spawn-dashboard__grid">
+			<div class="spawn-dashboard__card spawn-dashboard__card--usage spawn-dashboard__card--featured">
 				<h3><?php echo $is_admin_mode ? esc_html__( 'Total AI Usage This Month', 'spawn' ) : esc_html__( 'AI Usage This Month', 'spawn' ); ?></h3>
 				<div class="spawn-dashboard__usage-stats">
 					<div class="spawn-dashboard__usage-main">
@@ -266,31 +303,16 @@ foreach ( $servers as $server ) {
 				<?php endif; ?>
 			</div>
 			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Servers', 'spawn' ); ?></h3>
-				<p class="spawn-dashboard__balance">
-					<?php echo esc_html( number_format_i18n( $server_count ) ); ?>
-					<span><?php echo esc_html__( 'active', 'spawn' ); ?></span>
-				</p>
-				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Manage tiers, status, and WordPress installs.', 'spawn' ); ?></p>
+				<h3><?php echo esc_html__( 'Model', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__balance">Claude<span>Sonnet 4</span></p>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI assistant uses the latest Claude model.', 'spawn' ); ?></p>
 			</div>
 			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Domains', 'spawn' ); ?></h3>
-				<p class="spawn-dashboard__balance">
-					<?php echo esc_html( number_format_i18n( $domain_count ) ); ?>
-					<span><?php echo esc_html__( 'registered', 'spawn' ); ?></span>
-				</p>
-				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Track renewals and assign domains.', 'spawn' ); ?></p>
-			</div>
-			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Quick Actions', 'spawn' ); ?></h3>
-				<div class="spawn-dashboard__actions">
-					<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/checkout/' ) ); ?>">
-						<?php echo esc_html__( 'Spawn New AI', 'spawn' ); ?>
-					</a>
-					<a class="spawn-dashboard__button spawn-dashboard__button--ghost" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
-						<?php echo esc_html__( 'Manage Account', 'spawn' ); ?>
-					</a>
-				</div>
+				<h3><?php echo esc_html__( 'Need More?', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Run out of credits? Add more anytime to keep your AI running.', 'spawn' ); ?></p>
+				<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
+					<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
+				</a>
 			</div>
 		</div>
 	</section>

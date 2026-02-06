@@ -153,6 +153,7 @@
 
 .spawn-dashboard__panel {
 	display: none;
+	padding: var(--space-lg, 20px);
 }
 
 .spawn-dashboard__panel.is-active {
@@ -387,4 +388,38 @@
 	border-radius: 6px;
 	color: #c53030;
 	font-size: 0.85rem;
+}
+
+/* Usage card when featured (AI tab) */
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured {
+	background: linear-gradient(135deg, #6c63ff 0%, var(--color-primary, #1fc5e2) 100%);
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-value,
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-total,
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-details strong {
+	color: #fff;
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-of,
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-label,
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-details {
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-bar {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-bar-fill {
+	background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-warning {
+	background: rgba(255, 255, 255, 0.2);
+	color: #fff;
+}
+
+.spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__muted {
+	color: rgba(255, 255, 255, 0.85);
 }
