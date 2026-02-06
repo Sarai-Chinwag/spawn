@@ -1,0 +1,24 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "spawn/app-nav",
+	"version": "1.0.0",
+	"title": "Spawn App Navigation",
+	"category": "spawn",
+	"icon": "menu",
+	"description": "Shows navigation links for logged-in Spawn customers.",
+	"textdomain": "spawn",
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	},
+	"attributes": {
+		"showForNonCustomers": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style.css",
+	"render": "file:./render.php"
+}
