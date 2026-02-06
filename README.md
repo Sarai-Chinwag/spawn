@@ -52,7 +52,7 @@ Custom domains can be added later through the dashboard.
 ## Architecture
 
 ```
-Customer signs up on saraichinwag.com/spawn
+Customer signs up on your-site.com/spawn
            │
            │ wants_website: true/false
            ▼
@@ -80,13 +80,13 @@ Customer signs up on saraichinwag.com/spawn
 │  Customer VPS                           │
 │  - OpenClaw agent (always)              │
 │  - WordPress (if wants_website)         │
-│  - AI via Spawn's LiteLLM proxy         │
+│  - AI via your LiteLLM proxy            │
 └─────────────────────────────────────────┘
            │
            │ AI requests via LiteLLM
            ▼
 ┌─────────────────────────────────────────┐
-│  api.spawn.saraichinwag.com             │
+│  api.spawn.your-domain.com              │
 │  - LiteLLM proxy                        │
 │  - Usage tracking → credit deduction    │
 │  - Webhook callback to Spawn            │
@@ -127,10 +127,23 @@ Configure the Sweatpants API URL for VPS provisioning (default: `http://localhos
 
 ### LiteLLM
 
-The LiteLLM proxy runs at `api.spawn.saraichinwag.com` and handles:
+Configure the API Base URL in **Settings → Spawn → Branding**. The LiteLLM proxy handles:
 - AI request routing to providers (Anthropic, OpenAI, etc.)
 - Usage tracking via webhook callbacks
 - Credit deduction from customer balances
+
+### Branding
+
+Configure in **Settings → Spawn → Branding**:
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| Subdomain Suffix | Domain suffix for customer subdomains | `spawn.example.com` |
+| Brand Name | Name displayed in UI | `Spawn` |
+| Brand Logo URL | Logo/avatar image URL | `https://example.com/logo.png` |
+| API Base URL | LiteLLM proxy base URL | `https://api.spawn.example.com` |
+
+These settings allow you to fully white-label Spawn for your own service.
 
 ## Blocks
 
