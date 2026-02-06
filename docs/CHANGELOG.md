@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## Unreleased
+
+- fix(chat): Extract nested response from OpenClaw tools/invoke - non-admin customers can now load chat history on refresh
+
 ## 0.6.10 - 2026-02-06
 
 ### Fixed

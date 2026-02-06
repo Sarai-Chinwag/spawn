@@ -590,6 +590,13 @@ class Chat_Controller {
 			);
 		}
 
+		// OpenClaw /tools/invoke returns { ok, result: { content, details } }.
+		// Extract 'details' which contains the actual data (sessions, messages, etc.).
+		if ( isset( $body['ok'] ) && true === $body['ok'] && isset( $body['result']['details'] ) ) {
+			return new WP_REST_Response( $body['result']['details'] );
+		}
+
+		// Fallback: return raw body if structure is unexpected.
 		return new WP_REST_Response( $body );
 	}
 }
