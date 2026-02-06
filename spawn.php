@@ -29,7 +29,13 @@ define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );
 
-// Autoloader.
+// Composer autoloader (loads wp-ai-client if installed via composer).
+$composer_autoload = SPAWN_PLUGIN_DIR . 'vendor/autoload.php';
+if ( file_exists( $composer_autoload ) ) {
+	require_once $composer_autoload;
+}
+
+// Plugin autoloader.
 require_once SPAWN_PLUGIN_DIR . 'inc/autoload.php';
 
 // Initialize the plugin.
@@ -49,6 +55,11 @@ function init(): void {
 	Cron::init();
 	Cleanup::init();
 	Self_Spawn::init();
+
+	// Initialize wp-ai-client if bundled via Composer.
+	if ( class_exists( 'WordPress\\AI_Client\\AI_Client' ) ) {
+		\WordPress\AI_Client\AI_Client::init();
+	}
 
 	// Admin settings.
 	if ( is_admin() ) {

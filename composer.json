@@ -1,0 +1,31 @@
+{
+    "name": "sarai-chinwag/spawn",
+    "description": "AI Website Service - Deploy your own AI agent, help others deploy theirs",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Sarai Chinwag",
+            "homepage": "https://saraichinwag.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "wordpress/wp-ai-client": "^0.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Spawn\\": "inc/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        },
+        "platform": {
+            "php": "8.1"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
