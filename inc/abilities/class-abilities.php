@@ -83,7 +83,7 @@ class Abilities {
 					'customer_id' => [ 'type' => 'integer' ],
 					'new_tier'    => [
 						'type' => 'string',
-						'enum' => \Spawn\Config::get_valid_hetzner_types(),
+						'enum' => \Spawn\Config::get_tier_ids(),
 					],
 				],
 			],

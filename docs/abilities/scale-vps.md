@@ -39,4 +39,4 @@ $command = sprintf(
 ```
 
 ## Notes
-- Valid tiers are provided by `\Spawn\Config::get_valid_hetzner_types()`.
+- Valid tiers are provided by `\Spawn\Config::get_tier_ids()`.

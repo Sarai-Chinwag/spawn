@@ -25,8 +25,8 @@ class Ability_Scale_VPS {
 		$new_tier = $input['new_tier'] ?? '';
 
 		// Validate against Config (single source of truth for tier data).
-		$valid_types = \Spawn\Config::get_valid_hetzner_types();
-		if ( ! in_array( $new_tier, $valid_types, true ) ) {
+		$valid_tier_ids = \Spawn\Config::get_tier_ids();
+		if ( ! in_array( $new_tier, $valid_tier_ids, true ) ) {
 			return new WP_Error( 'invalid_tier', __( 'Invalid VPS tier', 'spawn' ) );
 		}
 
