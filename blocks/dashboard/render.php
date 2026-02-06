@@ -227,11 +227,8 @@ foreach ( $servers as $server ) {
 			<div class="spawn-dashboard__empty">
 				<div>
 					<h3><?php echo esc_html__( 'No domains yet', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Register a domain when you are ready to go live.', 'spawn' ); ?></p>
+					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI runs on a free subdomain. When you\'re ready, ask your AI to help you register a custom domain or connect one you already own.', 'spawn' ); ?></p>
 				</div>
-				<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/domain-search/' ) ); ?>">
-					<?php echo esc_html__( 'Register Domain', 'spawn' ); ?>
-				</a>
 			</div>
 		<?php else : ?>
 			<div class="spawn-dashboard__card">

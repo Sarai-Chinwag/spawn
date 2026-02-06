@@ -4,10 +4,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	const blocks = document.querySelectorAll( '.wp-block-spawn-checkout' );
 
 	blocks.forEach( function ( block ) {
-		let selectedDomain = null;
 		let selectedTier = null;
-		let orderSummary = null;
-		let wantsWebsite = true; // Default to including website
+		let wantsWebsite = false; // Default to AI-only
 
 		// Clear loading state
 		block.innerHTML = '';
@@ -28,46 +26,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				return;
 			}
 
+			// Order summary
 			if ( block.dataset.showOrderSummary !== 'false' ) {
-				orderSummary = document.createElement( 'div' );
+				const orderSummary = document.createElement( 'div' );
 				orderSummary.className = 'wp-block-spawn-checkout__summary';
-
-				let domainText = 'Free subdomain (chosen after signup)';
-				let domainPriceText = '';
-				if ( selectedDomain ) {
-					domainText = selectedDomain.domain;
-					if (
-						selectedDomain.type === 'register' &&
-						selectedDomain.price > 0
-					) {
-						domainPriceText = ` - $${ selectedDomain.price }/year`;
-					} else if ( selectedDomain.type === 'byod' ) {
-						domainPriceText = ' (bring your own)';
-					}
-				}
-
-				const vpsPrice = parseFloat( selectedTier.price );
-				const domainPrice =
-					selectedDomain?.type === 'register'
-						? parseFloat( selectedDomain.price )
-						: 0;
-				const firstPayment = vpsPrice + domainPrice;
-
-				let summaryHtml = `
+				orderSummary.innerHTML = `
 					<h4>Order Summary</h4>
-					<div class="summary-line"><span>Domain:</span> <span>${ domainText }${ domainPriceText }</span></div>
 					<div class="summary-line"><span>Plan:</span> <span>${ selectedTier.name } - $${ selectedTier.price }/mo</span></div>
+					<div class="summary-line summary-note"><span>Includes:</span> <span>$${ selectedTier.credits || '5' } AI credits</span></div>
 				`;
-
-				if ( domainPrice > 0 ) {
-					summaryHtml += `
-					<div class="summary-divider"></div>
-					<div class="summary-line summary-total"><span>First payment:</span> <span>$${ firstPayment.toFixed( 2 ) }</span></div>
-					<div class="summary-note">Includes one-time domain registration. Renewals are $${ domainPrice }/year.</div>
-					`;
-				}
-
-				orderSummary.innerHTML = summaryHtml;
 				container.appendChild( orderSummary );
 			}
 
@@ -80,7 +47,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			emailInput.className = 'wp-block-spawn-checkout__input';
 			emailInput.required = true;
 
-			// Website toggle
+			// Website toggle (subtle, unchecked by default)
 			const websiteToggle = document.createElement( 'div' );
 			websiteToggle.className = 'wp-block-spawn-checkout__website-toggle';
 
@@ -90,13 +57,14 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			const websiteCheckbox = document.createElement( 'input' );
 			websiteCheckbox.type = 'checkbox';
 			websiteCheckbox.checked = wantsWebsite;
-			websiteCheckbox.className = 'wp-block-spawn-checkout__website-checkbox';
+			websiteCheckbox.className =
+				'wp-block-spawn-checkout__website-checkbox';
 			websiteCheckbox.addEventListener( 'change', function () {
 				wantsWebsite = websiteCheckbox.checked;
 			} );
 
 			const websiteLabelText = document.createElement( 'span' );
-			websiteLabelText.textContent = 'Include WordPress website';
+			websiteLabelText.textContent = 'Include a free website';
 
 			websiteLabel.appendChild( websiteCheckbox );
 			websiteLabel.appendChild( websiteLabelText );
@@ -104,7 +72,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			const websiteHelp = document.createElement( 'p' );
 			websiteHelp.className = 'wp-block-spawn-checkout__website-help';
 			websiteHelp.textContent =
-				'Your AI can build and manage a website for you. Uncheck for AI assistant only (no website).';
+				'Your AI can build and manage a website for you.';
 
 			websiteToggle.appendChild( websiteLabel );
 			websiteToggle.appendChild( websiteHelp );
@@ -134,14 +102,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					path: '/spawn/v1/checkout/session',
 					method: 'POST',
 					data: {
-						domain: selectedDomain ? selectedDomain.domain : null,
-						domain_type: selectedDomain
-							? selectedDomain.type
-							: 'subdomain',
-						domain_price:
-							selectedDomain?.type === 'register'
-								? selectedDomain.price
-								: 0,
 						tier: selectedTier.id,
 						wants_website: wantsWebsite,
 						email,
@@ -161,11 +121,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					} );
 			} );
 		}
-
-		document.addEventListener( 'spawn:domain-selected', function ( e ) {
-			selectedDomain = e.detail;
-			updateDisplay();
-		} );
 
 		document.addEventListener( 'spawn:tier-selected', function ( e ) {
 			selectedTier = e.detail;
