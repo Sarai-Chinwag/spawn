@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.9 - 2026-02-06
+
+- Restructure README: SaaS mode first, self-spawn moved to bottom as experimental
+
 ## 0.6.8 - 2026-02-06
 
 - Mark self-spawn as experimental with documented limitations

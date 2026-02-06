@@ -4,54 +4,12 @@
 
 ## What is Spawn?
 
-Spawn is a WordPress plugin that does two things:
+Spawn is a WordPress plugin for running an AI assistant service:
 
-1. **Self-Spawn** — Install an AI agent on your own server with your own API keys
-2. **SaaS Mode** — Run a managed AI assistant service for your customers
+1. **SaaS Mode** — Run a managed AI assistant service for your customers
+2. **Self-Spawn** — (Experimental) Install an AI agent on your own VPS
 
-Every Spawn installation can be both a consumer AND a provider. Install it for yourself, or run it as a business.
-
-## Self-Spawn (Experimental)
-
-> ⚠️ **Experimental feature** with known limitations. See [open issues](https://github.com/Sarai-Chinwag/spawn/issues?q=is%3Aissue+is%3Aopen+label%3Aself-spawn).
-
-Got a WordPress site on a VPS with Node.js already installed? Self-spawn lets you install OpenClaw from the WordPress admin.
-
-**Requirements:**
-- WordPress on a **VPS or dedicated server** (shared hosting won't work)
-- Shell access (shell_exec enabled in PHP)
-- Node.js v18+
-- Your own AI API key (Anthropic, OpenAI, or Google)
-
-> ⚠️ **Shared hosting users:** Self-spawn requires process control that shared hosting doesn't provide. Use the SaaS version instead — sign up and get a fully provisioned VPS with everything set up.
-
-**Known limitations:**
-- Node.js must be pre-installed (can't be installed securely from WordPress)
-- If you need to SSH in to install Node.js, you might as well use [wp-openclaw](https://github.com/openclaw/wp-openclaw) directly
-- Best suited for VPSes that already have Node.js, or for managing an existing OpenClaw installation
-
-**For most users:** The SaaS version or DIY via wp-openclaw setup script are better options.
-
-**What you get:**
-- [OpenClaw](https://github.com/openclaw/openclaw) AI agent running locally
-- Chat interface via Gutenberg block
-- Built-in credential management (or use [wp-ai-client](https://github.com/WordPress/wp-ai-client) if you prefer)
-- Full control — it's your server, your keys
-
-**Setup:**
-1. Install & activate Spawn plugin
-2. Go to Settings → Spawn → "Self-Spawn" section
-3. Click "Install OpenClaw"
-4. Run `openclaw configure` to set up your API keys
-5. Start chatting
-
-**Credential options:**
-- **BYOK (default)** — Configure OpenClaw directly via `openclaw configure`
-- **wp-ai-client** — Install [wp-ai-client](https://github.com/WordPress/wp-ai-client) plugin for WordPress-managed credentials
-
-No subscription. No phone home. Just you and your AI.
-
-## SaaS Mode (Business)
+## SaaS Mode
 
 Want to run your own AI assistant service? Spawn handles everything:
 
@@ -60,7 +18,7 @@ Want to run your own AI assistant service? Spawn handles everything:
 - **Multi-tenant** — Each customer gets their own VPS and OpenClaw instance
 - **Optional websites** — Customers can get a WordPress site managed by their AI
 
-**Current pricing tiers** (from `inc/class-config.php`):
+**Pricing tiers** (configurable in `inc/class-config.php`):
 
 | Tier | Monthly | Included Credits | Server |
 |------|---------|------------------|--------|
@@ -68,40 +26,34 @@ Want to run your own AI assistant service? Spawn handles everything:
 | Pro | $50 | $20 | 8GB RAM |
 | Business | $100 | $40 | 16GB RAM |
 
-**SaaS requirements:**
-- Your own Spawn installation (self-spawn first!)
-- Hetzner API token (for VPS provisioning)
+**Requirements:**
+- WordPress on a VPS (your control plane)
+- Hetzner API token (for customer VPS provisioning)
 - Stripe account (for billing)
+- Cloudflare (for subdomain DNS)
 - Name.com API (optional, for domain registration)
+
+**Setup:**
+1. Install & activate Spawn plugin
+2. Configure Settings → Spawn with your API tokens
+3. Set up Stripe products/prices
+4. Create signup page with Spawn blocks
+5. Customers sign up → automatic provisioning → they get their AI
 
 ## The Fractal Model
 
 ```
 You install Spawn
-├── Self-spawn: YOUR AI agent (BYOK)
-└── SaaS mode: Provision agents for YOUR customers
-    └── They can install Spawn too
-        ├── Self-spawn: THEIR AI agent
-        └── SaaS mode: THEIR customers
-            └── ...and so on
+├── Run SaaS: Provision agents for YOUR customers
+│   └── They can install Spawn too
+│       ├── Run SaaS: THEIR customers
+│       └── ...and so on
+└── Or self-spawn for yourself (experimental)
 ```
 
 Spawn isn't just a product. It's infrastructure for an agent economy.
 
 ## Architecture
-
-### Self-Spawn Mode
-```
-┌─────────────────────────────────────────┐
-│  Your WordPress Site                    │
-│  ├── Spawn Plugin                       │
-│  │   ├── Self-Spawn installer           │
-│  │   ├── Chat block                     │
-│  │   └── AI credential settings         │
-│  └── OpenClaw (installed locally)       │
-│      └── Uses your API keys             │
-└─────────────────────────────────────────┘
-```
 
 ### SaaS Mode
 ```
@@ -113,59 +65,69 @@ Spawn isn't just a product. It's infrastructure for an agent economy.
 │  └── Provisioning triggers              │
 └─────────────────────────────────────────┘
            │
-           ▼ Stripe webhook
+           ▼ Sweatpants vps-provisioner
 ┌─────────────────────────────────────────┐
-│  vps-provisioner (private)              │
-│  ├── Create Hetzner VPS                 │
-│  ├── Run wp-openclaw setup              │
-│  ├── Configure LiteLLM proxy            │
-│  └── Set up customer's OpenClaw         │
-└─────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────┐
-│  Customer VPS                           │
-│  ├── OpenClaw (their agent)             │
+│  Customer VPS (auto-provisioned)        │
 │  ├── WordPress (optional)               │
-│  └── Points to your LiteLLM proxy       │
+│  ├── OpenClaw agent                     │
+│  ├── Data Machine (if WordPress)        │
+│  └── Their own AI, their own keys       │
 └─────────────────────────────────────────┘
 ```
 
-## Components
+## Blocks
 
-### Open Source (this repo)
-- **Spawn plugin** — WordPress plugin for self-spawn + SaaS frontend
-- **Gutenberg blocks** — Chat, signup flow, dashboard
-- **Built-in AI credentials** — Or integrates with [wp-ai-client](https://github.com/WordPress/wp-ai-client) if installed
+Spawn includes Gutenberg blocks for building your signup flow:
 
-### Open Source (separate repos)
-- **[wp-openclaw](https://github.com/openclaw/wp-openclaw)** — Setup script for WordPress + OpenClaw
-- **[OpenClaw](https://github.com/openclaw/openclaw)** — The AI agent itself
-
-### Private (SaaS operators)
-- **vps-provisioner** — Your Sweatpants module for customer provisioning
-- **LiteLLM proxy config** — Your AI proxy with usage tracking
+- `spawn/tier-select` — Pricing tier selector
+- `spawn/checkout` — Email + Stripe checkout
+- `spawn/domain-search` — Domain availability search
+- `spawn/dashboard` — Customer dashboard
+- `spawn/chat` — Chat with AI agent
+- `spawn/login` — Customer login/register
+- `spawn/account` — Account management
 
 ## Abilities API
 
 Spawn exposes functionality via [wp-abilities-api](https://github.com/WordPress/wp-abilities-api):
 
-**SaaS abilities:**
 - `spawn_get_status` — Customer subscription status
 - `spawn_scale_vps` — Upgrade/downgrade tier
 - `spawn_get_usage` — Usage statistics
 - `spawn_cancel` — Cancel subscription
-- ...and more
+- `spawn_search_domain` — Check domain availability
+- `spawn_register_domain` — Register a domain
+- `spawn_configure_byod` — Configure bring-your-own-domain
 
-**Self-spawn abilities:**
-- `spawn_self_check_environment` — Check server compatibility
-- `spawn_self_get_status` — OpenClaw installation status
-- `spawn_self_install` — Install OpenClaw locally
-- `spawn_self_configure` — Update config with credentials
-- `spawn_self_start/stop/restart` — Service management
-- `spawn_self_uninstall` — Remove OpenClaw
+---
 
-All abilities are accessible to both internal agents and external REST callers.
+## Self-Spawn (Experimental)
+
+> ⚠️ **Experimental feature** with known limitations. See [open issues](https://github.com/Sarai-Chinwag/spawn/issues?q=is%3Aissue+is%3Aopen+label%3Aself-spawn).
+
+For technical users who want to install OpenClaw on their own VPS via WordPress admin.
+
+**Requirements:**
+- WordPress on a **VPS or dedicated server** (shared hosting won't work)
+- Shell access (shell_exec enabled in PHP)
+- **Node.js v18+ already installed**
+- Your own AI API key
+
+**Known limitations:**
+- Node.js must be pre-installed (can't be installed securely from WordPress)
+- If you need SSH to install Node.js, you might as well use [wp-openclaw](https://github.com/openclaw/wp-openclaw) directly
+- Does not work on shared hosting
+
+**For most users:** SaaS mode or [wp-openclaw](https://github.com/openclaw/wp-openclaw) setup script are better options.
+
+**Setup:**
+1. Ensure Node.js v18+ is installed on your VPS
+2. Install & activate Spawn plugin
+3. Go to Settings → Spawn → "Self-Spawn" section
+4. Click "Install OpenClaw"
+5. Configure credentials via `openclaw configure` or install [wp-ai-client](https://github.com/WordPress/wp-ai-client)
+
+---
 
 ## Development
 
@@ -192,4 +154,4 @@ GPL-2.0-or-later
 
 ---
 
-Built by [Sarai Chinwag](https://saraichinwag.com) • Part of the [OpenClaw](https://openclaw.ai) ecosystem
+*Built by [Sarai Chinwag](https://saraichinwag.com) for [Extra Chill](https://extrachill.com)*
