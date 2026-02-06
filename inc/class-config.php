@@ -62,7 +62,7 @@ class Config {
 				'disk_gb'         => 80,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS,
 				'features'        => [
-					__( '$5 AI credits to start', 'spawn' ),
+					__( '$5 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 				],
@@ -80,7 +80,7 @@ class Config {
 				'disk_gb'         => 160,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 2,
 				'features'        => [
-					__( '$20 AI credits to start', 'spawn' ),
+					__( '$10 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
@@ -99,7 +99,7 @@ class Config {
 				'disk_gb'         => 240, // cpx41=240, cpx42=320
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 8,
 				'features'        => [
-					__( '$40 AI credits to start', 'spawn' ),
+					__( '$40 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
