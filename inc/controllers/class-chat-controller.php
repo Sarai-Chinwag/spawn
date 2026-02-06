@@ -269,6 +269,12 @@ class Chat_Controller {
 			'Content-Type' => 'application/json',
 		];
 
+		// Add auth token if configured for local OpenClaw.
+		$gateway_token = get_option( 'spawn_local_openclaw_token', '' );
+		if ( ! empty( $gateway_token ) ) {
+			$headers['Authorization'] = 'Bearer ' . $gateway_token;
+		}
+
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
