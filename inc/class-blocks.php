@@ -24,7 +24,6 @@ class Blocks {
 	 */
 	public static function register_blocks(): void {
 		$blocks = [
-			'app-nav',
 			'tier-select',
 			'checkout',
 			'login',
