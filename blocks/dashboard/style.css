@@ -84,6 +84,7 @@
 	border: 3px solid var(--color-border, #ddd);
 	border-radius: 12px;
 	padding: var(--space-lg, 20px);
+	margin: 0 var(--space-lg, 20px);
 }
 
 .spawn-dashboard__eyebrow {
