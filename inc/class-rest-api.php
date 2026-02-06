@@ -2827,6 +2827,11 @@ class REST_API {
 			], 500 );
 		}
 
+		// Record usage for tracking/billing reconciliation.
+		$user_id   = (int) ( $customer['user_id'] ?? 0 );
+		$server_id = (int) ( $customer['id'] ?? 0 ); // Use customer ID as server proxy.
+		Database::record_usage( $user_id, $server_id, $total_cost, $prompt_tokens, $completion_tokens );
+
 		$new_balance = Database::get_credit_balance( $spawn_customer_id );
 
 		// Check if auto-refill is needed.
