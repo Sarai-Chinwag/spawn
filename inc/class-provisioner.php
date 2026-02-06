@@ -259,6 +259,9 @@ class Provisioner {
 			// Send welcome email with WordPress credentials.
 			self::send_welcome_email( $customer['email'], $domain, $wp_admin_password );
 
+			// Notify admin of successful purchase.
+			self::send_admin_purchase_notification( $customer, $domain, $server_ip );
+
 			// Fire action for other integrations.
 			do_action( 'spawn_provisioning_complete', $customer['id'], $domain, $server_ip );
 		} else {
@@ -368,6 +371,44 @@ class Provisioner {
 			$domain,
 			$email,
 			$error
+		);
+
+		wp_mail( $admin_email, $subject, $message );
+	}
+
+	/**
+	 * Send admin notification of successful purchase.
+	 *
+	 * @param array  $customer Customer data.
+	 * @param string $domain   Customer domain.
+	 * @param string $server_ip Server IP address.
+	 */
+	private static function send_admin_purchase_notification( array $customer, string $domain, string $server_ip ): void {
+		$admin_email = get_option( 'admin_email' );
+		$tier        = $customer['vps_tier'] ?? 'unknown';
+
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( '🎉 New Spawn Purchase: %s', 'spawn' ),
+			$domain
+		);
+
+		$message = sprintf(
+			__(
+				"A new customer has completed their Spawn purchase!\n\n" .
+				"Domain: %1\$s\n" .
+				"Email: %2\$s\n" .
+				"Tier: %3\$s\n" .
+				"Server IP: %4\$s\n" .
+				"Customer ID: %5\$d\n\n" .
+				"The customer has received their welcome email with login credentials.",
+				'spawn'
+			),
+			$domain,
+			$customer['email'],
+			ucfirst( $tier ),
+			$server_ip,
+			$customer['id']
 		);
 
 		wp_mail( $admin_email, $subject, $message );
