@@ -2,6 +2,11 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.10 - 2026-02-06
+
+### Fixed
+- Prevent duplicate customer records when user checks out twice with same email
+
 ## 0.6.9 - 2026-02-06
 
 - Restructure README: SaaS mode first, self-spawn moved to bottom as experimental
