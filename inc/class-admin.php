@@ -495,6 +495,26 @@ class Admin {
 		$credentials_url = WP_AI_Client_Bridge::get_credentials_page_url();
 		?>
 		<div class="spawn-self-spawn-section">
+			<p class="description" style="font-size: 14px; margin-bottom: 20px;">
+				<?php
+				esc_html_e(
+					'Self-spawn installs an AI agent (OpenClaw) directly on this server. ' .
+					'You provide your own API keys — no subscription or proxy required.',
+					'spawn'
+				);
+				?>
+			</p>
+
+			<div class="notice notice-info inline" style="margin: 0 0 20px; padding: 10px 15px;">
+				<strong><?php esc_html_e( 'Quick Start:', 'spawn' ); ?></strong>
+				<ol style="margin: 10px 0 0 20px;">
+					<li><?php esc_html_e( 'Configure your AI API key below (Anthropic, OpenAI, or Google)', 'spawn' ); ?></li>
+					<li><?php esc_html_e( 'Verify all environment checks pass (green checkmarks)', 'spawn' ); ?></li>
+					<li><?php esc_html_e( 'Click "Install OpenClaw" then "Start"', 'spawn' ); ?></li>
+					<li><?php esc_html_e( 'Use the Spawn chat block to talk to your AI', 'spawn' ); ?></li>
+				</ol>
+			</div>
+
 			<h4><?php esc_html_e( 'Environment Check', 'spawn' ); ?></h4>
 			<table class="form-table spawn-env-checks">
 				<tbody>
@@ -577,7 +597,16 @@ class Admin {
 				</tbody>
 			</table>
 
-			<h4><?php esc_html_e( 'AI Credentials (via wp-ai-client)', 'spawn' ); ?></h4>
+			<h4><?php esc_html_e( 'AI Credentials', 'spawn' ); ?></h4>
+			<p class="description">
+				<?php
+				esc_html_e(
+					'OpenClaw needs API keys to communicate with AI providers. ' .
+					'At least one provider must be configured.',
+					'spawn'
+				);
+				?>
+			</p>
 			<table class="form-table spawn-credential-checks">
 				<tbody>
 					<?php foreach ( $provider_status as $provider_id => $status ) : ?>
