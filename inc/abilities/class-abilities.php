@@ -331,6 +331,115 @@ class Abilities {
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
 		] );
+
+		// Search Domain
+		wp_register_ability( 'spawn_search_domain', [
+			'label'       => __( 'Search Domain', 'spawn' ),
+			'description' => __( 'Check domain availability and pricing', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Search_Domain::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'domain' => [
+						'type'        => 'string',
+						'description' => 'Domain name to search (e.g., example.com)',
+						'required'    => true,
+					],
+				],
+				'required'   => [ 'domain' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'domain'    => [ 'type' => 'string' ],
+					'available' => [ 'type' => 'boolean' ],
+					'price'     => [ 'type' => 'number' ],
+					'renewal'   => [ 'type' => 'number' ],
+					'premium'   => [ 'type' => 'boolean' ],
+					'message'   => [ 'type' => 'string' ],
+					'next_step' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Register Domain
+		wp_register_ability( 'spawn_register_domain', [
+			'label'       => __( 'Register Domain', 'spawn' ),
+			'description' => __( 'Purchase and register a new domain', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Register_Domain::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'domain' => [
+						'type'        => 'string',
+						'description' => 'Domain name to register',
+						'required'    => true,
+					],
+					'server_id' => [
+						'type'        => 'integer',
+						'description' => 'Server to assign domain to (optional)',
+					],
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+				],
+				'required'   => [ 'domain' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'      => [ 'type' => 'boolean' ],
+					'domain'       => [ 'type' => 'string' ],
+					'price'        => [ 'type' => 'number' ],
+					'checkout_url' => [ 'type' => 'string' ],
+					'message'      => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Configure BYOD (Bring Your Own Domain)
+		wp_register_ability( 'spawn_configure_byod', [
+			'label'       => __( 'Configure Your Own Domain', 'spawn' ),
+			'description' => __( 'Get DNS instructions to connect your own domain', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Configure_BYOD::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'domain' => [
+						'type'        => 'string',
+						'description' => 'Your domain name to connect',
+						'required'    => true,
+					],
+					'server_id' => [
+						'type'        => 'integer',
+						'description' => 'Server to connect domain to (optional)',
+					],
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user)',
+					],
+				],
+				'required'   => [ 'domain' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'      => [ 'type' => 'boolean' ],
+					'domain'       => [ 'type' => 'string' ],
+					'server_ip'    => [ 'type' => 'string' ],
+					'instructions' => [ 'type' => 'object' ],
+					'next_steps'   => [ 'type' => 'array' ],
+					'verification' => [ 'type' => 'object' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
 	}
 
 	/**
