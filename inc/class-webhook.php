@@ -200,6 +200,18 @@ class Webhook {
 
 		$is_subdomain = 'subdomain' === $domain_type;
 
+		// Check for existing active customer with same email (prevents double-charge).
+		$existing_by_email = Database::get_customer_by_email( $email );
+		if ( $existing_by_email ) {
+			$existing_status = $existing_by_email['status'] ?? '';
+			// Only block if customer has an active/provisioning subscription.
+			// Allow if previous subscription was cancelled/deleted.
+			if ( in_array( $existing_status, [ 'active', 'provisioning', 'pending', 'payment_failed' ], true ) ) {
+				error_log( sprintf( '[Spawn] Customer already exists with email %s (status: %s). Skipping duplicate.', $email, $existing_status ) );
+				return;
+			}
+		}
+
 		// Check for existing customer with same domain (if domain provided).
 		if ( ! empty( $domain ) ) {
 			$existing = Database::get_customer_by_domain( $domain );
