@@ -19,6 +19,7 @@ class User_Role {
 		add_filter( 'show_admin_bar', [ __CLASS__, 'hide_admin_bar' ] );
 		add_action( 'admin_init', [ __CLASS__, 'redirect_admin' ] );
 		add_action( 'login_init', [ __CLASS__, 'redirect_login_page' ] );
+		add_action( 'template_redirect', [ __CLASS__, 'redirect_spawn_landing' ] );
 	}
 
 	/**
@@ -142,5 +143,32 @@ class User_Role {
 			wp_safe_redirect( $spawn_login );
 			exit;
 		}
+	}
+
+	/**
+	 * Redirect logged-in customers from /spawn/ landing page to dashboard.
+	 *
+	 * The landing page is for signups. Existing customers should go to their dashboard.
+	 */
+	public static function redirect_spawn_landing(): void {
+		// Only on the /spawn/ page (not subpages like /spawn/dashboard/).
+		if ( ! is_page( 'spawn' ) ) {
+			return;
+		}
+
+		// Must be logged in.
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+
+		// Check if user is a Spawn customer.
+		$customer = Database::get_customer_by_user_id( get_current_user_id() );
+		if ( ! $customer ) {
+			return;
+		}
+
+		// Redirect to dashboard.
+		wp_safe_redirect( home_url( '/spawn/dashboard/' ) );
+		exit;
 	}
 }
