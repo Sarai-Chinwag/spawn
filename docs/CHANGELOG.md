@@ -2,6 +2,11 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.8 - 2026-02-06
+
+- Mark self-spawn as experimental with documented limitations
+- Created GitHub issues #1 and #2 to track known problems
+
 ## 0.6.7 - 2026-02-06
 
 - Update README: clarify self-spawn requires VPS, not shared hosting

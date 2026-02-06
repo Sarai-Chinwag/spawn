@@ -11,9 +11,11 @@ Spawn is a WordPress plugin that does two things:
 
 Every Spawn installation can be both a consumer AND a provider. Install it for yourself, or run it as a business.
 
-## Self-Spawn (Free)
+## Self-Spawn (Experimental)
 
-Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install OpenClaw" — done. You now have an AI agent.
+> ⚠️ **Experimental feature** with known limitations. See [open issues](https://github.com/Sarai-Chinwag/spawn/issues?q=is%3Aissue+is%3Aopen+label%3Aself-spawn).
+
+Got a WordPress site on a VPS with Node.js already installed? Self-spawn lets you install OpenClaw from the WordPress admin.
 
 **Requirements:**
 - WordPress on a **VPS or dedicated server** (shared hosting won't work)
@@ -22,6 +24,13 @@ Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install O
 - Your own AI API key (Anthropic, OpenAI, or Google)
 
 > ⚠️ **Shared hosting users:** Self-spawn requires process control that shared hosting doesn't provide. Use the SaaS version instead — sign up and get a fully provisioned VPS with everything set up.
+
+**Known limitations:**
+- Node.js must be pre-installed (can't be installed securely from WordPress)
+- If you need to SSH in to install Node.js, you might as well use [wp-openclaw](https://github.com/openclaw/wp-openclaw) directly
+- Best suited for VPSes that already have Node.js, or for managing an existing OpenClaw installation
+
+**For most users:** The SaaS version or DIY via wp-openclaw setup script are better options.
 
 **What you get:**
 - [OpenClaw](https://github.com/openclaw/openclaw) AI agent running locally
