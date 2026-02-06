@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.5 - 2026-02-06
+
+- Update README: document self-spawn credential options, remove bundled wp-ai-client references
+
 ## 0.6.4 - 2026-02-06
 
 - Remove wp-ai-client from composer.json to prevent conflicts with plugin version

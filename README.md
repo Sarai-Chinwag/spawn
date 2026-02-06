@@ -23,16 +23,20 @@ Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install O
 **What you get:**
 - [OpenClaw](https://github.com/openclaw/openclaw) AI agent running locally
 - Chat interface via Gutenberg block
-- [wp-ai-client](https://github.com/WordPress/wp-ai-client) for credential management
+- Built-in credential management (or use [wp-ai-client](https://github.com/WordPress/wp-ai-client) if you prefer)
 - Full control — it's your server, your keys
 
 **Setup:**
 1. Install & activate Spawn plugin
-2. Run `composer install` in the plugin directory
-3. Configure API keys in Settings → AI Credentials
-4. Go to Settings → Spawn → "Self-Spawn" section
+2. Go to Settings → Spawn → "AI Provider Credentials"
+3. Enter your API key (Anthropic, OpenAI, or Google)
+4. Go to "Self-Spawn" section
 5. Click "Install OpenClaw"
 6. Start chatting
+
+**Credential options:**
+- **Direct entry** — Add API keys in Settings → Spawn → AI Provider Credentials
+- **wp-ai-client** — If you have it installed, Spawn reads credentials from there automatically
 
 No subscription. No phone home. Just you and your AI.
 
@@ -82,9 +86,9 @@ Spawn isn't just a product. It's infrastructure for an agent economy.
 │  ├── Spawn Plugin                       │
 │  │   ├── Self-Spawn installer           │
 │  │   ├── Chat block                     │
-│  │   └── wp-ai-client (bundled)         │
+│  │   └── AI credential settings         │
 │  └── OpenClaw (installed locally)       │
-│      └── Uses your API keys via wp-ai   │
+│      └── Uses your API keys             │
 └─────────────────────────────────────────┘
 ```
 
@@ -120,8 +124,8 @@ Spawn isn't just a product. It's infrastructure for an agent economy.
 
 ### Open Source (this repo)
 - **Spawn plugin** — WordPress plugin for self-spawn + SaaS frontend
-- **wp-ai-client** — Bundled via Composer for credential management
 - **Gutenberg blocks** — Chat, signup flow, dashboard
+- **Built-in AI credentials** — Or integrates with [wp-ai-client](https://github.com/WordPress/wp-ai-client) if installed
 
 ### Open Source (separate repos)
 - **[wp-openclaw](https://github.com/openclaw/wp-openclaw)** — Setup script for WordPress + OpenClaw
@@ -159,8 +163,7 @@ All abilities are accessible to both internal agents and external REST callers.
 git clone https://github.com/Sarai-Chinwag/spawn.git
 cd spawn
 
-# Install dependencies
-composer install
+# Install dependencies (for development only)
 npm install
 
 # Build blocks
@@ -169,6 +172,8 @@ npm run build
 # Watch for changes
 npm run start
 ```
+
+**Note:** No `composer install` needed — Spawn includes its own autoloader. Just upload the plugin folder and activate.
 
 ## License
 
