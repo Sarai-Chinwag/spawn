@@ -33,7 +33,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				orderSummary.innerHTML = `
 					<h4>Order Summary</h4>
 					<div class="summary-line"><span>Plan:</span> <span>${ selectedTier.name } - $${ selectedTier.price }/mo</span></div>
-					<div class="summary-line summary-note"><span>Includes:</span> <span>$${ selectedTier.credits || '5' } AI credits</span></div>
 				`;
 				container.appendChild( orderSummary );
 			}
