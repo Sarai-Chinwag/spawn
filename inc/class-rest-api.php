@@ -104,6 +104,24 @@ class REST_API {
 			]
 		);
 
+		// Get checkout/provisioning status by session ID.
+		register_rest_route(
+			self::NAMESPACE,
+			'/checkout/status',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'get_checkout_status' ],
+				'permission_callback' => '__return_true',
+				'args'                => [
+					'session_id' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
 		// Auth: Login.
 		register_rest_route(
 			self::NAMESPACE,

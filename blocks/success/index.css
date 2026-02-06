@@ -1,0 +1,66 @@
+/* Editor styles for Spawn Success block */
+
+.spawn-success-editor {
+	padding: 20px;
+}
+
+.spawn-success-editor__preview {
+	background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+	border: 2px dashed #cbd5e0;
+	border-radius: 12px;
+	padding: 30px 20px;
+	text-align: center;
+}
+
+.spawn-success-editor__icon {
+	font-size: 2.5rem;
+	margin-bottom: 10px;
+}
+
+.spawn-success-editor__preview h3 {
+	margin: 0 0 10px;
+	font-size: 1.25rem;
+	color: #2d3748;
+}
+
+.spawn-success-editor__preview p {
+	margin: 0 0 15px;
+	color: #718096;
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+
+.spawn-success-editor__states {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin: 20px 0;
+	flex-wrap: wrap;
+}
+
+.spawn-success-editor__state {
+	background: #1fc5e2;
+	color: #fff;
+	padding: 6px 12px;
+	border-radius: 20px;
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.spawn-success-editor__arrow {
+	color: #a0aec0;
+	font-size: 1rem;
+}
+
+.spawn-success-editor__note {
+	font-size: 0.8125rem;
+	color: #a0aec0;
+}
+
+.spawn-success-editor__note code {
+	background: #edf2f7;
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-size: 0.75rem;
+}

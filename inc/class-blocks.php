@@ -30,6 +30,7 @@ class Blocks {
 			'dashboard',
 			'account',
 			'chat',
+			'success',
 		];
 
 		foreach ( $blocks as $block ) {
