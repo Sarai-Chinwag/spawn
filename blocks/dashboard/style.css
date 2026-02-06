@@ -64,7 +64,6 @@
 	max-width: 92%;
 	margin-left: auto;
 	margin-right: auto;
-	padding: var(--space-lg, 20px);
 	color: var(--color-text, #1f2933);
 }
 
@@ -133,6 +132,7 @@
 	flex-wrap: wrap;
 	gap: 0.5rem;
 	margin: var(--space-lg, 20px) 0;
+	padding: 0 var(--space-lg, 20px);
 }
 
 .spawn-dashboard__tab {
@@ -154,6 +154,7 @@
 
 .spawn-dashboard__panel {
 	display: none;
+	padding: 0 var(--space-lg, 20px) var(--space-lg, 20px);
 }
 
 .spawn-dashboard__panel.is-active {
