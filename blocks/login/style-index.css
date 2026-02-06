@@ -1,20 +1,20 @@
 /* ===== LOGIN BLOCK ===== */
 .wp-block-spawn-login {
-	width: 92%;
-	max-width: 92%;
+	width: 100%;
+	max-width: 400px;
 	margin: 2rem auto;
-	padding: var(--space-xl, 30px);
+	padding: 1.5rem;
 	background: var(--color-background, #fff);
 	border-radius: 8px;
 	border: 2px solid #e5e7eb;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	box-sizing: border-box;
 }
 
-@media (min-width: 992px) {
-	.wp-block-spawn-login {
-		width: 100%;
-		max-width: 400px;
-	}
+.wp-block-spawn-login *,
+.wp-block-spawn-login *::before,
+.wp-block-spawn-login *::after {
+	box-sizing: border-box;
 }
 
 .wp-block-spawn-login h2 {
@@ -40,10 +40,12 @@
 
 .wp-block-spawn-login__field input {
 	width: 100%;
+	max-width: 100%;
 	padding: 0.6rem 0.85rem;
 	border: 2px solid #e5e7eb;
 	border-radius: 4px;
 	font-size: 1rem;
+	font-size: max(16px, 1rem); /* Prevent iOS zoom */
 	background: #fff;
 	transition: border-color 0.2s ease;
 }
