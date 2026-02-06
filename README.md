@@ -28,15 +28,14 @@ Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install O
 
 **Setup:**
 1. Install & activate Spawn plugin
-2. Go to Settings → Spawn → "AI Provider Credentials"
-3. Enter your API key (Anthropic, OpenAI, or Google)
-4. Go to "Self-Spawn" section
-5. Click "Install OpenClaw"
-6. Start chatting
+2. Go to Settings → Spawn → "Self-Spawn" section
+3. Click "Install OpenClaw"
+4. Run `openclaw configure` to set up your API keys
+5. Start chatting
 
 **Credential options:**
-- **Direct entry** — Add API keys in Settings → Spawn → AI Provider Credentials
-- **wp-ai-client** — If you have it installed, Spawn reads credentials from there automatically
+- **BYOK (default)** — Configure OpenClaw directly via `openclaw configure`
+- **wp-ai-client** — Install [wp-ai-client](https://github.com/WordPress/wp-ai-client) plugin for WordPress-managed credentials
 
 No subscription. No phone home. Just you and your AI.
 

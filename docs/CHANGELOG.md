@@ -2,6 +2,11 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.6 - 2026-02-06
+
+- Remove duplicate AI credential fields from Spawn settings (BYOK approach)
+- Users configure OpenClaw directly or use wp-ai-client
+
 ## 0.6.5 - 2026-02-06
 
 - Update README: document self-spawn credential options, remove bundled wp-ai-client references
