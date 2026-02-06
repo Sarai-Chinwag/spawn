@@ -18,6 +18,7 @@ class User_Role {
 	public static function init(): void {
 		add_filter( 'show_admin_bar', [ __CLASS__, 'hide_admin_bar' ] );
 		add_action( 'admin_init', [ __CLASS__, 'redirect_admin' ] );
+		add_action( 'login_init', [ __CLASS__, 'redirect_login_page' ] );
 	}
 
 	/**
@@ -66,6 +67,79 @@ class User_Role {
 	public static function redirect_admin(): void {
 		if ( current_user_can( 'spawn_customer' ) && is_admin() && ! wp_doing_ajax() ) {
 			wp_safe_redirect( home_url( '/spawn/dashboard/' ) );
+			exit;
+		}
+	}
+
+	/**
+	 * Redirect wp-login.php to Spawn login page for spawn customers.
+	 *
+	 * This intercepts attempts to access wp-login.php and redirects to /spawn/login/.
+	 * Admins can still access wp-login.php normally.
+	 */
+	public static function redirect_login_page(): void {
+		// Don't redirect if already logged in as admin.
+		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// Don't redirect AJAX or POST requests (actual login attempts).
+		if ( wp_doing_ajax() ) {
+			return;
+		}
+
+		// Check if this is an admin user trying to log in.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+
+		// Allow logout action to proceed normally.
+		if ( 'logout' === $action ) {
+			return;
+		}
+
+		// Allow password reset via WP if someone has an old link.
+		if ( in_array( $action, [ 'lostpassword', 'rp', 'resetpass' ], true ) ) {
+			// Redirect to Spawn password reset instead.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$key   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$login = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
+
+			if ( $key && $login ) {
+				$redirect_url = add_query_arg(
+					[
+						'action' => 'reset',
+						'key'    => $key,
+						'login'  => $login,
+					],
+					home_url( '/spawn/login/' )
+				);
+			} else {
+				$redirect_url = home_url( '/spawn/login/?action=forgot' );
+			}
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		// For logged-in spawn_customer users, redirect to dashboard.
+		if ( is_user_logged_in() && current_user_can( 'spawn_customer' ) ) {
+			wp_safe_redirect( home_url( '/spawn/dashboard/' ) );
+			exit;
+		}
+
+		// For everyone else trying to access wp-login.php login form, redirect to Spawn.
+		// Preserve redirect_to if set.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+
+		// Only redirect GET requests (the login form), not POST (actual logins).
+		if ( 'GET' === $_SERVER['REQUEST_METHOD'] && 'login' !== $action && 'postpass' !== $action ) {
+			$spawn_login = home_url( '/spawn/login/' );
+			if ( $redirect_to && strpos( $redirect_to, '/spawn/' ) !== false ) {
+				$spawn_login = add_query_arg( 'redirect_to', urlencode( $redirect_to ), $spawn_login );
+			}
+			wp_safe_redirect( $spawn_login );
 			exit;
 		}
 	}

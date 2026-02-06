@@ -187,6 +187,31 @@
 	border-color: rgba(31, 197, 226, 0.4);
 }
 
+.spawn-dashboard__card--featured {
+	grid-column: 1 / -1;
+	background: linear-gradient(135deg, var(--color-primary, #1fc5e2) 0%, var(--color-secondary, #ff6eb1) 100%);
+	color: #fff;
+	border: none;
+}
+
+.spawn-dashboard__card--featured h3 {
+	color: #fff;
+}
+
+.spawn-dashboard__card--featured .spawn-dashboard__muted {
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.spawn-dashboard__button--primary {
+	background: #fff;
+	color: var(--color-primary, #1fc5e2);
+	font-weight: 600;
+}
+
+.spawn-dashboard__button--primary:hover {
+	background: rgba(255, 255, 255, 0.9);
+}
+
 .spawn-dashboard__balance {
 	margin: 0;
 	font-size: 1.75rem;

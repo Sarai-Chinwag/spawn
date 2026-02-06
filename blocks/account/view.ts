@@ -1,25 +1,68 @@
 import apiFetch from '@wordpress/api-fetch';
-document.addEventListener( 'DOMContentLoaded', function () {
-	const blocks = document.querySelectorAll( '.wp-block-spawn-account' );
 
-	const TIERS = {
-		starter: { name: 'Starter', price: 29, vps: 'cx22', ai: '1k', aiLimit: 1000 },
-		pro: { name: 'Pro', price: 79, vps: 'cx32', ai: '5k', aiLimit: 5000 },
-		business: { name: 'Business', price: 199, vps: 'cx42', ai: '20k', aiLimit: 20000 },
-	};
+interface TierInfo {
+	name: string;
+	price: number;
+	vps: string;
+	ai: string;
+	aiLimit: number;
+}
 
-	blocks.forEach( function ( block ) {
+interface TiersMap {
+	[ key: string ]: TierInfo;
+}
+
+interface Customer {
+	vps_tier: string;
+	[ key: string ]: unknown;
+}
+
+interface CustomerResponse {
+	success: boolean;
+	customer?: Customer;
+}
+
+interface InvoicesResponse {
+	invoices?: Invoice[];
+}
+
+interface Invoice {
+	created: number;
+	amount_paid: number;
+	status: string;
+	invoice_pdf: string;
+}
+
+interface BillingPortalResponse {
+	url?: string;
+}
+
+interface ApiError {
+	code?: string;
+	message?: string;
+}
+
+const TIERS: TiersMap = {
+	starter: { name: 'Starter', price: 29, vps: 'cx22', ai: '1k', aiLimit: 1000 },
+	pro: { name: 'Pro', price: 79, vps: 'cx32', ai: '5k', aiLimit: 5000 },
+	business: { name: 'Business', price: 199, vps: 'cx42', ai: '20k', aiLimit: 20000 },
+};
+
+document.addEventListener( 'DOMContentLoaded', function (): void {
+	const blocks = document.querySelectorAll< HTMLElement >( '.wp-block-spawn-account' );
+
+	blocks.forEach( function ( block: HTMLElement ): void {
 		block.innerHTML = '<div class="wp-block-spawn-account__loading">Loading account...</div>';
 
-		apiFetch( { path: '/spawn/v1/customer/me' } )
-			.then( function ( response ) {
+		apiFetch< CustomerResponse >( { path: '/spawn/v1/customer/me' } )
+			.then( function ( response: CustomerResponse ): void {
 				if ( ! response.success || ! response.customer ) {
 					renderNotCustomer( block );
 					return;
 				}
 				renderAccount( block, response.customer );
 			} )
-			.catch( function ( error ) {
+			.catch( function ( error: ApiError ): void {
 				if ( error.code === 'rest_not_logged_in' ) {
 					renderNotLoggedIn( block );
 				} else {
@@ -28,7 +71,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			} );
 	} );
 
-	function renderNotLoggedIn( block ) {
+	function renderNotLoggedIn( block: HTMLElement ): void {
 		block.innerHTML = `
 			<div class="wp-block-spawn-account__message">
 				<h2>Please Log In</h2>
@@ -38,7 +81,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		`;
 	}
 
-	function renderNotCustomer( block ) {
+	function renderNotCustomer( block: HTMLElement ): void {
 		block.innerHTML = `
 			<div class="wp-block-spawn-account__message">
 				<h2>No Active Subscription</h2>
@@ -48,7 +91,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		`;
 	}
 
-	function renderError( block, message ) {
+	function renderError( block: HTMLElement, message?: string ): void {
 		block.innerHTML = `
 			<div class="wp-block-spawn-account__error">
 				<h2>Error</h2>
@@ -57,7 +100,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		`;
 	}
 
-	function getCurrentTier( vpsTier ) {
+	function getCurrentTier( vpsTier: string ): TierInfo & { key: string } {
 		for ( const [ key, tier ] of Object.entries( TIERS ) ) {
 			if ( tier.vps === vpsTier ) {
 				return { key, ...tier };
@@ -66,7 +109,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		return { key: 'starter', ...TIERS.starter };
 	}
 
-	function renderAccount( block, customer ) {
+	function renderAccount( block: HTMLElement, customer: Customer ): void {
 		const currentTier = getCurrentTier( customer.vps_tier );
 
 		block.innerHTML = `
@@ -131,12 +174,14 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			</div>
 		`;
 
-		const statusDiv = block.querySelector( '.wp-block-spawn-account__status' );
+		const statusDiv = block.querySelector< HTMLElement >( '.wp-block-spawn-account__status' )!;
 
 		// Tier change buttons
-		block.querySelectorAll( '.tier-select-btn' ).forEach( function ( btn ) {
-			btn.addEventListener( 'click', function () {
+		block.querySelectorAll< HTMLButtonElement >( '.tier-select-btn' ).forEach( function ( btn: HTMLButtonElement ): void {
+			btn.addEventListener( 'click', function ( this: HTMLButtonElement ): void {
 				const newTier = this.dataset.tier;
+				if ( ! newTier ) return;
+				
 				const tierInfo = TIERS[ newTier ];
 				
 				if ( ! confirm( `Are you sure you want to change to the ${ tierInfo.name } plan ($${ tierInfo.price }/mo)?` ) ) {
@@ -152,11 +197,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					method: 'POST',
 					data: { tier: newTier },
 				} )
-					.then( function ( response ) {
+					.then( function (): void {
 						showStatus( statusDiv, 'Plan updated successfully! Reloading...', 'success' );
 						setTimeout( () => window.location.reload(), 1500 );
 					} )
-					.catch( function ( error ) {
+					.catch( function ( error: ApiError ): void {
 						showStatus( statusDiv, error.message || 'Failed to update plan.', 'error' );
 						btn.disabled = false;
 						btn.textContent = tierInfo.price > currentTier.price ? 'Upgrade' : 'Downgrade';
@@ -165,47 +210,52 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		} );
 
 		// Invoices button
-		block.querySelector( '.btn-invoices' ).addEventListener( 'click', function () {
+		const invoicesBtn = block.querySelector< HTMLButtonElement >( '.btn-invoices' )!;
+		invoicesBtn.addEventListener( 'click', function ( this: HTMLButtonElement ): void {
 			this.disabled = true;
 			this.textContent = 'Loading...';
+			const self = this;
 
-			apiFetch( { path: '/spawn/v1/customer/invoices' } )
-				.then( function ( response ) {
+			apiFetch< InvoicesResponse >( { path: '/spawn/v1/customer/invoices' } )
+				.then( function ( response: InvoicesResponse ): void {
 					if ( response.invoices && response.invoices.length > 0 ) {
 						renderInvoices( block, response.invoices );
 					} else {
 						showStatus( statusDiv, 'No invoices found.', 'info' );
 					}
-					this.disabled = false;
-					this.textContent = 'View Invoices';
-				}.bind( this ) )
-				.catch( function ( error ) {
+					self.disabled = false;
+					self.textContent = 'View Invoices';
+				} )
+				.catch( function ( error: ApiError ): void {
 					showStatus( statusDiv, error.message || 'Failed to load invoices.', 'error' );
-					this.disabled = false;
-					this.textContent = 'View Invoices';
-				}.bind( this ) );
+					self.disabled = false;
+					self.textContent = 'View Invoices';
+				} );
 		} );
 
 		// Billing portal button
-		block.querySelector( '.btn-billing' ).addEventListener( 'click', function () {
+		const billingBtn = block.querySelector< HTMLButtonElement >( '.btn-billing' )!;
+		billingBtn.addEventListener( 'click', function ( this: HTMLButtonElement ): void {
 			this.disabled = true;
 			this.textContent = 'Loading...';
+			const self = this;
 
-			apiFetch( { path: '/spawn/v1/customer/billing-portal' } )
-				.then( function ( response ) {
+			apiFetch< BillingPortalResponse >( { path: '/spawn/v1/customer/billing-portal' } )
+				.then( function ( response: BillingPortalResponse ): void {
 					if ( response.url ) {
 						window.location.href = response.url;
 					}
 				} )
-				.catch( function ( error ) {
+				.catch( function ( error: ApiError ): void {
 					showStatus( statusDiv, error.message || 'Failed to open billing portal.', 'error' );
-					this.disabled = false;
-					this.textContent = 'Billing Portal';
-				}.bind( this ) );
+					self.disabled = false;
+					self.textContent = 'Billing Portal';
+				} );
 		} );
 
 		// Cancel button
-		block.querySelector( '.btn-cancel' ).addEventListener( 'click', function () {
+		const cancelBtn = block.querySelector< HTMLButtonElement >( '.btn-cancel' )!;
+		cancelBtn.addEventListener( 'click', function ( this: HTMLButtonElement ): void {
 			if ( ! confirm( 'Are you sure you want to cancel your subscription? Your site will remain active until the end of your billing period.' ) ) {
 				return;
 			}
@@ -213,31 +263,32 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			this.disabled = true;
 			this.textContent = 'Cancelling...';
 			showStatus( statusDiv, 'Processing cancellation...', 'info' );
+			const self = this;
 
 			apiFetch( {
 				path: '/spawn/v1/customer/cancel',
 				method: 'POST',
 			} )
-				.then( function ( response ) {
+				.then( function (): void {
 					showStatus( statusDiv, 'Subscription cancelled. Your site will remain active until the end of your billing period.', 'success' );
-					this.disabled = true;
-					this.textContent = 'Cancelled';
-				}.bind( this ) )
-				.catch( function ( error ) {
+					self.disabled = true;
+					self.textContent = 'Cancelled';
+				} )
+				.catch( function ( error: ApiError ): void {
 					showStatus( statusDiv, error.message || 'Failed to cancel subscription.', 'error' );
-					this.disabled = false;
-					this.textContent = 'Cancel Subscription';
-				}.bind( this ) );
+					self.disabled = false;
+					self.textContent = 'Cancel Subscription';
+				} );
 		} );
 	}
 
-	function showStatus( element, message, type ) {
+	function showStatus( element: HTMLElement, message: string, type: string ): void {
 		element.className = 'wp-block-spawn-account__status status-' + type;
 		element.textContent = message;
 		element.style.display = 'block';
 	}
 
-	function renderInvoices( block, invoices ) {
+	function renderInvoices( block: HTMLElement, invoices: Invoice[] ): void {
 		const modal = document.createElement( 'div' );
 		modal.className = 'wp-block-spawn-account__modal';
 		modal.innerHTML = `
@@ -253,7 +304,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						</tr>
 					</thead>
 					<tbody>
-						${ invoices.map( inv => `
+						${ invoices.map( ( inv: Invoice ) => `
 							<tr>
 								<td>${ new Date( inv.created * 1000 ).toLocaleDateString() }</td>
 								<td>$${ ( inv.amount_paid / 100 ).toFixed( 2 ) }</td>
@@ -268,7 +319,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		`;
 
 		block.appendChild( modal );
-		modal.querySelector( '.modal-close' ).addEventListener( 'click', function () {
+		modal.querySelector< HTMLButtonElement >( '.modal-close' )!.addEventListener( 'click', function (): void {
 			modal.remove();
 		} );
 	}

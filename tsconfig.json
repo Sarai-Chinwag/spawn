@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"strict": false,
+		"strictNullChecks": false,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"declaration": false,
+		"noEmit": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"types": ["wordpress__api-fetch", "wordpress__block-editor", "wordpress__blocks", "wordpress__components", "wordpress__element", "wordpress__i18n"],
+		"baseUrl": ".",
+		"paths": {
+			"@wordpress/*": ["node_modules/@types/wordpress__*"]
+		}
+	},
+	"include": ["blocks/**/*.ts", "blocks/**/*.tsx"],
+	"exclude": ["node_modules", "build"]
+}

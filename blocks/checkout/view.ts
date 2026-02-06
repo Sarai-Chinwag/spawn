@@ -1,32 +1,43 @@
 import apiFetch from '@wordpress/api-fetch';
 
-document.addEventListener( 'DOMContentLoaded', function () {
-	const blocks = document.querySelectorAll( '.wp-block-spawn-checkout' );
+interface TierSelection {
+	id: string;
+	name: string;
+	price: number;
+}
 
-	blocks.forEach( function ( block ) {
-		let selectedTier = null;
-		let wantsWebsite = false; // Default to AI-only
+interface CheckoutSessionResponse {
+	url?: string;
+}
 
-		// Clear loading state
+interface TierSelectedEvent extends CustomEvent {
+	detail: TierSelection;
+}
+
+document.addEventListener( 'DOMContentLoaded', function (): void {
+	const blocks = document.querySelectorAll< HTMLElement >( '.wp-block-spawn-checkout' );
+
+	blocks.forEach( function ( block: HTMLElement ): void {
+		let selectedTier: TierSelection | null = null;
+		let wantsWebsite = false;
+
 		block.innerHTML = '';
 
 		const container = document.createElement( 'div' );
 		container.className = 'wp-block-spawn-checkout__container';
 		block.appendChild( container );
 
-		function updateDisplay() {
+		function updateDisplay(): void {
 			container.innerHTML = '';
 
 			if ( ! selectedTier ) {
 				const waiting = document.createElement( 'p' );
 				waiting.className = 'wp-block-spawn-checkout__waiting';
-				waiting.textContent =
-					'Please select a plan above to proceed.';
+				waiting.textContent = 'Please select a plan above to proceed.';
 				container.appendChild( waiting );
 				return;
 			}
 
-			// Order summary
 			if ( block.dataset.showOrderSummary !== 'false' ) {
 				const orderSummary = document.createElement( 'div' );
 				orderSummary.className = 'wp-block-spawn-checkout__summary';
@@ -46,7 +57,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			emailInput.className = 'wp-block-spawn-checkout__input';
 			emailInput.required = true;
 
-			// Website toggle (subtle, unchecked by default)
 			const websiteToggle = document.createElement( 'div' );
 			websiteToggle.className = 'wp-block-spawn-checkout__website-toggle';
 
@@ -56,9 +66,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			const websiteCheckbox = document.createElement( 'input' );
 			websiteCheckbox.type = 'checkbox';
 			websiteCheckbox.checked = wantsWebsite;
-			websiteCheckbox.className =
-				'wp-block-spawn-checkout__website-checkbox';
-			websiteCheckbox.addEventListener( 'change', function () {
+			websiteCheckbox.className = 'wp-block-spawn-checkout__website-checkbox';
+			websiteCheckbox.addEventListener( 'change', function (): void {
 				wantsWebsite = websiteCheckbox.checked;
 			} );
 
@@ -70,16 +79,14 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 			const websiteHelp = document.createElement( 'p' );
 			websiteHelp.className = 'wp-block-spawn-checkout__website-help';
-			websiteHelp.textContent =
-				'Your AI can build and manage a website for you.';
+			websiteHelp.textContent = 'Your AI can build and manage a website for you.';
 
 			websiteToggle.appendChild( websiteLabel );
 			websiteToggle.appendChild( websiteHelp );
 
 			const checkoutButton = document.createElement( 'button' );
 			checkoutButton.type = 'submit';
-			checkoutButton.textContent =
-				block.dataset.buttonText || 'Get Started';
+			checkoutButton.textContent = block.dataset.buttonText || 'Get Started';
 			checkoutButton.className = 'wp-block-spawn-checkout__button';
 
 			form.appendChild( emailInput );
@@ -87,17 +94,17 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			form.appendChild( checkoutButton );
 			container.appendChild( form );
 
-			form.addEventListener( 'submit', function ( e ) {
+			form.addEventListener( 'submit', function ( e: Event ): void {
 				e.preventDefault();
 				const email = emailInput.value.trim();
-				if ( ! email ) {
+				if ( ! email || ! selectedTier ) {
 					return;
 				}
 
 				checkoutButton.disabled = true;
 				checkoutButton.textContent = 'Processing...';
 
-				apiFetch( {
+				apiFetch< CheckoutSessionResponse >( {
 					path: '/spawn/v1/checkout/session',
 					method: 'POST',
 					data: {
@@ -106,23 +113,22 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						email,
 					},
 				} )
-					.then( function ( response ) {
+					.then( function ( response: CheckoutSessionResponse ): void {
 						if ( response.url ) {
 							window.location.href = response.url;
 						} else {
 							throw new Error( 'No checkout URL received' );
 						}
 					} )
-					.catch( function () {
+					.catch( function (): void {
 						checkoutButton.disabled = false;
-						checkoutButton.textContent =
-							block.dataset.buttonText || 'Get Started';
+						checkoutButton.textContent = block.dataset.buttonText || 'Get Started';
 					} );
 			} );
 		}
 
-		document.addEventListener( 'spawn:tier-selected', function ( e ) {
-			selectedTier = e.detail;
+		document.addEventListener( 'spawn:tier-selected', function ( e: Event ): void {
+			selectedTier = ( e as TierSelectedEvent ).detail;
 			updateDisplay();
 		} );
 

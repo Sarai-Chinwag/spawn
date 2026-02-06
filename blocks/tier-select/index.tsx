@@ -3,7 +3,7 @@ import edit from './edit';
 import save from './save';
 import './index.css';
 
-registerBlockType( 'spawn/tier-select', {
+registerBlockType( 'spawn/tier-select' as any, {
 	edit,
 	save,
 } );

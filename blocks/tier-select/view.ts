@@ -1,10 +1,20 @@
 import apiFetch from '@wordpress/api-fetch';
 
-document.addEventListener( 'DOMContentLoaded', function () {
-	const blocks = document.querySelectorAll( '.wp-block-spawn-tier-select' );
+interface Tier {
+	id: string;
+	name: string;
+	price: number;
+	features?: string[];
+}
 
-	blocks.forEach( function ( block ) {
-		// Clear loading state from PHP render
+interface TiersResponse {
+	[ key: string ]: Omit< Tier, 'id' >;
+}
+
+document.addEventListener( 'DOMContentLoaded', function (): void {
+	const blocks = document.querySelectorAll< HTMLElement >( '.wp-block-spawn-tier-select' );
+
+	blocks.forEach( function ( block: HTMLElement ): void {
 		block.innerHTML = '';
 
 		const container = document.createElement( 'div' );
@@ -15,20 +25,19 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		container.appendChild( loading );
 		block.appendChild( container );
 
-		apiFetch( {
+		apiFetch< TiersResponse >( {
 			path: '/spawn/v1/tiers',
 		} )
-			.then( function ( tiersObj ) {
+			.then( function ( tiersObj: TiersResponse ): void {
 				container.innerHTML = '';
 				const cardsContainer = document.createElement( 'div' );
 				cardsContainer.className = 'wp-block-spawn-tier-select__cards';
 
-				// Convert object to array with id
-				const tiers = Object.entries( tiersObj ).map(
+				const tiers: Tier[] = Object.entries( tiersObj ).map(
 					( [ id, tier ] ) => ( { id, ...tier } )
 				);
 
-				tiers.forEach( function ( tier ) {
+				tiers.forEach( function ( tier: Tier ): void {
 					const card = document.createElement( 'div' );
 					card.className = 'tier-card';
 					if ( tier.name === 'Pro' ) {
@@ -46,7 +55,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 					const features = document.createElement( 'ul' );
 					if ( tier.features && tier.features.length > 0 ) {
-						tier.features.forEach( function ( feature ) {
+						tier.features.forEach( function ( feature: string ): void {
 							const li = document.createElement( 'li' );
 							li.textContent = feature;
 							features.appendChild( li );
@@ -61,8 +70,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					const button = document.createElement( 'button' );
 					button.textContent = 'Select';
 					button.className = 'select-btn';
-					button.addEventListener( 'click', function () {
-						// Mark selected
+					button.addEventListener( 'click', function (): void {
 						cardsContainer
 							.querySelectorAll( '.tier-card' )
 							.forEach( ( c ) => c.classList.remove( 'selected' ) );
@@ -84,9 +92,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 				container.appendChild( cardsContainer );
 			} )
-			.catch( function () {
-				container.innerHTML =
-					'<p>Error loading tiers. Please try again.</p>';
+			.catch( function (): void {
+				container.innerHTML = '<p>Error loading tiers. Please try again.</p>';
 			} );
 	} );
 } );

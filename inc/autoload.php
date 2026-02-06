@@ -30,6 +30,10 @@ namespace Spawn;
 		if ( strpos( $relative_class, 'Abilities\\' ) === 0 ) {
 			$ability_class = substr( $relative_class, strlen( 'Abilities\\' ) );
 			$file = SPAWN_PLUGIN_DIR . 'inc/abilities/class-' . strtolower( str_replace( '_', '-', $ability_class ) ) . '.php';
+		} elseif ( strpos( $relative_class, 'Controllers\\' ) === 0 ) {
+			// Handle Controllers namespace.
+			$controller_class = substr( $relative_class, strlen( 'Controllers\\' ) );
+			$file = SPAWN_PLUGIN_DIR . 'inc/controllers/class-' . strtolower( str_replace( '_', '-', $controller_class ) ) . '.php';
 		} else {
 			// Convert to file path.
 			$file = SPAWN_PLUGIN_DIR . 'inc/class-' . strtolower( str_replace( [ '\\', '_' ], [ '/', '-' ], $relative_class ) ) . '.php';

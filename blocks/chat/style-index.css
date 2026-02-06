@@ -10,6 +10,8 @@
 	display: flex;
 	flex: 1;
 	min-height: 0;
+	height: 500px; /* Default height for non-fullpage */
+	max-height: 70vh;
 	background: var(--color-background, #fff);
 	border: 3px solid var(--color-border, #ddd);
 	border-radius: 8px;
@@ -40,6 +42,8 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 .wp-block-spawn-chat--fullpage .wp-block-spawn-chat__layout {
 	border: none;
 	border-radius: 0;
+	height: 100%;
+	max-height: none;
 }
 
 /* ===== SIDEBAR ===== */
@@ -172,6 +176,8 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .wp-block-spawn-chat__logo {
@@ -231,6 +237,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 /* Messages area */
 .wp-block-spawn-chat__messages {
 	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
 	padding: 15px;
 	display: flex;
@@ -243,6 +250,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 	padding: 10px 15px;
 	border-radius: 12px;
 	line-height: 1.5;
+	font-size: 0.9em;
 }
 
 .chat-message--user {
@@ -428,6 +436,13 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 	max-width: 92%;
 	margin-left: auto;
 	margin-right: auto;
+}
+
+/* Fullpage: always 100% width */
+.wp-block-spawn-chat--fullpage {
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
 }
 
 @media (min-width: 992px) {

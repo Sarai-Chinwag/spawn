@@ -131,6 +131,13 @@ foreach ( $servers as $server ) {
 
 	<section class="spawn-dashboard__panel<?php echo $overview_is_active ? ' is-active' : ''; ?>" data-panel="overview">
 		<div class="spawn-dashboard__grid">
+			<div class="spawn-dashboard__card spawn-dashboard__card--chat spawn-dashboard__card--featured">
+				<h3><?php echo esc_html__( 'Chat with your AI', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI assistant is ready to help build and manage your site.', 'spawn' ); ?></p>
+				<a class="spawn-dashboard__button spawn-dashboard__button--primary" href="<?php echo esc_url( home_url( '/spawn/chat/' ) ); ?>">
+					<?php echo esc_html__( 'Open Chat', 'spawn' ); ?>
+				</a>
+			</div>
 			<div class="spawn-dashboard__card spawn-dashboard__card--balance">
 				<h3><?php echo esc_html__( 'Credit Balance', 'spawn' ); ?></h3>
 				<p class="spawn-dashboard__balance">

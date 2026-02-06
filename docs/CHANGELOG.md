@@ -2,7 +2,25 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
-## Unreleased
+## [0.6.0] - 2026-02-06
+
+### Added
+- Password reset system with REST endpoints (`/auth/forgot-password`, `/auth/reset-password`)
+- wp-login.php redirect for Spawn customers (always sent to `/spawn/login/`)
+- Auth and Chat controller classes for better code organization
+
+### Changed
+- Convert all 6 blocks from JavaScript to TypeScript
+- Add TypeScript + types dependencies to package.json
+
+### Fixed
+- Chat crash caused by `encodeURIComponent()` on session key (colons became `%3A` breaking REST route)
+- `[object Object]` display in chat - now properly extracts text from Claude API content blocks
+- Chat scrolling - added `min-height: 0` to container and messages
+- Chat font size - now uses `0.9em` for better readability
+- Mobile width - fullpage mode now uses explicit `width: 100%`
+
+## [0.5.1] - 2026-02-05
 
 - Add wants_website checkbox to checkout block for AI-only option
 - Update all tests for current tier/website structure

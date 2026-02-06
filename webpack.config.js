@@ -9,16 +9,29 @@ const blocks = fs.readdirSync( blocksDir ).filter( ( file ) => {
 	return fs.statSync( path.join( blocksDir, file ) ).isDirectory();
 } );
 
+// Helper to find entry file with multiple extensions.
+function findEntryFile( blockDir, baseName ) {
+	const extensions = [ '.tsx', '.ts', '.jsx', '.js' ];
+	for ( const ext of extensions ) {
+		const filePath = path.join( blockDir, baseName + ext );
+		if ( fs.existsSync( filePath ) ) {
+			return filePath;
+		}
+	}
+	return null;
+}
+
 // Create entry points for each block.
 const entry = {};
 blocks.forEach( ( block ) => {
-	const indexPath = path.join( blocksDir, block, 'index.js' );
-	const viewPath = path.join( blocksDir, block, 'view.js' );
+	const blockDir = path.join( blocksDir, block );
+	const indexPath = findEntryFile( blockDir, 'index' );
+	const viewPath = findEntryFile( blockDir, 'view' );
 
-	if ( fs.existsSync( indexPath ) ) {
+	if ( indexPath ) {
 		entry[ `blocks/${ block }/index` ] = indexPath;
 	}
-	if ( fs.existsSync( viewPath ) ) {
+	if ( viewPath ) {
 		entry[ `blocks/${ block }/view` ] = viewPath;
 	}
 } );
@@ -36,8 +49,8 @@ const copyPatterns = blocks.flatMap( ( block ) => {
 		} );
 	}
 
-	// Copy CSS files.
-	[ 'index.css', 'style-index.css' ].forEach( ( cssFile ) => {
+	// Copy CSS files (both explicit and generated).
+	[ 'index.css', 'style-index.css', 'style.css' ].forEach( ( cssFile ) => {
 		if ( fs.existsSync( path.join( blockDir, cssFile ) ) ) {
 			patterns.push( {
 				from: path.join( blockDir, cssFile ),
@@ -63,6 +76,10 @@ module.exports = {
 	output: {
 		...defaultConfig.output,
 		path: path.resolve( __dirname, 'build' ),
+	},
+	resolve: {
+		...defaultConfig.resolve,
+		extensions: [ '.tsx', '.ts', '.jsx', '.js', ...( defaultConfig.resolve?.extensions || [] ) ],
 	},
 	plugins: [
 		...( defaultConfig.plugins || [] ),

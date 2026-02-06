@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { useBlockProps } from '@wordpress/block-editor';
 
-export default function Edit() {
+export default function Edit(): JSX.Element {
 	const blockProps = useBlockProps();
 
 	return (

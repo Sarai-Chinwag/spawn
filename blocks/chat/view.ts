@@ -1,18 +1,80 @@
 import apiFetch from '@wordpress/api-fetch';
 
-document.addEventListener( 'DOMContentLoaded', function () {
-	const blocks = document.querySelectorAll( '.wp-block-spawn-chat' );
+interface ChatContext {
+	customer_id: number;
+	domain: string;
+	status: string;
+	has_mobile: boolean;
+	is_admin?: boolean;
+	first_visit?: boolean;
+	username: string;
+}
 
-	blocks.forEach( function ( block ) {
-		const context = JSON.parse( block.dataset.context || '{}' );
-		const messagesContainer = block.querySelector( '.wp-block-spawn-chat__messages' );
-		const input = block.querySelector( '.wp-block-spawn-chat__input' );
-		const sendBtn = block.querySelector( '.wp-block-spawn-chat__send' );
-		const newConvoBtn = block.querySelector( '.wp-block-spawn-chat__new-convo' );
-		const sessionIndicator = block.querySelector( '.wp-block-spawn-chat__session-id' );
-		const sessionsContainer = block.querySelector( '.wp-block-spawn-chat__sessions' );
-		const sidebar = block.querySelector( '.wp-block-spawn-chat__sidebar' );
-		const sidebarToggle = block.querySelector( '.wp-block-spawn-chat__sidebar-toggle' );
+interface Session {
+	sessionKey?: string;
+	key?: string;
+	displayName?: string;
+	updatedAt?: string;
+}
+
+interface ContentBlock {
+	type: string;
+	text?: string;
+}
+
+interface ChatMessage {
+	role: 'user' | 'assistant' | 'system';
+	content: string | ContentBlock[];
+}
+
+// Extract text from message content (handles both string and content blocks)
+function extractMessageText( content: string | ContentBlock[] ): string {
+	if ( typeof content === 'string' ) {
+		return content;
+	}
+	if ( Array.isArray( content ) ) {
+		return content
+			.filter( ( block ) => block.type === 'text' && block.text )
+			.map( ( block ) => block.text )
+			.join( '\n' );
+	}
+	return String( content );
+}
+
+interface ChatSendResponse {
+	reply?: string;
+	error?: string;
+}
+
+interface SessionsResponse {
+	sessions?: Session[];
+}
+
+interface HistoryResponse {
+	messages?: ChatMessage[];
+}
+
+interface TitleResponse {
+	title?: string;
+}
+
+interface SessionTitles {
+	[ key: string ]: string;
+}
+
+document.addEventListener( 'DOMContentLoaded', function (): void {
+	const blocks = document.querySelectorAll< HTMLElement >( '.wp-block-spawn-chat' );
+
+	blocks.forEach( function ( block: HTMLElement ): void {
+		const context: ChatContext = JSON.parse( block.dataset.context || '{}' );
+		const messagesContainer = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__messages' );
+		const input = block.querySelector< HTMLTextAreaElement >( '.wp-block-spawn-chat__input' );
+		const sendBtn = block.querySelector< HTMLButtonElement >( '.wp-block-spawn-chat__send' );
+		const newConvoBtn = block.querySelector< HTMLButtonElement >( '.wp-block-spawn-chat__new-convo' );
+		const sessionIndicator = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__session-id' );
+		const sessionsContainer = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__sessions' );
+		const sidebar = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__sidebar' );
+		const sidebarToggle = block.querySelector< HTMLButtonElement >( '.wp-block-spawn-chat__sidebar-toggle' );
 
 		if ( ! messagesContainer || ! input || ! sendBtn ) {
 			return;
@@ -20,21 +82,21 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		let isLoading = false;
 		let currentSessionKey = '';
-		let sessions = [];
+		let sessions: Session[] = [];
 
 		// Sarai Chinwag branded loading verbs
-		const loadingVerbs = [
+		const loadingVerbs: string[] = [
 			'Conjuring', 'Channeling', 'Manifesting', 'Divining', 'Meditating on',
 			'Brewing', 'Hatching', 'Nesting on', 'Perching on', 'Pondering',
 			'Musing about', 'Wondering about', 'Enchanting', 'Cultivating',
 			'Blooming', 'Unfurling', 'Crystallizing', 'Dreaming up', 'Gazing into',
 			'Communing with',
 		];
-		let verbInterval = null;
+		let verbInterval: ReturnType< typeof setInterval > | null = null;
 		let currentVerbIndex = 0;
 
 		// Word bank for session title generation (Sarai vibes)
-		const sessionWordBank = [
+		const sessionWordBank: string[] = [
 			'curious', 'mystical', 'cosmic', 'enchanted', 'wandering',
 			'dreaming', 'starlit', 'moonlit', 'crystal', 'golden',
 			'whispering', 'dancing', 'glowing', 'hidden', 'sacred',
@@ -45,19 +107,19 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		];
 
 		// Quick fallback while AI generates (code name format: adjective-noun)
-		function generateFallbackName() {
+		function generateFallbackName(): string {
 			const adj = sessionWordBank[ Math.floor( Math.random() * 15 ) ]; // First 15 are adjectives
 			const noun = sessionWordBank[ 15 + Math.floor( Math.random() * 15 ) ]; // Rest are nouns
 			return adj.toLowerCase() + '-' + noun.toLowerCase();
 		}
 
 		// Generate AI-powered session title via system agent
-		async function generateSessionTitle( sessionKey ) {
+		async function generateSessionTitle( sessionKey: string ): Promise< string > {
 			const username = context.username || 'friend';
-			const wordBankSample = sessionWordBank.sort( () => 0.5 - Math.random() ).slice( 0, 12 ).join( ', ' );
+			const wordBankSample = [ ...sessionWordBank ].sort( () => 0.5 - Math.random() ).slice( 0, 12 ).join( ', ' );
 
 			try {
-				const response = await apiFetch( {
+				const response = await apiFetch< TitleResponse >( {
 					path: '/spawn/v1/chat/generate-title',
 					method: 'POST',
 					data: {
@@ -68,14 +130,13 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 				if ( response.title ) {
 					storeSessionTitle( sessionKey, response.title );
-					renderSessions(); // Update UI
+					renderSessions();
 					return response.title;
 				}
 			} catch ( error ) {
 				console.log( 'Title generation failed, using fallback' );
 			}
 
-			// Fallback to random combo
 			const fallback = generateFallbackName();
 			storeSessionTitle( sessionKey, fallback );
 			return fallback;
@@ -83,63 +144,58 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== SESSION MANAGEMENT =====
 
-		// Storage key for persisting current session
 		const STORAGE_KEY = 'spawn_webchat_session';
 
-		function generateSessionKey() {
+		function generateSessionKey(): string {
 			return 'webchat-' + Date.now() + '-' + Math.random().toString( 36 ).substr( 2, 9 );
 		}
 
-		function getSavedSessionKey() {
+		function getSavedSessionKey(): string {
 			try {
 				return localStorage.getItem( STORAGE_KEY ) || '';
-			} catch ( e ) {
+			} catch {
 				return '';
 			}
 		}
 
-		function saveSessionKey( key ) {
+		function saveSessionKey( key: string ): void {
 			try {
 				if ( key ) {
 					localStorage.setItem( STORAGE_KEY, key );
 				} else {
 					localStorage.removeItem( STORAGE_KEY );
 				}
-			} catch ( e ) {
+			} catch {
 				// Ignore storage errors
 			}
 		}
 
-		async function loadSessions() {
+		async function loadSessions(): Promise< void > {
 			if ( ! sessionsContainer ) return;
 
-			// Check for a persisted session first
 			const savedKey = getSavedSessionKey();
 
 			try {
-				const response = await apiFetch( { path: '/spawn/v1/chat/sessions' } );
-				let allSessions = response.sessions || response || [];
+				const response = await apiFetch< SessionsResponse | Session[] >( { path: '/spawn/v1/chat/sessions' } );
+				const allSessions: Session[] = ( response as SessionsResponse ).sessions || ( response as Session[] ) || [];
 
-				// Filter to only show webchat sessions (not Discord, Telegram, etc.)
-				sessions = allSessions.filter( ( session ) => {
+				sessions = allSessions.filter( ( session: Session ) => {
 					const key = session.sessionKey || session.key || '';
 					return key.includes( 'webchat' );
 				} );
 
-				// Sort by updatedAt descending (most recent first)
-				sessions.sort( ( a, b ) => {
+				sessions.sort( ( a: Session, b: Session ) => {
 					const dateA = new Date( a.updatedAt || 0 );
 					const dateB = new Date( b.updatedAt || 0 );
-					return dateB - dateA;
+					return dateB.getTime() - dateA.getTime();
 				} );
 
 				renderSessions();
 
-				// Priority: 1) Saved session, 2) Most recent webchat, 3) New session
-				if ( savedKey && sessions.some( ( s ) => ( s.sessionKey || s.key ) === savedKey ) ) {
+				if ( savedKey && sessions.some( ( s: Session ) => ( s.sessionKey || s.key ) === savedKey ) ) {
 					selectSession( savedKey );
 				} else if ( sessions.length > 0 && ! currentSessionKey ) {
-					const firstKey = sessions[ 0 ].sessionKey || sessions[ 0 ].key;
+					const firstKey = sessions[ 0 ].sessionKey || sessions[ 0 ].key || '';
 					selectSession( firstKey );
 				} else if ( ! currentSessionKey ) {
 					startNewSession();
@@ -147,7 +203,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			} catch ( error ) {
 				console.error( 'Failed to load sessions:', error );
 				sessionsContainer.innerHTML = '<div class="wp-block-spawn-chat__sessions-loading">Could not load chats</div>';
-				// Restore saved session or start new
 				if ( savedKey ) {
 					currentSessionKey = savedKey;
 					updateSessionIndicator();
@@ -158,7 +213,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		}
 
-		function renderSessions() {
+		function renderSessions(): void {
 			if ( ! sessionsContainer ) return;
 
 			if ( sessions.length === 0 ) {
@@ -166,7 +221,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				return;
 			}
 
-			sessionsContainer.innerHTML = sessions.map( ( session ) => {
+			sessionsContainer.innerHTML = sessions.map( ( session: Session ) => {
 				const key = session.sessionKey || session.key || '';
 				const title = getSessionTitle( key, session );
 				const date = session.updatedAt ? formatDate( session.updatedAt ) : '';
@@ -181,8 +236,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				`;
 			} ).join( '' );
 
-			// Add click handlers
-			sessionsContainer.querySelectorAll( '.wp-block-spawn-chat__session-item' ).forEach( ( item ) => {
+			sessionsContainer.querySelectorAll< HTMLElement >( '.wp-block-spawn-chat__session-item' ).forEach( ( item: HTMLElement ) => {
 				item.addEventListener( 'click', () => {
 					const key = item.dataset.sessionKey;
 					if ( key && key !== currentSessionKey ) {
@@ -192,19 +246,16 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			} );
 		}
 
-		function getSessionTitle( key, session = null ) {
-			// Use stored title if available
+		function getSessionTitle( key: string, session: Session | null = null ): string {
 			if ( session && session.displayName && ! session.displayName.startsWith( 'webchat-' ) ) {
 				return session.displayName;
 			}
 
-			// Check localStorage for custom title
 			const storedTitle = getStoredSessionTitle( key );
 			if ( storedTitle ) {
 				return storedTitle;
 			}
 
-			// Fallback for webchat sessions (AI title will be generated async)
 			if ( key.startsWith( 'webchat-' ) ) {
 				return generateFallbackName();
 			}
@@ -212,29 +263,29 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			return 'Conversation';
 		}
 
-		function getStoredSessionTitle( key ) {
+		function getStoredSessionTitle( key: string ): string | null {
 			try {
-				const titles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
+				const titles: SessionTitles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
 				return titles[ key ] || null;
-			} catch ( e ) {
+			} catch {
 				return null;
 			}
 		}
 
-		function storeSessionTitle( key, title ) {
+		function storeSessionTitle( key: string, title: string ): void {
 			try {
-				const titles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
+				const titles: SessionTitles = JSON.parse( localStorage.getItem( 'spawn_session_titles' ) || '{}' );
 				titles[ key ] = title;
 				localStorage.setItem( 'spawn_session_titles', JSON.stringify( titles ) );
-			} catch ( e ) {
+			} catch {
 				// Ignore storage errors
 			}
 		}
 
-		function formatDate( dateStr ) {
+		function formatDate( dateStr: string ): string {
 			const date = new Date( dateStr );
 			const now = new Date();
-			const diffMs = now - date;
+			const diffMs = now.getTime() - date.getTime();
 			const diffDays = Math.floor( diffMs / ( 1000 * 60 * 60 * 24 ) );
 
 			if ( diffDays === 0 ) {
@@ -248,44 +299,42 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		}
 
-		async function selectSession( key ) {
+		async function selectSession( key: string ): Promise< void > {
 			currentSessionKey = key;
-			saveSessionKey( key ); // Persist across page loads
+			saveSessionKey( key );
 			updateSessionIndicator();
-			renderSessions(); // Update active state
+			renderSessions();
 
-			// Load history from OpenClaw
 			messagesContainer.innerHTML = '<div class="chat-message chat-message--system">Loading conversation...</div>';
 
 			try {
-				const response = await apiFetch( {
-					path: `/spawn/v1/chat/sessions/${ encodeURIComponent( key ) }/history?limit=50`,
+				const response = await apiFetch< HistoryResponse | ChatMessage[] >( {
+					path: `/spawn/v1/chat/sessions/${ key }/history?limit=50`,
 				} );
 
-				const messages = response.messages || response || [];
+				const messages: ChatMessage[] = ( response as HistoryResponse ).messages || ( response as ChatMessage[] ) || [];
 				renderHistory( messages );
 			} catch ( error ) {
 				console.error( 'Failed to load history:', error );
 				messagesContainer.innerHTML = '';
 			}
 
-			// Close sidebar on mobile
 			if ( sidebar && window.innerWidth <= 768 ) {
 				sidebar.classList.remove( 'wp-block-spawn-chat__sidebar--open' );
 			}
 		}
 
-		function renderHistory( messages ) {
+		function renderHistory( messages: ChatMessage[] ): void {
 			if ( messages.length === 0 ) {
 				messagesContainer.innerHTML = '';
 				return;
 			}
 
 			messagesContainer.innerHTML = messages
-				.filter( ( msg ) => msg.role === 'user' || msg.role === 'assistant' )
-				.map( ( msg ) => `
+				.filter( ( msg: ChatMessage ) => msg.role === 'user' || msg.role === 'assistant' )
+				.map( ( msg: ChatMessage ) => `
 					<div class="chat-message chat-message--${ msg.role }">
-						<div class="chat-message__content">${ parseMarkdown( msg.content || '' ) }</div>
+						<div class="chat-message__content">${ parseMarkdown( extractMessageText( msg.content ) ) }</div>
 					</div>
 				` )
 				.join( '' );
@@ -293,15 +342,15 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 
-		function startNewSession() {
+		function startNewSession(): void {
 			currentSessionKey = generateSessionKey();
-			saveSessionKey( currentSessionKey ); // Persist across page loads
+			saveSessionKey( currentSessionKey );
 			updateSessionIndicator();
 			messagesContainer.innerHTML = '';
 			renderSessions();
 		}
 
-		function updateSessionIndicator() {
+		function updateSessionIndicator(): void {
 			if ( sessionIndicator ) {
 				sessionIndicator.textContent = currentSessionKey
 					? 'Session: ' + currentSessionKey.substr( -8 )
@@ -311,7 +360,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== MESSAGE HANDLING =====
 
-		function addMessage( role, content ) {
+		function addMessage( role: string, content: string ): void {
 			const msgDiv = document.createElement( 'div' );
 			msgDiv.className = `chat-message chat-message--${ role }`;
 			msgDiv.innerHTML = `<div class="chat-message__content">${ parseMarkdown( content ) }</div>`;
@@ -319,21 +368,21 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 
-		function escapeHtml( text ) {
+		function escapeHtml( text: string ): string {
 			const div = document.createElement( 'div' );
 			div.textContent = text;
 			return div.innerHTML;
 		}
 
-		function escapeAttr( text ) {
+		function escapeAttr( text: string ): string {
 			return text.replace( /"/g, '&quot;' ).replace( /'/g, '&#39;' );
 		}
 
-		function parseMarkdown( text ) {
+		function parseMarkdown( text: string ): string {
 			let html = escapeHtml( text );
 
 			// Code blocks
-			html = html.replace( /```(\w*)\n?([\s\S]*?)```/g, ( match, lang, code ) => {
+			html = html.replace( /```(\w*)\n?([\s\S]*?)```/g, ( _match: string, lang: string, code: string ) => {
 				return `<pre><code class="language-${ lang }">${ code.trim() }</code></pre>`;
 			} );
 
@@ -359,7 +408,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== TYPING INDICATOR =====
 
-		function showTypingIndicator() {
+		function showTypingIndicator(): void {
 			currentVerbIndex = Math.floor( Math.random() * loadingVerbs.length );
 
 			const indicator = document.createElement( 'div' );
@@ -385,7 +434,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}, 2000 );
 		}
 
-		function hideTypingIndicator() {
+		function hideTypingIndicator(): void {
 			if ( verbInterval ) {
 				clearInterval( verbInterval );
 				verbInterval = null;
@@ -396,7 +445,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		}
 
-		function setLoading( loading ) {
+		function setLoading( loading: boolean ): void {
 			isLoading = loading;
 			sendBtn.disabled = loading;
 			input.disabled = loading;
@@ -414,13 +463,12 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== SEND MESSAGE =====
 
-		async function sendMessage() {
+		async function sendMessage(): Promise< void > {
 			const text = input.value.trim();
 			if ( ! text || isLoading ) {
 				return;
 			}
 
-			// Ensure we have a session
 			const isNewSession = ! currentSessionKey;
 			if ( isNewSession ) {
 				currentSessionKey = generateSessionKey();
@@ -428,10 +476,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				updateSessionIndicator();
 			}
 
-			// For new sessions, generate AI title (async, doesn't block)
 			const existingTitle = getStoredSessionTitle( currentSessionKey );
 			if ( ! existingTitle ) {
-				generateSessionTitle( currentSessionKey ); // Fire and forget
+				generateSessionTitle( currentSessionKey );
 			}
 
 			addMessage( 'user', text );
@@ -440,7 +487,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			setLoading( true );
 
 			try {
-				const response = await apiFetch( {
+				const response = await apiFetch< ChatSendResponse >( {
 					path: '/spawn/v1/chat/send',
 					method: 'POST',
 					data: {
@@ -456,9 +503,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 					addMessage( 'system', 'Error: ' + response.error );
 				}
 
-				// Refresh session list (new session might have been created)
 				loadSessions();
-			} catch ( error ) {
+			} catch {
 				addMessage( 'system', 'Failed to send message. Please try again.' );
 			}
 
@@ -466,7 +512,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			input.focus();
 		}
 
-		function autoResizeInput() {
+		function autoResizeInput(): void {
 			input.style.height = 'auto';
 			input.style.height = Math.min( input.scrollHeight, 150 ) + 'px';
 		}
@@ -487,7 +533,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			newConvoBtn.addEventListener( 'click', startNewSession );
 		}
 
-		input.addEventListener( 'keydown', function ( e ) {
+		input.addEventListener( 'keydown', function ( e: KeyboardEvent ): void {
 			if ( e.key === 'Enter' && ! e.shiftKey ) {
 				e.preventDefault();
 				sendMessage();
@@ -498,7 +544,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 
 		// ===== INITIALIZE =====
 
-		// Load sessions from OpenClaw
 		loadSessions();
 	} );
 } );

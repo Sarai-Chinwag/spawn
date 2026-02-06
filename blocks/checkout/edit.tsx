@@ -2,8 +2,14 @@ import { __ } from '@wordpress/i18n';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextControl, ToggleControl } from '@wordpress/components';
 import { Fragment } from '@wordpress/element';
+import type { BlockEditProps } from '@wordpress/blocks';
 
-export default function Edit( { attributes, setAttributes } ) {
+interface CheckoutBlockAttributes {
+	buttonText: string;
+	showOrderSummary: boolean;
+}
+
+export default function Edit( { attributes, setAttributes }: BlockEditProps< CheckoutBlockAttributes > ): JSX.Element {
 	const { buttonText, showOrderSummary } = attributes;
 	const blockProps = useBlockProps();
 
@@ -14,14 +20,14 @@ export default function Edit( { attributes, setAttributes } ) {
 					<TextControl
 						label={ __( 'Button Text', 'spawn' ) }
 						value={ buttonText }
-						onChange={ ( value ) =>
+						onChange={ ( value: string ) =>
 							setAttributes( { buttonText: value } )
 						}
 					/>
 					<ToggleControl
 						label={ __( 'Show Order Summary', 'spawn' ) }
 						checked={ showOrderSummary }
-						onChange={ ( value ) =>
+						onChange={ ( value: boolean ) =>
 							setAttributes( { showOrderSummary: value } )
 						}
 					/>

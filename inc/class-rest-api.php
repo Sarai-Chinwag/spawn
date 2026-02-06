@@ -27,6 +27,8 @@ class REST_API {
 	 */
 	public static function init(): void {
 		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
+		add_action( 'rest_api_init', [ Controllers\Auth_Controller::class, 'register_routes' ] );
+		add_action( 'rest_api_init', [ Controllers\Chat_Controller::class, 'register_routes' ] );
 	}
 
 	/**
@@ -166,6 +168,51 @@ class REST_API {
 				'methods'             => 'POST',
 				'callback'            => [ __CLASS__, 'auth_logout' ],
 				'permission_callback' => 'is_user_logged_in',
+			]
+		);
+
+		// Auth: Request password reset.
+		register_rest_route(
+			self::NAMESPACE,
+			'/auth/forgot-password',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'auth_forgot_password' ],
+				'permission_callback' => '__return_true',
+				'args'                => [
+					'email' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_email',
+					],
+				],
+			]
+		);
+
+		// Auth: Reset password with token.
+		register_rest_route(
+			self::NAMESPACE,
+			'/auth/reset-password',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ __CLASS__, 'auth_reset_password' ],
+				'permission_callback' => '__return_true',
+				'args'                => [
+					'email'    => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_email',
+					],
+					'token'    => [
+						'required' => true,
+						'type'     => 'string',
+					],
+					'password' => [
+						'required'  => true,
+						'type'      => 'string',
+						'minLength' => 8,
+					],
+				],
 			]
 		);
 
@@ -978,6 +1025,115 @@ class REST_API {
 
 		return new WP_REST_Response( [
 			'success' => true,
+		] );
+	}
+
+	/**
+	 * Request a password reset email.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public static function auth_forgot_password( WP_REST_Request $request ): WP_REST_Response {
+		$email = $request->get_param( 'email' );
+		$user  = get_user_by( 'email', $email );
+
+		// Always return success to prevent email enumeration.
+		if ( ! $user ) {
+			return new WP_REST_Response( [
+				'success' => true,
+				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
+			] );
+		}
+
+		// Generate reset key.
+		$reset_key = get_password_reset_key( $user );
+
+		if ( is_wp_error( $reset_key ) ) {
+			return new WP_REST_Response( [
+				'success' => true,
+				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
+			] );
+		}
+
+		// Build reset URL (goes to Spawn reset page, not wp-login.php).
+		$reset_url = add_query_arg(
+			[
+				'action' => 'reset',
+				'key'    => $reset_key,
+				'login'  => rawurlencode( $user->user_login ),
+			],
+			home_url( '/spawn/login/' )
+		);
+
+		// Send email.
+		$site_name = get_bloginfo( 'name' );
+		$subject   = sprintf( __( '[%s] Password Reset Request', 'spawn' ), $site_name );
+		$message   = sprintf(
+			__(
+				"Hi %s,\n\n" .
+				"Someone requested a password reset for your account.\n\n" .
+				"To reset your password, click the link below:\n%s\n\n" .
+				"This link will expire in 24 hours.\n\n" .
+				"If you didn't request this, you can safely ignore this email.\n\n" .
+				"— %s",
+				'spawn'
+			),
+			$user->display_name ?: $user->user_login,
+			$reset_url,
+			$site_name
+		);
+
+		wp_mail( $email, $subject, $message );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
+		] );
+	}
+
+	/**
+	 * Reset password with token.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response or error.
+	 */
+	public static function auth_reset_password( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$email    = $request->get_param( 'email' );
+		$token    = $request->get_param( 'token' );
+		$password = $request->get_param( 'password' );
+
+		// Try to find user by email first, then by login.
+		$user = get_user_by( 'email', $email );
+		if ( ! $user ) {
+			$user = get_user_by( 'login', $email );
+		}
+
+		if ( ! $user ) {
+			return new WP_Error(
+				'invalid_reset',
+				__( 'Invalid password reset request.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Verify the reset key.
+		$check = check_password_reset_key( $token, $user->user_login );
+
+		if ( is_wp_error( $check ) ) {
+			return new WP_Error(
+				'invalid_token',
+				__( 'This reset link has expired or is invalid. Please request a new one.', 'spawn' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Reset the password.
+		reset_password( $user, $password );
+
+		return new WP_REST_Response( [
+			'success' => true,
+			'message' => __( 'Password has been reset. You can now log in.', 'spawn' ),
 		] );
 	}
 

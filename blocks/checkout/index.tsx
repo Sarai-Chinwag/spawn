@@ -3,7 +3,7 @@ import edit from './edit';
 import save from './save';
 import './index.css';
 
-registerBlockType( 'spawn/checkout', {
+registerBlockType( 'spawn/checkout' as any, {
 	edit,
 	save,
 } );

@@ -1,6 +1,6 @@
 {
 	"name": "spawn",
-	"version": "0.3.0",
+	"version": "0.6.0",
 	"description": "AI Website Service by Sarai Chinwag",
 	"author": "Sarai Chinwag",
 	"license": "GPL-2.0-or-later",
@@ -14,8 +14,15 @@
 		"format": "wp-scripts format"
 	},
 	"devDependencies": {
+		"@types/wordpress__api-fetch": "^3.2.4",
+		"@types/wordpress__block-editor": "^15.0.0",
+		"@types/wordpress__blocks": "^15.10.0",
+		"@types/wordpress__components": "^23.0.12",
+		"@types/wordpress__element": "^2.4.1",
+		"@types/wordpress__i18n": "^3.4.0",
 		"@wordpress/scripts": "^27.0.0",
-		"copy-webpack-plugin": "^13.0.1"
+		"copy-webpack-plugin": "^13.0.1",
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@wordpress/block-editor": "^12.0.0",

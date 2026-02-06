@@ -1,6 +1,12 @@
 import { useBlockProps } from '@wordpress/block-editor';
+import type { BlockEditProps } from '@wordpress/blocks';
 
-export default function Edit() {
+interface ChatBlockAttributes {
+	fullpage: boolean;
+	sessionKey: string;
+}
+
+export default function Edit( _props: BlockEditProps< ChatBlockAttributes > ): JSX.Element {
 	const blockProps = useBlockProps();
 
 	return (
