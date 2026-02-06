@@ -440,6 +440,183 @@ class Abilities {
 			],
 			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
 		] );
+
+		// ===== SELF-SPAWN ABILITIES =====
+
+		// Check Environment
+		wp_register_ability( 'spawn_self_check_environment', [
+			'label'       => __( 'Check Environment', 'spawn' ),
+			'description' => __( 'Check if server environment supports self-spawn OpenClaw installation', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'check_environment' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'environment'     => [ 'type' => 'object' ],
+					'credentials'     => [ 'type' => 'object' ],
+					'has_credentials' => [ 'type' => 'boolean' ],
+					'can_install'     => [ 'type' => 'boolean' ],
+					'blockers'        => [ 'type' => 'array' ],
+					'credentials_url' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Get Self-Spawn Status
+		wp_register_ability( 'spawn_self_get_status', [
+			'label'       => __( 'Get OpenClaw Status', 'spawn' ),
+			'description' => __( 'Get status of locally installed OpenClaw', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'get_status' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'installed'     => [ 'type' => 'boolean' ],
+					'running'       => [ 'type' => 'boolean' ],
+					'gateway_url'   => [ 'type' => 'string' ],
+					'version'       => [ 'type' => 'string' ],
+					'config_exists' => [ 'type' => 'boolean' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Install OpenClaw
+		wp_register_ability( 'spawn_self_install', [
+			'label'       => __( 'Install OpenClaw', 'spawn' ),
+			'description' => __( 'Install OpenClaw locally on this server (self-spawn)', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'install' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'  => [ 'type' => 'boolean' ],
+					'message'  => [ 'type' => 'string' ],
+					'blockers' => [ 'type' => 'array' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Configure OpenClaw
+		wp_register_ability( 'spawn_self_configure', [
+			'label'       => __( 'Configure OpenClaw', 'spawn' ),
+			'description' => __( 'Update OpenClaw configuration with current AI credentials', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'configure' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Start OpenClaw
+		wp_register_ability( 'spawn_self_start', [
+			'label'       => __( 'Start OpenClaw', 'spawn' ),
+			'description' => __( 'Start the OpenClaw gateway service', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'start' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Stop OpenClaw
+		wp_register_ability( 'spawn_self_stop', [
+			'label'       => __( 'Stop OpenClaw', 'spawn' ),
+			'description' => __( 'Stop the OpenClaw gateway service', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'stop' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Restart OpenClaw
+		wp_register_ability( 'spawn_self_restart', [
+			'label'       => __( 'Restart OpenClaw', 'spawn' ),
+			'description' => __( 'Restart the OpenClaw gateway service', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'restart' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
+
+		// Uninstall OpenClaw
+		wp_register_ability( 'spawn_self_uninstall', [
+			'label'       => __( 'Uninstall OpenClaw', 'spawn' ),
+			'description' => __( 'Remove OpenClaw from this server', 'spawn' ),
+			'category'    => 'spawn',
+			'callback'    => [ Ability_Self_Spawn::class, 'uninstall' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'confirm' => [
+						'type'        => 'boolean',
+						'description' => 'Must be true to confirm uninstallation',
+						'default'     => false,
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+					'warning' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
+		] );
 	}
 
 	/**

@@ -48,6 +48,7 @@ function init(): void {
 	User_Role::init();
 	Cron::init();
 	Cleanup::init();
+	Self_Spawn::init();
 
 	// Admin settings.
 	if ( is_admin() ) {
