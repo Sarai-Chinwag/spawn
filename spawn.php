@@ -3,7 +3,7 @@
  * Plugin Name: Spawn
  * Plugin URI: https://github.com/Sarai-Chinwag/spawn
  * Description: AI Website Service by Sarai Chinwag - spawn AI-powered WordPress sites
- * Version: 0.6.1
+ * Version: 0.6.2
  * Author: Sarai Chinwag
  * Author URI: https://saraichinwag.com
  * License: GPL-2.0-or-later
@@ -11,7 +11,7 @@
  * Text Domain: spawn
  * Requires at least: 6.9
  * Requires PHP: 8.1
- * Requires Plugins: stripe-integration
+ * Requires Plugins:
  *
  * @package Spawn
  */
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SPAWN_VERSION', '0.6.1' );
+define( 'SPAWN_VERSION', '0.6.2' );
 define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );
@@ -48,7 +48,12 @@ function init(): void {
 	// Load components.
 	Blocks::init();
 	REST_API::init();
-	Webhook::init();
+
+	// Only init Stripe webhook handlers if stripe-integration plugin is active.
+	if ( class_exists( '\\StripeIntegration\\Plugin' ) || function_exists( 'stripe_integration_init' ) ) {
+		Webhook::init();
+	}
+
 	Google_OAuth::init();
 	Abilities\Abilities::init();
 	User_Role::init();

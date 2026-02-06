@@ -846,6 +846,15 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function create_checkout_session( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		// Stripe integration is required for checkout.
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			return new WP_Error(
+				'stripe_not_available',
+				__( 'Payment processing is not configured on this site.', 'spawn' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$email           = sanitize_email( $request->get_param( 'email' ) );
 		$tier            = sanitize_text_field( $request->get_param( 'tier' ) ?? 'starter' );
 		$wants_website   = (bool) $request->get_param( 'wants_website' );
@@ -945,6 +954,15 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function get_checkout_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		// Stripe integration is required for checkout status.
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			return new WP_Error(
+				'stripe_not_available',
+				__( 'Payment processing is not configured on this site.', 'spawn' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$session_id = $request->get_param( 'session_id' );
 
 		if ( empty( $session_id ) ) {
@@ -1461,6 +1479,15 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function get_billing_portal(): WP_REST_Response|WP_Error {
+		// Stripe integration is required for billing portal.
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			return new WP_Error(
+				'stripe_not_available',
+				__( 'Billing portal is not available on this site.', 'spawn' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$user_id  = get_current_user_id();
 		$customer = Database::get_customer_by_user_id( $user_id );
 
@@ -1601,6 +1628,15 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function cancel_subscription(): WP_REST_Response|WP_Error {
+		// Stripe integration is required for subscription management.
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			return new WP_Error(
+				'stripe_not_available',
+				__( 'Subscription management is not available on this site.', 'spawn' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$user_id  = get_current_user_id();
 		$customer = Database::get_customer_by_user_id( $user_id );
 
@@ -1638,6 +1674,15 @@ class REST_API {
 	 * @return WP_REST_Response|WP_Error Response or error.
 	 */
 	public static function get_invoices(): WP_REST_Response|WP_Error {
+		// Stripe integration is required for invoices.
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			return new WP_Error(
+				'stripe_not_available',
+				__( 'Invoice history is not available on this site.', 'spawn' ),
+				[ 'status' => 503 ]
+			);
+		}
+
 		$user_id  = get_current_user_id();
 		$customer = Database::get_customer_by_user_id( $user_id );
 
