@@ -29,9 +29,17 @@ class Branding {
 
 	/**
 	 * Get brand logo URL.
+	 *
+	 * Falls back to site icon if no custom brand logo is configured.
 	 */
 	public static function get_brand_logo_url(): string {
-		return (string) get_option( 'spawn_brand_logo_url', '' );
+		$custom_logo = get_option( 'spawn_brand_logo_url', '' );
+		if ( '' !== $custom_logo ) {
+			return (string) $custom_logo;
+		}
+
+		// Fall back to site icon.
+		return (string) get_site_icon_url( 64 );
 	}
 
 	/**
