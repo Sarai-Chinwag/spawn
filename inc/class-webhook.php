@@ -191,9 +191,10 @@ class Webhook {
 			return;
 		}
 
-		// Domain is only required if customer wants a website.
-		if ( $wants_website && empty( $domain ) ) {
-			error_log( '[Spawn] Checkout completed with wants_website=true but missing domain' );
+		// Domain is only required if customer wants a website AND is not using a subdomain.
+		// Subdomain customers get their domain auto-generated after customer creation.
+		if ( $wants_website && empty( $domain ) && 'subdomain' !== $domain_type ) {
+			error_log( '[Spawn] Checkout completed with wants_website=true but missing domain (non-subdomain)' );
 			return;
 		}
 
