@@ -9,9 +9,13 @@
  * @package Spawn
  */
 
+use Spawn\Branding;
+
 $wrapper_attributes = get_block_wrapper_attributes();
 $user_id            = get_current_user_id();
 $is_admin           = current_user_can( 'manage_options' );
+$brand_name         = Branding::get_brand_name();
+$brand_logo_url     = Branding::get_brand_logo_url();
 
 if ( ! $user_id ) {
 	?>
@@ -19,8 +23,10 @@ if ( ! $user_id ) {
 		<!-- Top navigation bar (Spawn branding) - always show -->
 		<nav class="spawn-topnav">
 			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
-				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-				<span>Spawn <em>by Sarai Chinwag</em></span>
+				<?php if ( '' !== $brand_logo_url ) : ?>
+					<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+				<?php endif; ?>
+				<span><?php echo esc_html( $brand_name ); ?></span>
 			</a>
 			<div class="spawn-topnav__links">
 				<a href="<?php echo esc_url( home_url( '/spawn/login/' ) ); ?>">Log in</a>
@@ -48,8 +54,10 @@ if ( ! $customer && ! $is_admin ) {
 		<!-- Top navigation bar (Spawn branding) - always show -->
 		<nav class="spawn-topnav">
 			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
-				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-				<span>Spawn <em>by Sarai Chinwag</em></span>
+				<?php if ( '' !== $brand_logo_url ) : ?>
+					<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+				<?php endif; ?>
+				<span><?php echo esc_html( $brand_name ); ?></span>
 			</a>
 			<div class="spawn-topnav__links">
 				<a href="<?php echo esc_url( home_url( '/spawn/chat/' ) ); ?>">Chat</a>
@@ -93,8 +101,10 @@ foreach ( $servers as $server ) {
 	<!-- Top navigation bar (Spawn branding) -->
 	<nav class="spawn-topnav">
 		<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
-			<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-			<span>Spawn <em>by Sarai Chinwag</em></span>
+			<?php if ( '' !== $brand_logo_url ) : ?>
+				<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+			<?php endif; ?>
+			<span><?php echo esc_html( $brand_name ); ?></span>
 		</a>
 		<div class="spawn-topnav__links">
 			<a href="<?php echo esc_url( home_url( '/spawn/chat/' ) ); ?>">Chat</a>

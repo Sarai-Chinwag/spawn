@@ -47,7 +47,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_test123',
 			'metadata'       => [
 				'source'          => 'spawn',
-				'domain'          => 'newsite.saraichinwag.com',
+			'domain'          => 'newsite.example.com',
 				'domain_type'     => 'subdomain',
 				'tier'            => 'starter',
 				'wants_website'   => 'true',
@@ -62,7 +62,7 @@ class WebhookTest extends WP_UnitTestCase {
 		Webhook::handle_checkout_completed( $session, $event );
 
 		// Verify customer was created.
-		$customer = Database::get_customer_by_domain( 'newsite.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'newsite.example.com' );
 
 		$this->assertNotNull( $customer, 'Customer should be created after checkout' );
 		$this->assertEquals( 'checkout@example.com', $customer['email'] );
@@ -94,7 +94,7 @@ class WebhookTest extends WP_UnitTestCase {
 				'subscription'   => "sub_{$tier}",
 				'metadata'       => [
 					'source'          => 'spawn',
-					'domain'          => "{$tier}.saraichinwag.com",
+				'domain'          => "{$tier}.example.com",
 					'domain_type'     => 'subdomain',
 					'tier'            => $tier,
 					'wants_website'   => 'true',
@@ -105,7 +105,7 @@ class WebhookTest extends WP_UnitTestCase {
 			$event = (object) [ 'type' => 'checkout.session.completed' ];
 			Webhook::handle_checkout_completed( $session, $event );
 
-			$customer = Database::get_customer_by_domain( "{$tier}.saraichinwag.com" );
+			$customer = Database::get_customer_by_domain( "{$tier}.example.com" );
 
 			$this->assertNotNull( $customer, "Customer for $tier should exist" );
 			$this->assertEquals(
@@ -126,7 +126,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_website',
 			'metadata'       => [
 				'source'          => 'spawn',
-				'domain'          => 'withsite.saraichinwag.com',
+			'domain'          => 'withsite.example.com',
 				'domain_type'     => 'subdomain',
 				'tier'            => 'starter',
 				'wants_website'   => 'true',
@@ -137,7 +137,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'checkout.session.completed' ];
 		Webhook::handle_checkout_completed( $session, $event );
 
-		$customer = Database::get_customer_by_domain( 'withsite.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'withsite.example.com' );
 
 		$this->assertNotNull( $customer );
 		$this->assertEquals( 1, (int) $customer['wants_website'] );
@@ -189,7 +189,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_eu',
 			'metadata'       => [
 				'source'          => 'spawn',
-				'domain'          => 'eusite.saraichinwag.com',
+			'domain'          => 'eusite.example.com',
 				'domain_type'     => 'subdomain',
 				'tier'            => 'starter',
 				'wants_website'   => 'true',
@@ -200,7 +200,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'checkout.session.completed' ];
 		Webhook::handle_checkout_completed( $session, $event );
 
-		$customer = Database::get_customer_by_domain( 'eusite.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'eusite.example.com' );
 
 		$this->assertNotNull( $customer );
 		$this->assertEquals( 'eu', $customer['customer_region'] );
@@ -244,7 +244,7 @@ class WebhookTest extends WP_UnitTestCase {
 		// Create existing customer.
 		Database::create_customer( [
 			'email'  => 'existing@example.com',
-			'domain' => 'taken.saraichinwag.com',
+			'domain' => 'taken.example.com',
 			'status' => 'active',
 		] );
 
@@ -255,7 +255,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_new',
 			'metadata'       => [
 				'source'          => 'spawn',
-				'domain'          => 'taken.saraichinwag.com',
+				'domain'          => 'taken.example.com',
 				'domain_type'     => 'subdomain',
 				'tier'            => 'starter',
 				'wants_website'   => 'true',
@@ -267,7 +267,7 @@ class WebhookTest extends WP_UnitTestCase {
 		Webhook::handle_checkout_completed( $session, $event );
 
 		// Should still only have the original customer.
-		$customer = Database::get_customer_by_domain( 'taken.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'taken.example.com' );
 		$this->assertEquals( 'existing@example.com', $customer['email'] );
 	}
 
@@ -299,7 +299,7 @@ class WebhookTest extends WP_UnitTestCase {
 		// Create existing customer.
 		$customer_id = Database::create_customer( [
 			'email'           => 'buyer@example.com',
-			'domain'          => 'buyer.saraichinwag.com',
+			'domain'          => 'buyer.example.com',
 			'stripe_customer' => 'cus_buyer',
 			'credit_balance'  => 5.00,
 			'status'          => 'active',
@@ -330,7 +330,7 @@ class WebhookTest extends WP_UnitTestCase {
 	public function test_subscription_cancelled(): void {
 		Database::create_customer( [
 			'email'               => 'cancel@example.com',
-			'domain'              => 'cancel.saraichinwag.com',
+			'domain'              => 'cancel.example.com',
 			'stripe_subscription' => 'sub_tocancel',
 			'status'              => 'active',
 		] );
@@ -342,7 +342,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'customer.subscription.deleted' ];
 		Webhook::handle_subscription_cancelled( $subscription, $event );
 
-		$customer = Database::get_customer_by_domain( 'cancel.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'cancel.example.com' );
 		$this->assertEquals( 'cancelling', $customer['status'] );
 		$this->assertNotEmpty( $customer['scheduled_deletion_at'] );
 	}
@@ -353,7 +353,7 @@ class WebhookTest extends WP_UnitTestCase {
 	public function test_payment_failed(): void {
 		Database::create_customer( [
 			'email'               => 'fail@example.com',
-			'domain'              => 'fail.saraichinwag.com',
+			'domain'              => 'fail.example.com',
 			'stripe_subscription' => 'sub_failing',
 			'status'              => 'active',
 		] );
@@ -365,7 +365,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'invoice.payment_failed' ];
 		Webhook::handle_payment_failed( $invoice, $event );
 
-		$customer = Database::get_customer_by_domain( 'fail.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'fail.example.com' );
 		$this->assertEquals( 'payment_failed', $customer['status'] );
 	}
 
@@ -375,7 +375,7 @@ class WebhookTest extends WP_UnitTestCase {
 	public function test_invoice_paid_activates_customer(): void {
 		Database::create_customer( [
 			'email'               => 'renew@example.com',
-			'domain'              => 'renew.saraichinwag.com',
+			'domain'              => 'renew.example.com',
 			'stripe_subscription' => 'sub_renewing',
 			'status'              => 'payment_failed',
 		] );
@@ -387,7 +387,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'invoice.paid' ];
 		Webhook::handle_invoice_paid( $invoice, $event );
 
-		$customer = Database::get_customer_by_domain( 'renew.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'renew.example.com' );
 		$this->assertEquals( 'active', $customer['status'] );
 	}
 
@@ -401,7 +401,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_default',
 			'metadata'       => [
 				'source'      => 'spawn',
-				'domain'      => 'default.saraichinwag.com',
+			'domain'      => 'default.example.com',
 				'domain_type' => 'subdomain',
 				'tier'        => 'starter',
 				// Note: wants_website NOT specified.
@@ -411,7 +411,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'checkout.session.completed' ];
 		Webhook::handle_checkout_completed( $session, $event );
 
-		$customer = Database::get_customer_by_domain( 'default.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'default.example.com' );
 
 		$this->assertNotNull( $customer );
 		$this->assertEquals( 1, (int) $customer['wants_website'] );
@@ -427,7 +427,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'subscription'   => 'sub_notier',
 			'metadata'       => [
 				'source'        => 'spawn',
-				'domain'        => 'notier.saraichinwag.com',
+			'domain'        => 'notier.example.com',
 				'domain_type'   => 'subdomain',
 				'wants_website' => 'true',
 				// Note: tier NOT specified.
@@ -437,7 +437,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$event = (object) [ 'type' => 'checkout.session.completed' ];
 		Webhook::handle_checkout_completed( $session, $event );
 
-		$customer = Database::get_customer_by_domain( 'notier.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'notier.example.com' );
 
 		$this->assertNotNull( $customer );
 		$this->assertEquals( 'starter', $customer['tier'] );

@@ -45,7 +45,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_create_customer(): void {
 		$customer_id = Database::create_customer( [
 			'email'               => 'test@example.com',
-			'domain'              => 'test.saraichinwag.com',
+			'domain'              => 'test.example.com',
 			'domain_type'         => 'subdomain',
 			'subdomain'           => true,
 			'tier'                => 'starter',
@@ -65,7 +65,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_get_customer(): void {
 		$customer_id = Database::create_customer( [
 			'email'          => 'retrieve@example.com',
-			'domain'         => 'retrieve.saraichinwag.com',
+			'domain'         => 'retrieve.example.com',
 			'status'         => 'active',
 			'credit_balance' => 20.00,
 		] );
@@ -74,7 +74,7 @@ class DatabaseTest extends WP_UnitTestCase {
 
 		$this->assertIsArray( $customer );
 		$this->assertEquals( 'retrieve@example.com', $customer['email'] );
-		$this->assertEquals( 'retrieve.saraichinwag.com', $customer['domain'] );
+		$this->assertEquals( 'retrieve.example.com', $customer['domain'] );
 		$this->assertEquals( 'active', $customer['status'] );
 		$this->assertEquals( 20.00, (float) $customer['credit_balance'] );
 	}
@@ -85,11 +85,11 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_get_customer_by_domain(): void {
 		Database::create_customer( [
 			'email'  => 'domain@example.com',
-			'domain' => 'findme.saraichinwag.com',
+			'domain' => 'findme.example.com',
 			'status' => 'active',
 		] );
 
-		$customer = Database::get_customer_by_domain( 'findme.saraichinwag.com' );
+		$customer = Database::get_customer_by_domain( 'findme.example.com' );
 
 		$this->assertIsArray( $customer );
 		$this->assertEquals( 'domain@example.com', $customer['email'] );
@@ -110,7 +110,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_get_customer_by_subscription(): void {
 		Database::create_customer( [
 			'email'               => 'sub@example.com',
-			'domain'              => 'sub.saraichinwag.com',
+			'domain'              => 'sub.example.com',
 			'stripe_subscription' => 'sub_findme123',
 			'status'              => 'active',
 		] );
@@ -127,7 +127,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_update_customer(): void {
 		$customer_id = Database::create_customer( [
 			'email'  => 'update@example.com',
-			'domain' => 'update.saraichinwag.com',
+			'domain' => 'update.example.com',
 			'status' => 'provisioning',
 		] );
 
@@ -149,7 +149,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_credit_operations(): void {
 		$customer_id = Database::create_customer( [
 			'email'          => 'credits@example.com',
-			'domain'         => 'credits.saraichinwag.com',
+			'domain'         => 'credits.example.com',
 			'credit_balance' => 10.00,
 			'status'         => 'active',
 		] );
@@ -175,7 +175,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_deduct_credits_insufficient(): void {
 		$customer_id = Database::create_customer( [
 			'email'          => 'poor@example.com',
-			'domain'         => 'poor.saraichinwag.com',
+			'domain'         => 'poor.example.com',
 			'credit_balance' => 1.00,
 			'status'         => 'active',
 		] );
@@ -194,12 +194,12 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_duplicate_domain_prevented(): void {
 		Database::create_customer( [
 			'email'  => 'first@example.com',
-			'domain' => 'unique.saraichinwag.com',
+			'domain' => 'unique.example.com',
 			'status' => 'active',
 		] );
 
 		// Attempting to create with same domain should fail or return existing.
-		$existing = Database::get_customer_by_domain( 'unique.saraichinwag.com' );
+		$existing = Database::get_customer_by_domain( 'unique.example.com' );
 		$this->assertNotNull( $existing );
 		$this->assertEquals( 'first@example.com', $existing['email'] );
 	}
@@ -211,7 +211,7 @@ class DatabaseTest extends WP_UnitTestCase {
 		// Customer with website.
 		$with_id = Database::create_customer( [
 			'email'         => 'withsite@example.com',
-			'domain'        => 'withsite.saraichinwag.com',
+			'domain'        => 'withsite.example.com',
 			'wants_website' => true,
 			'status'        => 'active',
 		] );
@@ -237,7 +237,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_update_wants_website(): void {
 		$customer_id = Database::create_customer( [
 			'email'         => 'toggle@example.com',
-			'domain'        => 'toggle.saraichinwag.com',
+			'domain'        => 'toggle.example.com',
 			'wants_website' => true,
 			'status'        => 'active',
 		] );
@@ -263,7 +263,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_update_tier(): void {
 		$customer_id = Database::create_customer( [
 			'email'  => 'upgrade@example.com',
-			'domain' => 'upgrade.saraichinwag.com',
+			'domain' => 'upgrade.example.com',
 			'tier'   => 'starter',
 			'status' => 'active',
 		] );
@@ -282,7 +282,7 @@ class DatabaseTest extends WP_UnitTestCase {
 		// US customer with website = US server type.
 		$us_id = Database::create_customer( [
 			'email'           => 'us@example.com',
-			'domain'          => 'us.saraichinwag.com',
+			'domain'          => 'us.example.com',
 			'tier'            => 'starter',
 			'wants_website'   => true,
 			'customer_region' => 'us',
@@ -296,7 +296,7 @@ class DatabaseTest extends WP_UnitTestCase {
 		// EU customer = EU server type.
 		$eu_id = Database::create_customer( [
 			'email'           => 'eu@example.com',
-			'domain'          => 'eu.saraichinwag.com',
+			'domain'          => 'eu.example.com',
 			'tier'            => 'starter',
 			'wants_website'   => true,
 			'customer_region' => 'eu',
@@ -317,7 +317,7 @@ class DatabaseTest extends WP_UnitTestCase {
 
 		$customer_id = Database::create_customer( [
 			'email'   => 'wpuser@example.com',
-			'domain'  => 'wpuser.saraichinwag.com',
+			'domain'  => 'wpuser.example.com',
 			'user_id' => $user_id,
 			'status'  => 'active',
 		] );
@@ -335,7 +335,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_schedule_deletion(): void {
 		$customer_id = Database::create_customer( [
 			'email'  => 'delete@example.com',
-			'domain' => 'delete.saraichinwag.com',
+			'domain' => 'delete.example.com',
 			'status' => 'active',
 		] );
 
@@ -358,7 +358,7 @@ class DatabaseTest extends WP_UnitTestCase {
 	public function test_auto_refill_settings(): void {
 		$customer_id = Database::create_customer( [
 			'email'  => 'refill@example.com',
-			'domain' => 'refill.saraichinwag.com',
+			'domain' => 'refill.example.com',
 			'status' => 'active',
 		] );
 

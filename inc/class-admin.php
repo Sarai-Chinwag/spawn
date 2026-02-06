@@ -89,6 +89,12 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
 		register_setting( 'spawn_settings', 'spawn_openclaw_token' );
 
+		// Branding settings.
+		register_setting( 'spawn_settings', 'spawn_subdomain_suffix' );
+		register_setting( 'spawn_settings', 'spawn_brand_name' );
+		register_setting( 'spawn_settings', 'spawn_brand_logo_url' );
+		register_setting( 'spawn_settings', 'spawn_api_base_url' );
+
 		// Google OAuth settings.
 		register_setting( 'spawn_settings', 'spawn_google_client_id', [
 			'sanitize_callback' => function( $value ) {
@@ -219,6 +225,52 @@ class Admin {
 			'spawn-settings',
 			'spawn_openclaw_section',
 			[ 'name' => 'spawn_openclaw_token', 'type' => 'password' ]
+		);
+
+		// Branding section.
+		add_settings_section(
+			'spawn_branding_section',
+			__( 'Branding', 'spawn' ),
+			function() {
+				echo '<p>' . esc_html__( 'Customize branding, subdomain suffix, and API base URL.', 'spawn' ) . '</p>';
+			},
+			'spawn-settings'
+		);
+
+		add_settings_field(
+			'spawn_subdomain_suffix',
+			__( 'Subdomain Suffix', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_branding_section',
+			[ 'name' => 'spawn_subdomain_suffix', 'placeholder' => 'example.com' ]
+		);
+
+		add_settings_field(
+			'spawn_brand_name',
+			__( 'Brand Name', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_branding_section',
+			[ 'name' => 'spawn_brand_name', 'placeholder' => 'Spawn' ]
+		);
+
+		add_settings_field(
+			'spawn_brand_logo_url',
+			__( 'Brand Logo URL', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_branding_section',
+			[ 'name' => 'spawn_brand_logo_url', 'placeholder' => 'https://example.com/logo.png' ]
+		);
+
+		add_settings_field(
+			'spawn_api_base_url',
+			__( 'API Base URL', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_branding_section',
+			[ 'name' => 'spawn_api_base_url', 'placeholder' => 'https://api.example.com' ]
 		);
 
 		// Google OAuth section.
@@ -356,7 +408,7 @@ class Admin {
 							$status_class = self::get_status_class( $customer['status'] );
 							$is_subdomain = ! empty( $customer['subdomain'] );
 							$full_domain  = $is_subdomain
-								? $customer['domain'] . '.saraichinwag.com'
+								? $customer['domain'] . '.' . Branding::get_subdomain_suffix()
 								: $customer['domain'];
 							?>
 							<tr>

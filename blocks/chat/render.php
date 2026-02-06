@@ -9,6 +9,8 @@
  * @package Spawn
  */
 
+use Spawn\Branding;
+
 // Check for fullpage attribute.
 $is_fullpage = ! empty( $attributes['fullpage'] );
 $extra_class = $is_fullpage ? 'wp-block-spawn-chat--fullpage' : '';
@@ -19,6 +21,10 @@ $wrapper_attributes = get_block_wrapper_attributes( [
 	'data-session-key' => $session_key,
 ] );
 
+// Branding.
+$brand_name     = Branding::get_brand_name();
+$brand_logo_url = Branding::get_brand_logo_url();
+
 // Check if user is logged in.
 if ( ! is_user_logged_in() ) {
 	?>
@@ -26,8 +32,10 @@ if ( ! is_user_logged_in() ) {
 		<!-- Top navigation bar (Spawn branding) - always show -->
 		<div class="wp-block-spawn-chat__topnav">
 			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
-				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-				<span>Spawn <em>by Sarai Chinwag</em></span>
+				<?php if ( '' !== $brand_logo_url ) : ?>
+					<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+				<?php endif; ?>
+				<span><?php echo esc_html( $brand_name ); ?></span>
 			</a>
 			<nav class="wp-block-spawn-chat__nav">
 				<a href="<?php echo esc_url( home_url( '/spawn/login/' ) ); ?>">Log in</a>
@@ -52,8 +60,10 @@ if ( ! $customer && ! $is_admin ) {
 		<!-- Top navigation bar (Spawn branding) - always show -->
 		<div class="wp-block-spawn-chat__topnav">
 			<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
-				<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-				<span>Spawn <em>by Sarai Chinwag</em></span>
+				<?php if ( '' !== $brand_logo_url ) : ?>
+					<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+				<?php endif; ?>
+				<span><?php echo esc_html( $brand_name ); ?></span>
 			</a>
 			<nav class="wp-block-spawn-chat__nav">
 				<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
@@ -75,7 +85,7 @@ $username     = $current_user->display_name ?: $current_user->user_login;
 if ( $is_admin && ! $customer ) {
 	$chat_context = [
 		'customer_id' => 0,
-		'domain'      => 'saraichinwag.com',
+		'domain'      => Branding::get_subdomain_suffix(),
 		'status'      => 'admin',
 		'has_mobile'  => true,
 		'is_admin'    => true,
@@ -103,8 +113,10 @@ if ( $is_admin && ! $customer ) {
 			</svg>
 		</button>
 		<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="wp-block-spawn-chat__logo" title="Back to Spawn">
-			<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
-			<span>Spawn <em>by Sarai Chinwag</em></span>
+			<?php if ( '' !== $brand_logo_url ) : ?>
+				<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
+			<?php endif; ?>
+			<span><?php echo esc_html( $brand_name ); ?></span>
 		</a>
 		<nav class="wp-block-spawn-chat__nav">
 			<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>">Dashboard</a>

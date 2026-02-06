@@ -21,7 +21,7 @@ You can review the code to understand exactly how the system works.
 
 Your requests to the Spawn API are authenticated automatically using your configured token. No additional setup required.
 
-**API Base**: `https://api.spawn.saraichinwag.com`
+**API Base**: Configurable in Spawn Settings (Branding section).
 
 ## Available Abilities
 
