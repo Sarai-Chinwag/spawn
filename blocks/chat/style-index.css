@@ -21,10 +21,20 @@
 	width: 100%;
 	max-width: 100%;
 	height: 100vh;
+	height: 100dvh; /* Dynamic viewport height for mobile */
 	max-height: 100vh;
+	max-height: 100dvh;
 	margin: 0;
 	padding: 0;
 	overflow: hidden;
+}
+
+/* Account for WP admin bar when logged in */
+body.admin-bar .wp-block-spawn-chat--fullpage {
+	height: calc(100vh - 32px);
+	height: calc(100dvh - 32px);
+	max-height: calc(100vh - 32px);
+	max-height: calc(100dvh - 32px);
 }
 
 .wp-block-spawn-chat--fullpage .wp-block-spawn-chat__layout {
