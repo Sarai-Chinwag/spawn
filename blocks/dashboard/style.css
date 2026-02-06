@@ -58,7 +58,7 @@
 }
 
 /* Mobile topnav */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
 	.spawn-topnav {
 		padding: 8px 12px;
 		gap: 10px;
@@ -67,6 +67,7 @@
 	.spawn-topnav__logo {
 		gap: 8px;
 		font-size: 0.9em;
+		white-space: nowrap;
 	}
 
 	.spawn-topnav__logo img {
