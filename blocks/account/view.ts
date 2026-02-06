@@ -14,7 +14,28 @@ interface TiersMap {
 
 interface Customer {
 	vps_tier: string;
+	credit_balance?: number;
+	tier?: string;
 	[ key: string ]: unknown;
+}
+
+interface CreditBalanceResponse {
+	balance: number;
+	auto_refill?: {
+		enabled: boolean;
+		threshold: number;
+		amount: number;
+	};
+}
+
+interface AutoRefillSettings {
+	enabled: boolean;
+	threshold: number;
+	amount: number;
+}
+
+interface PurchaseResponse {
+	checkout_url?: string;
 }
 
 interface CustomerResponse {
@@ -126,6 +147,52 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 						${ currentTier.aiLimit.toLocaleString() } AI calls/month
 					</p>
 				</div>
+
+				<div class="wp-block-spawn-account__section section-credits">
+					<h3>Credits</h3>
+					<div class="credits-balance">
+						<span class="credits-amount">Loading...</span>
+						<span class="credits-label">available</span>
+					</div>
+					<div class="credits-purchase">
+						<label for="credits-amount">Add Credits</label>
+						<div class="credits-input-row">
+							<span class="credits-currency">$</span>
+							<input type="number" id="credits-amount" min="10" max="500" step="5" value="20" class="credits-input" />
+							<button type="button" class="wp-block-spawn-account__btn btn-purchase">
+								Buy Credits
+							</button>
+						</div>
+						<small class="credits-hint">Minimum $10. Credits never expire.</small>
+					</div>
+					<div class="auto-refill">
+						<h4>Auto-Refill</h4>
+						<p class="auto-refill-desc">Automatically add credits when your balance gets low.</p>
+						<label class="auto-refill-toggle">
+							<input type="checkbox" id="auto-refill-enabled" />
+							<span>Enable auto-refill</span>
+						</label>
+						<div class="auto-refill-settings" style="display: none;">
+							<div class="auto-refill-row">
+								<label for="auto-refill-threshold">When balance falls below</label>
+								<div class="auto-refill-input-wrap">
+									<span>$</span>
+									<input type="number" id="auto-refill-threshold" min="1" max="100" value="5" />
+								</div>
+							</div>
+							<div class="auto-refill-row">
+								<label for="auto-refill-amount">Add this amount</label>
+								<div class="auto-refill-input-wrap">
+									<span>$</span>
+									<input type="number" id="auto-refill-amount" min="10" max="100" value="20" />
+								</div>
+							</div>
+							<button type="button" class="wp-block-spawn-account__btn btn-save-auto-refill">
+								Save Auto-Refill Settings
+							</button>
+						</div>
+					</div>
+				</div>
 				
 				<div class="wp-block-spawn-account__section">
 					<h3>Change Plan</h3>
@@ -207,6 +274,97 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 						btn.textContent = tierInfo.price > currentTier.price ? 'Upgrade' : 'Downgrade';
 					} );
 			} );
+		} );
+
+		// Load credits balance and auto-refill settings
+		loadCreditsData( block, statusDiv );
+
+		// Purchase credits button
+		const purchaseBtn = block.querySelector< HTMLButtonElement >( '.btn-purchase' )!;
+		const creditsInput = block.querySelector< HTMLInputElement >( '#credits-amount' )!;
+		purchaseBtn.addEventListener( 'click', function (): void {
+			const amount = parseInt( creditsInput.value, 10 );
+			if ( amount < 10 ) {
+				showStatus( statusDiv, 'Minimum purchase is $10.', 'error' );
+				return;
+			}
+
+			purchaseBtn.disabled = true;
+			purchaseBtn.textContent = 'Processing...';
+
+			apiFetch< PurchaseResponse >( {
+				path: '/spawn/v1/credits/purchase',
+				method: 'POST',
+				data: { amount },
+			} )
+				.then( function ( response: PurchaseResponse ): void {
+					if ( response.checkout_url ) {
+						window.location.href = response.checkout_url;
+					}
+				} )
+				.catch( function ( error: ApiError ): void {
+					showStatus( statusDiv, error.message || 'Failed to create checkout.', 'error' );
+					purchaseBtn.disabled = false;
+					purchaseBtn.textContent = 'Buy Credits';
+				} );
+		} );
+
+		// Auto-refill toggle
+		const autoRefillCheckbox = block.querySelector< HTMLInputElement >( '#auto-refill-enabled' )!;
+		const autoRefillSettings = block.querySelector< HTMLElement >( '.auto-refill-settings' )!;
+		autoRefillCheckbox.addEventListener( 'change', function (): void {
+			autoRefillSettings.style.display = this.checked ? 'block' : 'none';
+			if ( ! this.checked ) {
+				// Disable auto-refill immediately when unchecked
+				apiFetch( {
+					path: '/spawn/v1/account/auto-refill',
+					method: 'POST',
+					data: { enabled: false, threshold: 5, amount: 20 },
+				} )
+					.then( function (): void {
+						showStatus( statusDiv, 'Auto-refill disabled.', 'success' );
+					} )
+					.catch( function ( error: ApiError ): void {
+						showStatus( statusDiv, error.message || 'Failed to update auto-refill.', 'error' );
+					} );
+			}
+		} );
+
+		// Save auto-refill settings
+		const saveAutoRefillBtn = block.querySelector< HTMLButtonElement >( '.btn-save-auto-refill' )!;
+		const thresholdInput = block.querySelector< HTMLInputElement >( '#auto-refill-threshold' )!;
+		const amountInput = block.querySelector< HTMLInputElement >( '#auto-refill-amount' )!;
+		saveAutoRefillBtn.addEventListener( 'click', function (): void {
+			const threshold = parseFloat( thresholdInput.value );
+			const amount = parseFloat( amountInput.value );
+
+			if ( threshold < 1 || threshold > 100 ) {
+				showStatus( statusDiv, 'Threshold must be between $1 and $100.', 'error' );
+				return;
+			}
+			if ( amount < 10 || amount > 100 ) {
+				showStatus( statusDiv, 'Refill amount must be between $10 and $100.', 'error' );
+				return;
+			}
+
+			saveAutoRefillBtn.disabled = true;
+			saveAutoRefillBtn.textContent = 'Saving...';
+
+			apiFetch( {
+				path: '/spawn/v1/account/auto-refill',
+				method: 'POST',
+				data: { enabled: true, threshold, amount },
+			} )
+				.then( function (): void {
+					showStatus( statusDiv, 'Auto-refill settings saved!', 'success' );
+					saveAutoRefillBtn.disabled = false;
+					saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
+				} )
+				.catch( function ( error: ApiError ): void {
+					showStatus( statusDiv, error.message || 'Failed to save settings.', 'error' );
+					saveAutoRefillBtn.disabled = false;
+					saveAutoRefillBtn.textContent = 'Save Auto-Refill Settings';
+				} );
 		} );
 
 		// Invoices button
@@ -322,5 +480,31 @@ document.addEventListener( 'DOMContentLoaded', function (): void {
 		modal.querySelector< HTMLButtonElement >( '.modal-close' )!.addEventListener( 'click', function (): void {
 			modal.remove();
 		} );
+	}
+
+	function loadCreditsData( block: HTMLElement, statusDiv: HTMLElement ): void {
+		const balanceEl = block.querySelector< HTMLElement >( '.credits-amount' );
+		const autoRefillCheckbox = block.querySelector< HTMLInputElement >( '#auto-refill-enabled' );
+		const autoRefillSettings = block.querySelector< HTMLElement >( '.auto-refill-settings' );
+		const thresholdInput = block.querySelector< HTMLInputElement >( '#auto-refill-threshold' );
+		const amountInput = block.querySelector< HTMLInputElement >( '#auto-refill-amount' );
+
+		if ( ! balanceEl ) return;
+
+		apiFetch< CreditBalanceResponse >( { path: '/spawn/v1/credits/balance' } )
+			.then( function ( response: CreditBalanceResponse ): void {
+				balanceEl.textContent = '$' + response.balance.toFixed( 2 );
+
+				if ( response.auto_refill && autoRefillCheckbox && autoRefillSettings && thresholdInput && amountInput ) {
+					autoRefillCheckbox.checked = response.auto_refill.enabled;
+					thresholdInput.value = response.auto_refill.threshold.toString();
+					amountInput.value = response.auto_refill.amount.toString();
+					autoRefillSettings.style.display = response.auto_refill.enabled ? 'block' : 'none';
+				}
+			} )
+			.catch( function ( error: ApiError ): void {
+				balanceEl.textContent = 'Error';
+				showStatus( statusDiv, error.message || 'Failed to load credits.', 'error' );
+			} );
 	}
 } );

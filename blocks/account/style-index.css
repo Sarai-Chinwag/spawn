@@ -305,3 +305,157 @@
         max-width: 100%;
     }
 }
+
+/* Credits Section */
+.section-credits {
+	background: linear-gradient(135deg, rgba(108, 99, 255, 0.08) 0%, rgba(31, 197, 226, 0.08) 100%);
+}
+
+.credits-balance {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
+}
+
+.credits-amount {
+	font-size: 2rem;
+	font-weight: 700;
+	color: #1f2933;
+}
+
+.credits-label {
+	font-size: 1rem;
+	color: #666;
+}
+
+.credits-purchase {
+	margin-bottom: 1.5rem;
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.credits-purchase label {
+	display: block;
+	font-weight: 500;
+	margin-bottom: 0.5rem;
+}
+
+.credits-input-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.credits-currency {
+	font-size: 1.25rem;
+	font-weight: 500;
+	color: #666;
+}
+
+.credits-input {
+	width: 100px;
+	padding: 0.5rem 0.75rem;
+	font-size: 1rem;
+	border: 2px solid #e5e7eb;
+	border-radius: 4px;
+}
+
+.credits-input:focus {
+	outline: none;
+	border-color: #1fc5e2;
+}
+
+.credits-hint {
+	display: block;
+	margin-top: 0.5rem;
+	color: #666;
+	font-size: 0.875rem;
+}
+
+.btn-purchase {
+	background: linear-gradient(135deg, #1fc5e2 0%, #6c63ff 100%);
+	color: #fff;
+}
+
+.btn-purchase:hover {
+	background: linear-gradient(135deg, #19b0cb 0%, #5a52e0 100%);
+}
+
+/* Auto-refill */
+.auto-refill h4 {
+	margin: 0 0 0.5rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.auto-refill-desc {
+	margin: 0 0 1rem;
+	color: #666;
+	font-size: 0.875rem;
+}
+
+.auto-refill-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	margin-bottom: 1rem;
+}
+
+.auto-refill-toggle input {
+	width: 18px;
+	height: 18px;
+	accent-color: #1fc5e2;
+}
+
+.auto-refill-settings {
+	padding: 1rem;
+	background: rgba(255, 255, 255, 0.5);
+	border-radius: 6px;
+}
+
+.auto-refill-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.auto-refill-row label {
+	font-size: 0.875rem;
+	color: #374151;
+}
+
+.auto-refill-input-wrap {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.auto-refill-input-wrap span {
+	color: #666;
+}
+
+.auto-refill-input-wrap input {
+	width: 70px;
+	padding: 0.4rem 0.5rem;
+	font-size: 0.9rem;
+	border: 2px solid #e5e7eb;
+	border-radius: 4px;
+}
+
+.auto-refill-input-wrap input:focus {
+	outline: none;
+	border-color: #1fc5e2;
+}
+
+.btn-save-auto-refill {
+	width: 100%;
+	background: #1fc5e2;
+	color: #fff;
+}
+
+.btn-save-auto-refill:hover {
+	background: #19b0cb;
+}
