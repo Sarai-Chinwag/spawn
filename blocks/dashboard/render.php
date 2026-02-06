@@ -179,27 +179,6 @@ foreach ( $servers as $server ) {
 		</div>
 	</nav>
 
-	<header class="spawn-dashboard__header">
-		<div class="spawn-dashboard__header-text">
-			<?php if ( $is_admin_mode ) : ?>
-				<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Admin Dashboard', 'spawn' ); ?></p>
-				<h2 class="spawn-dashboard__title"><?php echo esc_html__( 'Site Management', 'spawn' ); ?></h2>
-			<?php else : ?>
-				<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Spawn Dashboard', 'spawn' ); ?></p>
-				<h2 class="spawn-dashboard__title"><?php echo esc_html__( 'Manage your AI servers', 'spawn' ); ?></h2>
-			<?php endif; ?>
-		</div>
-		<div class="spawn-dashboard__credit">
-			<span class="spawn-dashboard__credit-label">
-				<?php echo $is_admin_mode ? esc_html__( 'Total Customer Credits', 'spawn' ) : esc_html__( 'Credit Balance', 'spawn' ); ?>
-			</span>
-			<span class="spawn-dashboard__credit-value">
-				<?php echo esc_html( number_format_i18n( $credit_balance, 2 ) ); ?>
-				<span class="spawn-dashboard__credit-unit"><?php echo esc_html__( 'credits', 'spawn' ); ?></span>
-			</span>
-		</div>
-	</header>
-
 	<nav class="spawn-dashboard__tabs" aria-label="<?php echo esc_attr__( 'Dashboard tabs', 'spawn' ); ?>">
 		<a class="spawn-dashboard__tab<?php echo $overview_is_active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $overview_url ); ?>" data-tab="overview" aria-current="<?php echo esc_attr( $overview_is_active ? 'page' : 'false' ); ?>">
 			<?php echo esc_html__( 'Overview', 'spawn' ); ?>

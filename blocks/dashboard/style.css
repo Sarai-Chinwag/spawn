@@ -74,66 +74,13 @@
 	}
 }
 
-.spawn-dashboard__header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-lg, 20px);
-	background: var(--color-background, #fff);
-	border: 3px solid var(--color-border, #ddd);
-	border-radius: 12px;
-	padding: var(--space-lg, 20px);
-	margin: 0 var(--space-lg, 20px);
-}
-
-.spawn-dashboard__eyebrow {
-	margin: 0 0 0.5rem;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	font-size: 0.75rem;
-	color: var(--color-text-light, #666);
-}
-
-.spawn-dashboard__title {
-	margin: 0;
-	font-size: 1.75rem;
-	font-family: var(--font-heading, 'Gluten', sans-serif);
-}
-
-.spawn-dashboard__credit {
-	text-align: right;
-	min-width: 180px;
-}
-
-.spawn-dashboard__credit-label {
-	display: block;
-	font-size: 0.75rem;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
-	color: var(--color-text-light, #666);
-}
-
-.spawn-dashboard__credit-value {
-	display: inline-flex;
-	align-items: baseline;
-	gap: 0.35rem;
-	font-size: 1.6rem;
-	font-weight: 700;
-}
-
-.spawn-dashboard__credit-unit {
-	font-size: 0.9rem;
-	font-weight: 500;
-	color: var(--color-text-light, #666);
-}
-
+/* ===== TABS ===== */
 .spawn-dashboard__tabs {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
-	margin: var(--space-lg, 20px) 0;
-	padding: 0 var(--space-lg, 20px);
+	margin: 0 0 var(--space-lg, 20px);
+	padding: var(--space-lg, 20px) var(--space-lg, 20px) 0;
 }
 
 .spawn-dashboard__tab {
