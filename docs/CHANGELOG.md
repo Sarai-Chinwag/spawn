@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.7 - 2026-02-06
+
+- Update README: clarify self-spawn requires VPS, not shared hosting
+
 ## 0.6.6 - 2026-02-06
 
 - Remove duplicate AI credential fields from Spawn settings (BYOK approach)

@@ -16,9 +16,12 @@ Every Spawn installation can be both a consumer AND a provider. Install it for y
 Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install OpenClaw" — done. You now have an AI agent.
 
 **Requirements:**
-- WordPress on a VPS (not shared hosting)
+- WordPress on a **VPS or dedicated server** (shared hosting won't work)
+- Shell access (shell_exec enabled in PHP)
 - Node.js v18+
 - Your own AI API key (Anthropic, OpenAI, or Google)
+
+> ⚠️ **Shared hosting users:** Self-spawn requires process control that shared hosting doesn't provide. Use the SaaS version instead — sign up and get a fully provisioned VPS with everything set up.
 
 **What you get:**
 - [OpenClaw](https://github.com/openclaw/openclaw) AI agent running locally
