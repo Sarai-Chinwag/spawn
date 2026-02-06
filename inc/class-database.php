@@ -71,6 +71,7 @@ class Database {
 			domain_price decimal(10,2) DEFAULT NULL,
 			domain_expires_at datetime DEFAULT NULL,
 			tier varchar(50) NOT NULL DEFAULT 'starter',
+			billing_mode varchar(20) NOT NULL DEFAULT 'managed',
 			wants_website tinyint(1) NOT NULL DEFAULT 1,
 			hetzner_type varchar(50) NOT NULL DEFAULT 'cpx21',
 			hetzner_location varchar(50) NOT NULL DEFAULT 'ash',
