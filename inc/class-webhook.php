@@ -235,6 +235,7 @@ class Webhook {
 			'customer_id'    => $customer_id,
 			'customer_email' => $email,
 			'domain'         => $domain,
+			'domain_type'    => $domain_type,
 			'tier'           => $tier,
 			'wants_website'  => $wants_website,
 			'subdomain'      => $is_subdomain,

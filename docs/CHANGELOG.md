@@ -2,12 +2,13 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
-## Unreleased
+## 0.6.1 - 2026-02-06
 
 - Fix documentation drift: README pricing (Pro=0), add missing abilities/blocks, sync version constant, update cost-breakdown with final decisions
 - Fix Pro tier credits: $10 → $20 (Config class was wrong, README was right)
 - Make plugin fully configurable: add Branding class with settings for subdomain suffix, brand name, logo URL, and API base URL; remove all hardcoded saraichinwag.com references from runtime code
 - Update README: document Branding settings, remove hardcoded domain references from architecture diagram
+- fix: pass domain_type to provisioner for BYOD support
 
 ## [0.6.0] - 2026-02-06
 

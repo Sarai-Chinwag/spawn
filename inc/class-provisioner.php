@@ -47,7 +47,8 @@ class Provisioner {
 		// Determine if domain registration should be skipped.
 		// Skip for subdomains or BYOD (bring your own domain).
 		$is_subdomain              = $params['subdomain'] ?? false;
-		$skip_domain_registration  = $is_subdomain;
+		$domain_type               = $params['domain_type'] ?? ( $is_subdomain ? 'subdomain' : 'register' );
+		$skip_domain_registration  = $is_subdomain || 'byod' === $domain_type;
 
 		// Check if Stripe is in test mode - use dry_run for provisioner.
 		$stripe_settings = get_option( 'stripe_integration_settings', [] );
