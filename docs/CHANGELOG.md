@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.4 - 2026-02-06
+
+- Remove wp-ai-client from composer.json to prevent conflicts with plugin version
+
 ## 0.6.3 - 2026-02-06
 
 - Make wp-ai-client optional: add AI credential settings directly to Spawn as fallback

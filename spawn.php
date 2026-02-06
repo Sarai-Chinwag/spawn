@@ -3,7 +3,7 @@
  * Plugin Name: Spawn
  * Plugin URI: https://github.com/Sarai-Chinwag/spawn
  * Description: AI Website Service by Sarai Chinwag - spawn AI-powered WordPress sites
- * Version: 0.6.3
+ * Version: 0.6.4
  * Author: Sarai Chinwag
  * Author URI: https://saraichinwag.com
  * License: GPL-2.0-or-later
@@ -24,12 +24,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SPAWN_VERSION', '0.6.3' );
+define( 'SPAWN_VERSION', '0.6.4' );
 define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );
 
-// Composer autoloader (loads wp-ai-client if installed via composer).
+// Composer autoloader (for any composer dependencies).
 $composer_autoload = SPAWN_PLUGIN_DIR . 'vendor/autoload.php';
 if ( file_exists( $composer_autoload ) ) {
 	require_once $composer_autoload;
@@ -60,11 +60,6 @@ function init(): void {
 	Cron::init();
 	Cleanup::init();
 	Self_Spawn::init();
-
-	// Initialize wp-ai-client if bundled via Composer.
-	if ( class_exists( 'WordPress\\AI_Client\\AI_Client' ) ) {
-		\WordPress\AI_Client\AI_Client::init();
-	}
 
 	// Admin settings.
 	if ( is_admin() ) {
