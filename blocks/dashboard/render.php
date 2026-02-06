@@ -69,6 +69,19 @@ foreach ( $servers as $server ) {
 }
 ?>
 <div <?php echo $wrapper_attributes; ?> data-active-tab="<?php echo esc_attr( $active_tab ); ?>">
+	<!-- Top navigation bar (Spawn branding) -->
+	<nav class="spawn-topnav">
+		<a href="<?php echo esc_url( home_url( '/spawn/' ) ); ?>" class="spawn-topnav__logo" title="Back to Spawn">
+			<img src="https://saraichinwag.com/wp-content/uploads/2023/08/sarai-chinwag.jpeg" alt="Sarai Chinwag" width="32" height="32" />
+			<span>Spawn <em>by Sarai Chinwag</em></span>
+		</a>
+		<div class="spawn-topnav__links">
+			<a href="<?php echo esc_url( home_url( '/spawn/chat/' ) ); ?>">Chat</a>
+			<a href="<?php echo esc_url( home_url( '/spawn/dashboard/' ) ); ?>" class="is-active">Dashboard</a>
+			<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
+		</div>
+	</nav>
+
 	<header class="spawn-dashboard__header">
 		<div class="spawn-dashboard__header-text">
 			<p class="spawn-dashboard__eyebrow"><?php echo esc_html__( 'Spawn Dashboard', 'spawn' ); ?></p>
