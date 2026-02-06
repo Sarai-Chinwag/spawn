@@ -58,6 +58,7 @@ function init(): void {
 	Abilities\Abilities::init();
 	User_Role::init();
 	Cron::init();
+	Templates::init();
 	Cleanup::init();
 	Self_Spawn::init();
 
