@@ -36,3 +36,21 @@
 	color: #888;
 	font-style: italic;
 }
+
+.wp-block-spawn-dashboard__preview-card--usage {
+	background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, rgba(31, 197, 226, 0.1) 100%);
+}
+
+.wp-block-spawn-dashboard__preview-bar {
+	height: 6px;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 3px;
+	margin: 0.5rem 0;
+	overflow: hidden;
+}
+
+.wp-block-spawn-dashboard__preview-bar-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #1fc5e2 0%, #6c63ff 100%);
+	border-radius: 3px;
+}

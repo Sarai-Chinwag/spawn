@@ -82,6 +82,18 @@ $domain_count   = count( $domains );
 $active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
 $active_tab     = in_array( $active_tab, [ 'overview', 'servers', 'domains' ], true ) ? $active_tab : 'overview';
 
+// Fetch AI usage data for this month.
+$tier             = $customer ? ( $customer['tier'] ?? 'starter' ) : 'starter';
+$tier_config      = \Spawn\Config::get_tier( $tier );
+$included_credits = $tier_config['included_credits'] ?? 5.0;
+$usage_data       = $customer ? \Spawn\Database::get_server_usage( (int) $customer['id'], 1 ) : [];
+$current_usage    = $usage_data[0] ?? null;
+$credits_used     = (float) ( $current_usage['credits_used'] ?? 0 );
+$requests_count   = (int) ( $current_usage['requests_count'] ?? 0 );
+$tokens_input     = (int) ( $current_usage['tokens_input'] ?? 0 );
+$tokens_output    = (int) ( $current_usage['tokens_output'] ?? 0 );
+$usage_percent    = $included_credits > 0 ? min( 100, ( $credits_used / $included_credits ) * 100 ) : 0;
+
 $overview_url       = add_query_arg( [ 'tab' => 'overview' ], home_url( '/spawn/dashboard/' ) );
 $servers_url        = add_query_arg( [ 'tab' => 'servers' ], home_url( '/spawn/dashboard/' ) );
 $domains_url        = add_query_arg( [ 'tab' => 'domains' ], home_url( '/spawn/dashboard/' ) );
@@ -158,6 +170,34 @@ foreach ( $servers as $server ) {
 				<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
 					<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
 				</a>
+			</div>
+			<div class="spawn-dashboard__card spawn-dashboard__card--usage">
+				<h3><?php echo esc_html__( 'AI Usage This Month', 'spawn' ); ?></h3>
+				<div class="spawn-dashboard__usage-stats">
+					<div class="spawn-dashboard__usage-main">
+						<span class="spawn-dashboard__usage-value">$<?php echo esc_html( number_format( $credits_used, 2 ) ); ?></span>
+						<span class="spawn-dashboard__usage-of"><?php echo esc_html__( 'of', 'spawn' ); ?></span>
+						<span class="spawn-dashboard__usage-total">$<?php echo esc_html( number_format( $included_credits, 2 ) ); ?></span>
+						<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'included', 'spawn' ); ?></span>
+					</div>
+					<div class="spawn-dashboard__usage-bar">
+						<div class="spawn-dashboard__usage-bar-fill" style="width: <?php echo esc_attr( $usage_percent ); ?>%;"></div>
+					</div>
+					<div class="spawn-dashboard__usage-details">
+						<span title="<?php echo esc_attr__( 'API Requests', 'spawn' ); ?>">
+							<strong><?php echo esc_html( number_format_i18n( $requests_count ) ); ?></strong> <?php echo esc_html__( 'requests', 'spawn' ); ?>
+						</span>
+						<span title="<?php echo esc_attr__( 'Input Tokens', 'spawn' ); ?>">
+							<strong><?php echo esc_html( number_format_i18n( $tokens_input ) ); ?></strong> <?php echo esc_html__( 'in', 'spawn' ); ?>
+						</span>
+						<span title="<?php echo esc_attr__( 'Output Tokens', 'spawn' ); ?>">
+							<strong><?php echo esc_html( number_format_i18n( $tokens_output ) ); ?></strong> <?php echo esc_html__( 'out', 'spawn' ); ?>
+						</span>
+					</div>
+				</div>
+				<?php if ( $credits_used >= $included_credits ) : ?>
+					<p class="spawn-dashboard__usage-warning"><?php echo esc_html__( 'You\'ve used your included credits. Additional usage draws from your balance.', 'spawn' ); ?></p>
+				<?php endif; ?>
 			</div>
 			<div class="spawn-dashboard__card">
 				<h3><?php echo esc_html__( 'Servers', 'spawn' ); ?></h3>

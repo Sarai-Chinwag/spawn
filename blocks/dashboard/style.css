@@ -312,3 +312,80 @@
 		align-items: flex-start;
 	}
 }
+
+/* ===== USAGE CARD ===== */
+.spawn-dashboard__card--usage {
+	background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, rgba(31, 197, 226, 0.1) 100%);
+	border-color: rgba(108, 99, 255, 0.3);
+}
+
+.spawn-dashboard__usage-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.spawn-dashboard__usage-main {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+.spawn-dashboard__usage-value {
+	font-size: 1.75rem;
+	font-weight: 700;
+	color: var(--color-text, #1f2933);
+}
+
+.spawn-dashboard__usage-of {
+	font-size: 0.9rem;
+	color: var(--color-text-light, #666);
+}
+
+.spawn-dashboard__usage-total {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--color-text, #1f2933);
+}
+
+.spawn-dashboard__usage-label {
+	font-size: 0.9rem;
+	color: var(--color-text-light, #666);
+}
+
+.spawn-dashboard__usage-bar {
+	height: 8px;
+	background: rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.spawn-dashboard__usage-bar-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--color-primary, #1fc5e2) 0%, #6c63ff 100%);
+	border-radius: 4px;
+	transition: width 0.3s ease;
+}
+
+.spawn-dashboard__usage-details {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	font-size: 0.85rem;
+	color: var(--color-text-light, #666);
+}
+
+.spawn-dashboard__usage-details strong {
+	color: var(--color-text, #1f2933);
+	font-weight: 600;
+}
+
+.spawn-dashboard__usage-warning {
+	margin: 0.75rem 0 0;
+	padding: 0.5rem 0.75rem;
+	background: rgba(255, 110, 110, 0.15);
+	border-radius: 6px;
+	color: #c53030;
+	font-size: 0.85rem;
+}
