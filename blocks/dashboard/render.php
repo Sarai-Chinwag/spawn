@@ -224,43 +224,23 @@ foreach ( $servers as $server ) {
 					<?php echo esc_html__( 'Open Chat', 'spawn' ); ?>
 				</a>
 			</div>
-			<div class="spawn-dashboard__card spawn-dashboard__card--balance">
-				<h3><?php echo esc_html__( 'Credit Balance', 'spawn' ); ?></h3>
-				<p class="spawn-dashboard__balance">
-					<?php echo esc_html( number_format_i18n( $credit_balance, 2 ) ); ?>
-					<span><?php echo esc_html__( 'credits', 'spawn' ); ?></span>
-				</p>
-				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Top up anytime to keep your AI online.', 'spawn' ); ?></p>
-				<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
-					<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
-				</a>
-			</div>
-			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Servers', 'spawn' ); ?></h3>
-				<p class="spawn-dashboard__balance">
-					<?php echo esc_html( number_format_i18n( $server_count ) ); ?>
-					<span><?php echo esc_html__( 'active', 'spawn' ); ?></span>
-				</p>
-				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Manage tiers, status, and WordPress installs.', 'spawn' ); ?></p>
-			</div>
-			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Domains', 'spawn' ); ?></h3>
-				<p class="spawn-dashboard__balance">
-					<?php echo esc_html( number_format_i18n( $domain_count ) ); ?>
-					<span><?php echo esc_html__( 'registered', 'spawn' ); ?></span>
-				</p>
-				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Track renewals and assign domains.', 'spawn' ); ?></p>
-			</div>
-			<div class="spawn-dashboard__card">
-				<h3><?php echo esc_html__( 'Quick Actions', 'spawn' ); ?></h3>
-				<div class="spawn-dashboard__actions">
-					<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/checkout/' ) ); ?>">
-						<?php echo esc_html__( 'Spawn New AI', 'spawn' ); ?>
-					</a>
-					<a class="spawn-dashboard__button spawn-dashboard__button--ghost" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
-						<?php echo esc_html__( 'Manage Account', 'spawn' ); ?>
+			<?php if ( ! $is_byok ) : ?>
+				<div class="spawn-dashboard__card spawn-dashboard__card--balance">
+					<h3><?php echo esc_html__( 'Credit Balance', 'spawn' ); ?></h3>
+					<p class="spawn-dashboard__balance">
+						$<?php echo esc_html( number_format( $credit_balance, 2 ) ); ?>
+					</p>
+					<a class="spawn-dashboard__button" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
+						<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
 					</a>
 				</div>
+			<?php endif; ?>
+			<div class="spawn-dashboard__card">
+				<h3><?php echo esc_html__( 'Account', 'spawn' ); ?></h3>
+				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Manage billing, credits, and settings.', 'spawn' ); ?></p>
+				<a class="spawn-dashboard__button spawn-dashboard__button--ghost" href="<?php echo esc_url( home_url( '/spawn/account/' ) ); ?>">
+					<?php echo esc_html__( 'Manage Account', 'spawn' ); ?>
+				</a>
 			</div>
 		</div>
 	</section>

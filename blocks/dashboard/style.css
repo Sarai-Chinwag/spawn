@@ -64,6 +64,7 @@
 	max-width: 92%;
 	margin-left: auto;
 	margin-right: auto;
+	padding: var(--space-lg, 20px);
 	color: var(--color-text, #1f2933);
 }
 
@@ -153,7 +154,6 @@
 
 .spawn-dashboard__panel {
 	display: none;
-	padding: var(--space-lg, 20px);
 }
 
 .spawn-dashboard__panel.is-active {
