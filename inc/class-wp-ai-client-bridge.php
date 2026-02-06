@@ -46,16 +46,29 @@ class WP_AI_Client_Bridge {
 	 * @return array<string, string> Credentials keyed by provider ID (e.g., ['anthropic' => 'sk-...']).
 	 */
 	public static function get_credentials(): array {
-		$credentials = get_option( self::WP_AI_CLIENT_OPTION, array() );
+		$valid_credentials = array();
 
-		if ( ! is_array( $credentials ) ) {
-			return array();
+		// First, try wp-ai-client credentials.
+		$wp_ai_credentials = get_option( self::WP_AI_CLIENT_OPTION, array() );
+
+		if ( is_array( $wp_ai_credentials ) ) {
+			foreach ( $wp_ai_credentials as $provider_id => $api_key ) {
+				if ( is_string( $api_key ) && '' !== trim( $api_key ) ) {
+					$valid_credentials[ $provider_id ] = $api_key;
+				}
+			}
 		}
 
-		// Filter to only include non-empty string values.
-		$valid_credentials = array();
-		foreach ( $credentials as $provider_id => $api_key ) {
+		// Fallback/override: check Spawn settings for direct credentials.
+		$spawn_credentials = array(
+			'anthropic' => get_option( 'spawn_anthropic_api_key', '' ),
+			'openai'    => get_option( 'spawn_openai_api_key', '' ),
+			'google'    => get_option( 'spawn_google_ai_api_key', '' ),
+		);
+
+		foreach ( $spawn_credentials as $provider_id => $api_key ) {
 			if ( is_string( $api_key ) && '' !== trim( $api_key ) ) {
+				// Spawn settings override wp-ai-client.
 				$valid_credentials[ $provider_id ] = $api_key;
 			}
 		}

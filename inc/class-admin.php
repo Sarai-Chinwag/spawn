@@ -107,6 +107,11 @@ class Admin {
 			},
 		] );
 
+		// AI Provider credentials (used by self-spawn when wp-ai-client not installed).
+		register_setting( 'spawn_settings', 'spawn_anthropic_api_key' );
+		register_setting( 'spawn_settings', 'spawn_openai_api_key' );
+		register_setting( 'spawn_settings', 'spawn_google_ai_api_key' );
+
 		// Stripe section - now links to stripe-integration settings.
 		add_settings_section(
 			'spawn_stripe_section',
@@ -301,6 +306,41 @@ class Admin {
 			[ 'name' => 'spawn_google_client_secret', 'type' => 'password' ]
 		);
 
+		// AI Credentials section (fallback when wp-ai-client not installed).
+		add_settings_section(
+			'spawn_ai_credentials_section',
+			__( 'AI Provider Credentials', 'spawn' ),
+			[ __CLASS__, 'render_ai_credentials_section_description' ],
+			'spawn-settings'
+		);
+
+		add_settings_field(
+			'spawn_anthropic_api_key',
+			__( 'Anthropic API Key', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_ai_credentials_section',
+			[ 'name' => 'spawn_anthropic_api_key', 'type' => 'password', 'description' => __( 'For Claude models', 'spawn' ) ]
+		);
+
+		add_settings_field(
+			'spawn_openai_api_key',
+			__( 'OpenAI API Key', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_ai_credentials_section',
+			[ 'name' => 'spawn_openai_api_key', 'type' => 'password', 'description' => __( 'For GPT models', 'spawn' ) ]
+		);
+
+		add_settings_field(
+			'spawn_google_ai_api_key',
+			__( 'Google AI API Key', 'spawn' ),
+			[ __CLASS__, 'render_text_field' ],
+			'spawn-settings',
+			'spawn_ai_credentials_section',
+			[ 'name' => 'spawn_google_ai_api_key', 'type' => 'password', 'description' => __( 'For Gemini models', 'spawn' ) ]
+		);
+
 		// Self-Spawn section.
 		add_settings_section(
 			'spawn_self_spawn_section',
@@ -323,6 +363,23 @@ class Admin {
 			'<a href="' . esc_url( $stripe_settings_url ) . '">' . esc_html__( 'Stripe Integration', 'spawn' ) . '</a>'
 		);
 		echo '</p>';
+	}
+
+	/**
+	 * Render AI credentials section description.
+	 */
+	public static function render_ai_credentials_section_description(): void {
+		$has_wp_ai_client = WP_AI_Client_Bridge::is_wp_ai_client_active();
+
+		if ( $has_wp_ai_client ) {
+			echo '<p>';
+			esc_html_e( 'AI credentials detected from wp-ai-client plugin. You can override them here if needed.', 'spawn' );
+			echo '</p>';
+		} else {
+			echo '<p>';
+			esc_html_e( 'Enter your AI provider API keys for self-spawn. At least one provider is required.', 'spawn' );
+			echo '</p>';
+		}
 	}
 
 	/**

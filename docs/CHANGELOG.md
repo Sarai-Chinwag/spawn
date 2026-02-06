@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## 0.6.3 - 2026-02-06
+
+- Make wp-ai-client optional: add AI credential settings directly to Spawn as fallback
+
 ## 0.6.2 - 2026-02-06
 
 - Make Stripe plugin optional: remove hard dependency, gracefully handle missing Stripe in REST endpoints
