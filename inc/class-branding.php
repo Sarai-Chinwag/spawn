@@ -57,4 +57,24 @@ class Branding {
 	public static function get_full_subdomain( string $subdomain ): string {
 		return $subdomain . '.' . self::get_subdomain_suffix();
 	}
+
+	/**
+	 * Get formatted brand name HTML.
+	 *
+	 * Formats "Spawn by Sarai Chinwag" as:
+	 * <strong>Spawn</strong> <em>by Sarai Chinwag</em>
+	 *
+	 * @return string HTML for the brand name.
+	 */
+	public static function get_brand_name_html(): string {
+		$name = self::get_brand_name();
+
+		// Check if name contains " by " to split
+		if ( preg_match( '/^(.+?)(\s+by\s+.+)$/i', $name, $matches ) ) {
+			return '<strong>' . esc_html( $matches[1] ) . '</strong><em>' . esc_html( $matches[2] ) . '</em>';
+		}
+
+		// No "by" found, return as-is
+		return '<strong>' . esc_html( $name ) . '</strong>';
+	}
 }

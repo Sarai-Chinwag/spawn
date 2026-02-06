@@ -1,104 +1,151 @@
+/* ===== LOGIN BLOCK ===== */
 .wp-block-spawn-login {
-	/* Width controlled by theme's responsive rules */
-	margin-top: 2rem;
-	margin-bottom: 2rem;
-	padding: 2rem;
-	background: #fff;
-	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	width: 92%;
+	max-width: 92%;
+	margin: 2rem auto;
+	padding: var(--space-xl, 30px);
+	background: var(--color-background, #fff);
+	border-radius: 12px;
+	border: 3px solid var(--color-border, #ddd);
+	box-shadow: 0 12px 30px rgba(31, 41, 51, 0.08);
+}
+
+@media (min-width: 992px) {
+	.wp-block-spawn-login {
+		width: 100%;
+		max-width: 420px;
+	}
 }
 
 .wp-block-spawn-login h2 {
 	margin: 0 0 1.5rem;
 	text-align: center;
-	font-size: 1.5rem;
+	font-size: 1.75rem;
+	font-family: var(--font-heading, 'Gluten', sans-serif);
+	color: var(--color-text, #1f2933);
 }
 
+/* ===== FORM FIELDS ===== */
 .wp-block-spawn-login__field {
-	margin-bottom: 1rem;
+	margin-bottom: 1.25rem;
 }
 
 .wp-block-spawn-login__field label {
 	display: block;
 	margin-bottom: 0.5rem;
-	font-weight: 500;
+	font-weight: 600;
+	font-size: 0.9rem;
+	color: var(--color-text, #1f2933);
 }
 
 .wp-block-spawn-login__field input {
 	width: 100%;
-	padding: 0.75rem;
-	border: 1px solid #ddd;
-	border-radius: 4px;
+	padding: 0.85rem 1rem;
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 8px;
 	font-size: 1rem;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wp-block-spawn-login__field input:focus {
 	outline: none;
-	border-color: #007cba;
-	box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+	border-color: var(--color-primary, #1fc5e2);
+	box-shadow: 0 0 0 3px rgba(31, 197, 226, 0.15);
 }
 
+/* ===== BUTTONS ===== */
 .wp-block-spawn-login__submit {
 	width: 100%;
-	padding: 0.75rem;
-	background: #007cba;
+	padding: 0.85rem 1.5rem;
+	background: var(--color-primary, #1fc5e2);
 	color: #fff;
-	border: none;
-	border-radius: 4px;
+	border: 2px solid var(--color-secondary, #ff6eb1);
+	border-radius: 8px;
 	font-size: 1rem;
-	font-weight: 500;
+	font-weight: 600;
 	cursor: pointer;
-	transition: background 0.2s;
+	transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wp-block-spawn-login__submit:hover {
-	background: #005a87;
+	background: var(--color-secondary, #ff6eb1);
+	transform: translateY(-1px);
+	box-shadow: 0 8px 18px rgba(31, 197, 226, 0.25);
 }
 
 .wp-block-spawn-login__submit:disabled {
-	background: #ccc;
+	background: var(--color-text-light, #666);
+	border-color: var(--color-text-light, #666);
 	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
 }
 
+/* ===== MESSAGES ===== */
 .wp-block-spawn-login__error {
-	padding: 0.75rem;
-	margin-bottom: 1rem;
-	background: #fef2f2;
+	padding: 0.85rem 1rem;
+	margin-bottom: 1.25rem;
+	background: rgba(220, 38, 38, 0.1);
 	color: #dc2626;
-	border-radius: 4px;
-	font-size: 0.875rem;
+	border-radius: 8px;
+	font-size: 0.9rem;
+	border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .wp-block-spawn-login__success {
-	padding: 0.75rem;
-	margin-bottom: 1rem;
-	background: #f0fdf4;
+	padding: 0.85rem 1rem;
+	margin-bottom: 1.25rem;
+	background: rgba(22, 163, 74, 0.1);
 	color: #16a34a;
-	border-radius: 4px;
-	font-size: 0.875rem;
+	border-radius: 8px;
+	font-size: 0.9rem;
+	border: 1px solid rgba(22, 163, 74, 0.2);
 }
 
 .wp-block-spawn-login__info {
-	color: #666;
-	font-size: 0.9rem;
+	color: var(--color-text-light, #666);
+	font-size: 0.95rem;
 	margin-bottom: 1.5rem;
+	text-align: center;
 }
 
+/* ===== LINKS ===== */
 .wp-block-spawn-login__forgot-link {
 	text-align: center;
-	margin-top: 0.5rem;
+	margin-top: 0.75rem;
 	margin-bottom: 1rem;
-	font-size: 0.875rem;
+	font-size: 0.9rem;
 }
 
 .wp-block-spawn-login__forgot-link a {
-	color: #666;
+	color: var(--color-text-light, #666);
+	text-decoration: none;
+	transition: color 0.2s ease;
 }
 
 .wp-block-spawn-login__forgot-link a:hover {
 	color: var(--color-primary, #1fc5e2);
 }
 
+.wp-block-spawn-login__register-link {
+	margin-top: 1.25rem;
+	text-align: center;
+	font-size: 0.9rem;
+	color: var(--color-text-light, #666);
+}
+
+.wp-block-spawn-login__register-link a {
+	color: var(--color-primary, #1fc5e2);
+	text-decoration: none;
+	font-weight: 600;
+	transition: color 0.2s ease;
+}
+
+.wp-block-spawn-login__register-link a:hover {
+	color: var(--color-secondary, #ff6eb1);
+}
+
+/* ===== OAUTH ===== */
 .wp-block-spawn-login__oauth {
 	margin-bottom: 1.5rem;
 }
@@ -109,25 +156,29 @@
 	align-items: center;
 	justify-content: center;
 	gap: 0.6rem;
-	padding: 0.7rem 0.9rem;
+	padding: 0.85rem 1rem;
 	background: #fff;
-	color: #1f1f1f;
-	border: 1px solid #dadce0;
-	border-radius: 6px;
+	color: var(--color-text, #1f2933);
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 8px;
 	font-size: 1rem;
 	font-weight: 500;
 	cursor: pointer;
-	transition: box-shadow 0.2s, border-color 0.2s;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wp-block-spawn-login__google:hover {
-	border-color: #c6c6c6;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+	border-color: var(--color-primary, #1fc5e2);
+	box-shadow: 0 4px 12px rgba(31, 197, 226, 0.15);
 }
 
 .wp-block-spawn-login__google:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+}
+
+.wp-block-spawn-login__google.is-loading {
+	opacity: 0.7;
 }
 
 .wp-block-spawn-login__google-icon {
@@ -138,10 +189,10 @@
 
 .wp-block-spawn-login__divider {
 	position: relative;
-	margin: 1rem 0 0.5rem;
+	margin: 1.25rem 0;
 	text-align: center;
-	color: #777;
-	font-size: 0.875rem;
+	color: var(--color-text-light, #666);
+	font-size: 0.85rem;
 }
 
 .wp-block-spawn-login__divider::before {
@@ -150,60 +201,65 @@
 	left: 0;
 	right: 0;
 	top: 50%;
-	border-top: 1px solid #eee;
+	border-top: 1px solid var(--color-border, #ddd);
 	transform: translateY(-50%);
 }
 
 .wp-block-spawn-login__divider span {
 	position: relative;
-	background: #fff;
-	padding: 0 0.6rem;
+	background: var(--color-background, #fff);
+	padding: 0 0.75rem;
 }
 
-.wp-block-spawn-login__register-link {
-	margin-top: 1rem;
-	text-align: center;
-	font-size: 0.875rem;
-	color: #666;
-}
-
-.wp-block-spawn-login__register-link a {
-	color: #007cba;
-	text-decoration: none;
-}
-
-.wp-block-spawn-login__register-link a:hover {
-	text-decoration: underline;
-}
-
+/* ===== LOGGED IN STATE ===== */
 .wp-block-spawn-login__logged-in {
 	text-align: center;
 }
 
+.wp-block-spawn-login__logged-in p {
+	margin-bottom: 1.25rem;
+	color: var(--color-text, #1f2933);
+}
+
 .wp-block-spawn-login__dashboard-link {
 	display: inline-block;
-	padding: 0.75rem 1.5rem;
-	background: #007cba;
+	padding: 0.85rem 2rem;
+	background: var(--color-primary, #1fc5e2);
 	color: #fff;
 	text-decoration: none;
-	border-radius: 4px;
-	margin: 1rem 0;
+	border-radius: 8px;
+	font-weight: 600;
+	margin-bottom: 1rem;
+	transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.wp-block-spawn-login__dashboard-link:hover {
+	background: var(--color-secondary, #ff6eb1);
+	transform: translateY(-1px);
 }
 
 .wp-block-spawn-login__logout-btn {
-	background: none;
-	border: 1px solid #ddd;
-	padding: 0.5rem 1rem;
-	border-radius: 4px;
+	background: transparent;
+	border: 2px solid var(--color-border, #ddd);
+	padding: 0.6rem 1.25rem;
+	border-radius: 8px;
+	font-weight: 500;
 	cursor: pointer;
+	color: var(--color-text, #1f2933);
+	transition: border-color 0.2s ease, color 0.2s ease;
 }
 
-/* Editor preview */
+.wp-block-spawn-login__logout-btn:hover {
+	border-color: var(--color-text-light, #666);
+	color: var(--color-text-light, #666);
+}
+
+/* ===== EDITOR PREVIEW ===== */
 .wp-block-spawn-login__preview {
-	padding: 1rem;
-	background: #f5f5f5;
-	border: 1px dashed #ccc;
-	border-radius: 4px;
+	padding: 1.5rem;
+	background: rgba(31, 197, 226, 0.05);
+	border: 2px dashed var(--color-border, #ddd);
+	border-radius: 12px;
 }
 
 .wp-block-spawn-login__form-preview input,
@@ -215,21 +271,8 @@
 }
 
 .wp-block-spawn-login__preview-note {
-	font-size: 0.75rem;
-	color: #666;
+	font-size: 0.8rem;
+	color: var(--color-text-light, #666);
 	margin-top: 1rem;
-}
-
-/* Responsive width - don't go edge-to-edge on mobile */
-.wp-block-spawn-login {
-    width: 92%;
-    max-width: 92%;
-    margin-left: auto;
-    margin-right: auto;
-}
-@media (min-width: 992px) {
-    .wp-block-spawn-login {
-        width: 100%;
-        max-width: 100%;
-    }
+	text-align: center;
 }

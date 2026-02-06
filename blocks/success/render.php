@@ -41,7 +41,7 @@ if ( empty( $session_id ) ) {
 			<?php if ( '' !== $brand_logo_url ) : ?>
 				<img src="<?php echo esc_url( $brand_logo_url ); ?>" alt="<?php echo esc_attr( $brand_name ); ?>" width="32" height="32" />
 			<?php endif; ?>
-			<span><?php echo esc_html( $brand_name ); ?></span>
+			<span><?php echo Branding::get_brand_name_html(); ?></span>
 		</a>
 		<div class="spawn-topnav__links">
 			<?php if ( is_user_logged_in() ) : ?>
