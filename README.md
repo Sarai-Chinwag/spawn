@@ -1,257 +1,179 @@
 # Spawn
 
-Personal AI assistant in a box. Website optional.
+**Deploy your own AI agent. Help others deploy theirs.**
 
 ## What is Spawn?
 
-Spawn makes AI-powered personal assistants accessible to everyone. No technical skills required — just sign up and start chatting with your own AI agent running on dedicated hardware.
+Spawn is a WordPress plugin that does two things:
 
-Each customer gets their own server running [OpenClaw](https://github.com/openclaw/openclaw). Your AI lives on your server, not shared infrastructure.
+1. **Self-Spawn** — Install an AI agent on your own server with your own API keys
+2. **SaaS Mode** — Run a managed AI assistant service for your customers
 
-**Want a website too?** Check the box during signup and your AI will build and manage it for you. Or skip the website entirely and just use the AI.
+Every Spawn installation can be both a consumer AND a provider. Install it for yourself, or run it as a business.
 
-## Features
+## Self-Spawn (Free)
 
-### Core Product
-- **Personal AI Agent** — Your own Claude-powered assistant on dedicated hardware
-- **Chat Interface** — Talk to your AI from the web or connect other channels
-- **Credits System** — Pay-as-you-go AI usage (pass-through pricing, no markup)
-- **Full Portability** — Export everything and self-host anytime
+Got a WordPress site on a VPS? Install Spawn, add your API key, click "Install OpenClaw" — done. You now have an AI agent.
 
-### Optional Website
-- **WordPress Integration** — AI manages your site through conversation
-- **Custom Domain** — Add your own domain anytime via dashboard (or use free subdomain)
-- **No wp-admin Required** — Your AI handles everything
+**Requirements:**
+- WordPress on a VPS (not shared hosting)
+- Node.js v18+
+- Your own AI API key (Anthropic, OpenAI, or Google)
 
-### Backend
-- **Automated Provisioning** — Sweatpants provisions server + OpenClaw (+ WordPress if wanted)
-- **LiteLLM Integration** — Centralized AI proxy with usage tracking
-- **Region Detection** — US customers get US servers, EU customers get EU servers
+**What you get:**
+- [OpenClaw](https://github.com/openclaw/openclaw) AI agent running locally
+- Chat interface via Gutenberg block
+- [wp-ai-client](https://github.com/WordPress/wp-ai-client) for credential management
+- Full control — it's your server, your keys
 
-## Pricing
+**Setup:**
+1. Install & activate Spawn plugin
+2. Run `composer install` in the plugin directory
+3. Configure API keys in Settings → AI Credentials
+4. Go to Settings → Spawn → "Self-Spawn" section
+5. Click "Install OpenClaw"
+6. Start chatting
 
-See `inc/class-config.php` for the single source of truth. Current tiers:
+No subscription. No phone home. Just you and your AI.
 
-| Tier | Monthly | Included Credits |
-|------|---------|------------------|
-| Starter | $20 | $5 |
-| Pro | $50 | $20 |
-| Business | $100 | $40 |
+## SaaS Mode (Business)
 
-- Credits are pass-through (no markup) — we charge what the AI providers charge
-- Additional credits available anytime via chat
+Want to run your own AI assistant service? Spawn handles everything:
 
-## Signup Flow
+- **Automated provisioning** — Customer signs up, server spins up automatically
+- **Billing integration** — Stripe subscriptions + credits system
+- **Multi-tenant** — Each customer gets their own VPS and OpenClaw instance
+- **Optional websites** — Customers can get a WordPress site managed by their AI
 
-1. **Choose your plan** — Pick a tier based on how much AI power you need
-2. **Complete checkout** — Enter email, optionally check "Include a free website", pay via Stripe
-3. **Start chatting** — Your AI is ready on a free subdomain
+**Current pricing tiers** (from `inc/class-config.php`):
 
-Custom domains can be added later through the dashboard.
+| Tier | Monthly | Included Credits | Server |
+|------|---------|------------------|--------|
+| Starter | $20 | $5 | 4GB RAM |
+| Pro | $50 | $20 | 8GB RAM |
+| Business | $100 | $40 | 16GB RAM |
+
+**SaaS requirements:**
+- Your own Spawn installation (self-spawn first!)
+- Hetzner API token (for VPS provisioning)
+- Stripe account (for billing)
+- Name.com API (optional, for domain registration)
+
+## The Fractal Model
+
+```
+You install Spawn
+├── Self-spawn: YOUR AI agent (BYOK)
+└── SaaS mode: Provision agents for YOUR customers
+    └── They can install Spawn too
+        ├── Self-spawn: THEIR AI agent
+        └── SaaS mode: THEIR customers
+            └── ...and so on
+```
+
+Spawn isn't just a product. It's infrastructure for an agent economy.
 
 ## Architecture
 
+### Self-Spawn Mode
 ```
-Customer signs up on your-site.com/spawn
-           │
-           │ wants_website: true/false
-           ▼
 ┌─────────────────────────────────────────┐
-│  Spawn Plugin (this)                    │
-│  - Gutenberg blocks for signup flow     │
-│  - Stripe checkout + credits billing    │
-│  - Customer database + abilities        │
-│  - Chat interface                       │
+│  Your WordPress Site                    │
+│  ├── Spawn Plugin                       │
+│  │   ├── Self-Spawn installer           │
+│  │   ├── Chat block                     │
+│  │   └── wp-ai-client (bundled)         │
+│  └── OpenClaw (installed locally)       │
+│      └── Uses your API keys via wp-ai   │
+└─────────────────────────────────────────┘
+```
+
+### SaaS Mode
+```
+┌─────────────────────────────────────────┐
+│  Your Control Plane (WordPress + Spawn) │
+│  ├── Signup flow (Gutenberg blocks)     │
+│  ├── Stripe billing                     │
+│  ├── Customer database                  │
+│  └── Provisioning triggers              │
 └─────────────────────────────────────────┘
            │
-           │ Stripe webhook → provision trigger
-           ▼
+           ▼ Stripe webhook
 ┌─────────────────────────────────────────┐
-│  Sweatpants (vps-provisioner module)    │
-│  - Create Hetzner VPS (US or EU)        │
-│  - Run wp-openclaw setup.sh             │
-│  - Configure subdomain + SSL            │
-│  - Set up OpenClaw with LiteLLM         │
-│  - If wants_website: install WordPress  │
+│  vps-provisioner (private)              │
+│  ├── Create Hetzner VPS                 │
+│  ├── Run wp-openclaw setup              │
+│  ├── Configure LiteLLM proxy            │
+│  └── Set up customer's OpenClaw         │
 └─────────────────────────────────────────┘
            │
            ▼
 ┌─────────────────────────────────────────┐
 │  Customer VPS                           │
-│  - OpenClaw agent (always)              │
-│  - WordPress (if wants_website)         │
-│  - AI via your LiteLLM proxy            │
-└─────────────────────────────────────────┘
-           │
-           │ AI requests via LiteLLM
-           ▼
-┌─────────────────────────────────────────┐
-│  api.spawn.your-domain.com              │
-│  - LiteLLM proxy                        │
-│  - Usage tracking → credit deduction    │
-│  - Webhook callback to Spawn            │
+│  ├── OpenClaw (their agent)             │
+│  ├── WordPress (optional)               │
+│  └── Points to your LiteLLM proxy       │
 └─────────────────────────────────────────┘
 ```
 
-## Requirements
+## Components
 
-- WordPress 6.9+ (for Abilities API)
-- PHP 8.0+
-- [stripe-integration](https://github.com/Sarai-Chinwag/stripe-integration) plugin
+### Open Source (this repo)
+- **Spawn plugin** — WordPress plugin for self-spawn + SaaS frontend
+- **wp-ai-client** — Bundled via Composer for credential management
+- **Gutenberg blocks** — Chat, signup flow, dashboard
 
-## Installation
+### Open Source (separate repos)
+- **[wp-openclaw](https://github.com/openclaw/wp-openclaw)** — Setup script for WordPress + OpenClaw
+- **[OpenClaw](https://github.com/openclaw/openclaw)** — The AI agent itself
 
-1. Install and activate the `stripe-integration` plugin
-2. Upload Spawn to `/wp-content/plugins/spawn/`
-3. Activate the plugin
-4. Configure settings at **Settings → Spawn**
+### Private (SaaS operators)
+- **vps-provisioner** — Your Sweatpants module for customer provisioning
+- **LiteLLM proxy config** — Your AI proxy with usage tracking
 
-## Configuration
+## Abilities API
 
-### Stripe (via stripe-integration)
+Spawn exposes functionality via [wp-abilities-api](https://github.com/WordPress/wp-abilities-api):
 
-Configure in **Settings → Stripe Integration**:
-- Publishable Key
-- Secret Key
-- Webhook Secret
+**SaaS abilities:**
+- `spawn_get_status` — Customer subscription status
+- `spawn_scale_vps` — Upgrade/downgrade tier
+- `spawn_get_usage` — Usage statistics
+- `spawn_cancel` — Cancel subscription
+- ...and more
 
-Create products in Stripe for each tier with the monthly prices above.
+**Self-spawn abilities:**
+- `spawn_self_check_environment` — Check server compatibility
+- `spawn_self_get_status` — OpenClaw installation status
+- `spawn_self_install` — Install OpenClaw locally
+- `spawn_self_configure` — Update config with credentials
+- `spawn_self_start/stop/restart` — Service management
+- `spawn_self_uninstall` — Remove OpenClaw
 
-### Name.com
-
-Get API credentials from [Name.com Developer Portal](https://www.name.com/account/settings/api). Required for custom domain registration.
-
-### Sweatpants
-
-Configure the Sweatpants API URL for VPS provisioning (default: `http://localhost:8585`).
-
-### LiteLLM
-
-Configure the API Base URL in **Settings → Spawn → Branding**. The LiteLLM proxy handles:
-- AI request routing to providers (Anthropic, OpenAI, etc.)
-- Usage tracking via webhook callbacks
-- Credit deduction from customer balances
-
-### Branding
-
-Configure in **Settings → Spawn → Branding**:
-
-| Setting | Description | Example |
-|---------|-------------|---------|
-| Subdomain Suffix | Domain suffix for customer subdomains | `spawn.example.com` |
-| Brand Name | Name displayed in UI | `Spawn` |
-| Brand Logo URL | Logo/avatar image URL | `https://example.com/logo.png` |
-| API Base URL | LiteLLM proxy base URL | `https://api.spawn.example.com` |
-
-These settings allow you to fully white-label Spawn for your own service.
-
-## Blocks
-
-| Block | Purpose |
-|-------|---------|
-| `spawn/tier-select` | Pricing tier selection cards |
-| `spawn/checkout` | Email collection + website toggle + Stripe redirect |
-| `spawn/dashboard` | Customer dashboard (credits, domains, settings) |
-| `spawn/chat` | Conversational AI interface |
-| `spawn/account` | Customer account settings |
-| `spawn/login` | Customer login/authentication |
-
-## WordPress Abilities
-
-Spawn registers these abilities for AI agents to use:
-
-| Ability | Description |
-|---------|-------------|
-| `spawn_get_status` | Get customer status, subscription, credits |
-| `spawn_get_usage` | Get AI usage history and costs |
-| `spawn_add_credits` | Create checkout for additional credits |
-| `spawn_manage_billing` | Access Stripe customer portal |
-| `spawn_scale_vps` | Upgrade/downgrade tier |
-| `spawn_cancel` | Cancel subscription |
-| `spawn_export_site` | Export site data for migration |
-| `spawn_set_auto_refill` | Configure automatic credit top-ups |
-| `spawn_get_domain_renewal_info` | Get domain expiry and renewal pricing |
-| `spawn_renew_domain` | Initiate domain renewal checkout |
-| `spawn_search_domain` | Search for available domains |
-| `spawn_register_domain` | Register a new domain for customer |
-| `spawn_configure_byod` | Configure bring-your-own-domain DNS |
-
-## REST API
-
-### Public Endpoints
-- `GET /spawn/v1/tiers` — Get available tiers and pricing
-- `POST /spawn/v1/checkout/session` — Create Stripe checkout session
-- `GET /spawn/v1/domain/search?domain=example.com` — Check domain availability (for dashboard)
-
-### Authenticated Endpoints
-- `GET /spawn/v1/customer/status` — Get current customer status
-- `POST /spawn/v1/chat` — Send message to AI agent
-
-### Webhooks
-- `POST /spawn/v1/webhook/stripe` — Stripe events (checkout, subscription, usage)
-- `POST /spawn/v1/webhook/litellm` — AI usage tracking callback
-
-## Database
-
-Spawn creates a `{prefix}spawn_customers` table:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | bigint | Primary key |
-| `user_id` | bigint | WordPress user ID |
-| `email` | varchar | Customer email |
-| `domain` | varchar | Customer's domain (if any) |
-| `tier` | varchar | starter/pro/business |
-| `status` | varchar | pending/active/suspended/cancelled |
-| `wants_website` | tinyint | Whether customer has WordPress |
-| `stripe_customer_id` | varchar | Stripe customer ID |
-| `stripe_subscription_id` | varchar | Stripe subscription ID |
-| `hetzner_server_id` | varchar | Hetzner server ID |
-| `server_ip` | varchar | Server IP address |
-| `openclaw_token` | varchar | OpenClaw gateway auth token |
-| `credit_balance` | decimal | Available AI credits |
-| `domain_expires_at` | datetime | Domain expiration date |
-
-## Domain Management
-
-Domains are managed post-signup through the dashboard:
-- **Register** — Buy a domain through us (marked up from Name.com)
-- **Bring your own** — Point your existing domain via DNS
-
-For customers with domains, Spawn sends renewal warning emails at 30, 14, 7, and 1 day before expiration.
+All abilities are accessible to both internal agents and external REST callers.
 
 ## Development
 
 ```bash
+# Clone
+git clone https://github.com/Sarai-Chinwag/spawn.git
+cd spawn
+
 # Install dependencies
-npm install
 composer install
+npm install
 
 # Build blocks
 npm run build
 
 # Watch for changes
 npm run start
-
-# Lint PHP
-composer lint
 ```
 
-## Open Source + SaaS
+## License
 
-Spawn is open source (GPL-2.0-or-later). The code is free, but running the service costs money:
-- Server hosting (Hetzner)
-- AI credits (Anthropic, OpenAI)
-- Domain registration (Name.com) — optional
-
-We charge a fair price that covers infrastructure + modest margin. Customers own their data and can export/migrate anytime.
-
-## Related Projects
-
-- [wp-openclaw](https://github.com/Sarai-Chinwag/wp-openclaw) — Generic WordPress + OpenClaw setup script
-- [stripe-integration](https://github.com/Sarai-Chinwag/stripe-integration) — Shared Stripe functionality
-- [Sweatpants](https://github.com/Extra-Chill/sweatpants) — Python automation engine
+GPL-2.0-or-later
 
 ---
 
-Built by [Sarai Chinwag](https://saraichinwag.com) • Powered by [Extra Chill](https://extrachill.com)
+Built by [Sarai Chinwag](https://saraichinwag.com) • Part of the [OpenClaw](https://openclaw.ai) ecosystem
