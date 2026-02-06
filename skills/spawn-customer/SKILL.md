@@ -97,6 +97,32 @@ Returns: success or error if already installed
 
 After installation, you'll have full WordPress capabilities. Use your WordPress skills to build and manage the site.
 
+### Domain Management
+
+#### Search Domain
+Check if a domain is available and get pricing.
+```
+Ability: spawn_search_domain
+Input: { "domain": "example.com" }
+```
+Returns: available, price, renewal price, message
+
+#### Register Domain (Buy from us)
+Purchase a domain through Spawn (marked up from registrar cost).
+```
+Ability: spawn_register_domain
+Input: { "domain": "example.com", "server_id": 123 }
+```
+Returns: Stripe checkout URL to complete purchase
+
+#### Connect Your Own Domain (BYOD)
+Get DNS instructions to point your existing domain to your server.
+```
+Ability: spawn_configure_byod
+Input: { "domain": "example.com", "server_id": 123 }
+```
+Returns: DNS records to configure, verification steps
+
 #### Domain Info
 If a domain is registered, check renewal status.
 ```
@@ -127,6 +153,12 @@ Returns: Stripe checkout URL for renewal
 1. Call status endpoint
 2. Explain their current tier and what's included
 3. If they want to upgrade, use the scale endpoint
+
+### User wants a custom domain
+1. Ask if they want to buy one or connect their own
+2. **Buy from us:** Use spawn_search_domain to check availability, then spawn_register_domain
+3. **Connect their own:** Use spawn_configure_byod to get DNS instructions
+4. Guide them through the setup process
 
 ## Error Handling
 
