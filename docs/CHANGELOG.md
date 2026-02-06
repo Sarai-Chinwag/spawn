@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## Unreleased
+
+- Fix documentation drift: README pricing (Pro=0), add missing abilities/blocks, sync version constant, update cost-breakdown with final decisions
+
 ## [0.6.0] - 2026-02-06
 
 ### Added

@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'SPAWN_VERSION', '0.5.0' );
+define( 'SPAWN_VERSION', '0.6.0' );
 define( 'SPAWN_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SPAWN_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SPAWN_PLUGIN_FILE', __FILE__ );

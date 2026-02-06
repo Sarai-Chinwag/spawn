@@ -2,6 +2,12 @@
 
 Last updated: 2026-02-05
 
+## Final Decision
+
+- Starter: $20/month, $5 credits, cpx21/cpx22
+- Pro: $50/month, $10 credits, cpx31/cpx32
+- Business: $100/month, $40 credits, cpx41/cpx42
+
 ## Hetzner VPS Pricing (Current)
 
 ### New Generation (cpx*2 series) - EU Locations

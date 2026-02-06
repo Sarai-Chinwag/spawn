@@ -11,19 +11,19 @@ export default function Edit(): JSX.Element {
 				<div className="wp-block-spawn-tier-select__cards">
 					<div className="tier-card">
 						<h4>Starter</h4>
-						<p className="price">$9</p>
+						<p className="price">$20</p>
 						<p>Basic features</p>
 						<button disabled>{ __( 'Select', 'spawn' ) }</button>
 					</div>
 					<div className="tier-card highlighted">
 						<h4>Pro</h4>
-						<p className="price">$9</p>
+						<p className="price">$50</p>
 						<p>Advanced features</p>
 						<button disabled>{ __( 'Select', 'spawn' ) }</button>
 					</div>
 					<div className="tier-card">
 						<h4>Business</h4>
-						<p className="price">$99</p>
+						<p className="price">$100</p>
 						<p>All features</p>
 						<button disabled>{ __( 'Select', 'spawn' ) }</button>
 					</div>

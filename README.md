@@ -35,7 +35,7 @@ See `inc/class-config.php` for the single source of truth. Current tiers:
 | Tier | Monthly | Included Credits |
 |------|---------|------------------|
 | Starter | $20 | $5 |
-| Pro | $50 | $20 |
+| Pro | $50 | $10 |
 | Business | $100 | $40 |
 
 - Credits are pass-through (no markup) — we charge what the AI providers charge
@@ -140,6 +140,8 @@ The LiteLLM proxy runs at `api.spawn.saraichinwag.com` and handles:
 | `spawn/checkout` | Email collection + website toggle + Stripe redirect |
 | `spawn/dashboard` | Customer dashboard (credits, domains, settings) |
 | `spawn/chat` | Conversational AI interface |
+| `spawn/account` | Customer account settings |
+| `spawn/login` | Customer login/authentication |
 
 ## WordPress Abilities
 
@@ -157,6 +159,9 @@ Spawn registers these abilities for AI agents to use:
 | `spawn_set_auto_refill` | Configure automatic credit top-ups |
 | `spawn_get_domain_renewal_info` | Get domain expiry and renewal pricing |
 | `spawn_renew_domain` | Initiate domain renewal checkout |
+| `spawn_search_domain` | Search for available domains |
+| `spawn_register_domain` | Register a new domain for customer |
+| `spawn_configure_byod` | Configure bring-your-own-domain DNS |
 
 ## REST API
 
