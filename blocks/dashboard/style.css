@@ -48,12 +48,44 @@
 	font-size: 0.9rem;
 	opacity: 0.8;
 	transition: opacity 0.2s ease;
+	white-space: nowrap;
 }
 
 .spawn-topnav__links a:hover,
 .spawn-topnav__links a.is-active {
 	opacity: 1;
 	color: var(--color-primary, #1fc5e2);
+}
+
+/* Mobile topnav */
+@media (max-width: 480px) {
+	.spawn-topnav {
+		padding: 8px 12px;
+		gap: 10px;
+	}
+
+	.spawn-topnav__logo {
+		gap: 8px;
+		font-size: 0.9em;
+	}
+
+	.spawn-topnav__logo img {
+		width: 28px;
+		height: 28px;
+	}
+
+	/* Hide "by Sarai Chinwag" on mobile */
+	.spawn-topnav__logo em {
+		display: none;
+	}
+
+	.spawn-topnav__links {
+		gap: 12px;
+	}
+
+	.spawn-topnav__links a {
+		font-size: 0.8rem;
+	}
 }
 
 /* ===== DASHBOARD BLOCK ===== */
