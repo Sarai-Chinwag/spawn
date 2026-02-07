@@ -5,6 +5,7 @@ All notable changes to the Spawn plugin will be documented in this file.
 ## Unreleased
 
 - fix(chat): Extract nested response from OpenClaw tools/invoke - non-admin customers can now load chat history on refresh
+- Add spawn/send-message, spawn/grant-support-access, and spawn/revoke-support-access abilities for customer-agent communication
 
 ## 0.6.10 - 2026-02-06
 

@@ -863,6 +863,107 @@ class Abilities {
 			],
 			'permission_callback' => [ __CLASS__, 'check_admin_permission' ],
 		] );
+
+		// Send Message to Customer's Agent
+		wp_register_ability( 'spawn/send-message', [
+			'label'       => __( 'Send Message to Agent', 'spawn' ),
+			'description' => __( 'Send a message to the customer\'s AI agent', 'spawn' ),
+			'category'    => 'spawn',
+			'execute_callback'    => [ Ability_Send_Message::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'required'   => [ 'message' ],
+				'properties' => [
+					'message' => [
+						'type'        => 'string',
+						'description' => 'Message to send to the agent',
+					],
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user\'s customer account)',
+					],
+					'session_key' => [
+						'type'        => 'string',
+						'description' => 'Optional session key for conversation continuity',
+					],
+					'system_note' => [
+						'type'        => 'string',
+						'description' => 'Optional context note for the system prompt',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'     => [ 'type' => 'boolean' ],
+					'customer_id' => [ 'type' => 'integer' ],
+					'reply'       => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Grant Support Access
+		wp_register_ability( 'spawn/grant-support-access', [
+			'label'       => __( 'Grant Support Access', 'spawn' ),
+			'description' => __( 'Grant Spawn support team temporary SSH access to your server', 'spawn' ),
+			'category'    => 'spawn',
+			'execute_callback'    => [ Ability_Grant_Support_Access::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'duration_hours' => [
+						'type'        => 'integer',
+						'description' => 'How long to grant access (1-72 hours, default 24)',
+						'default'     => 24,
+						'minimum'     => 1,
+						'maximum'     => 72,
+					],
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user\'s customer account)',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'        => [ 'type' => 'boolean' ],
+					'customer_id'    => [ 'type' => 'integer' ],
+					'duration_hours' => [ 'type' => 'integer' ],
+					'expires_at'     => [ 'type' => 'string' ],
+					'agent_reply'    => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
+
+		// Revoke Support Access
+		wp_register_ability( 'spawn/revoke-support-access', [
+			'label'       => __( 'Revoke Support Access', 'spawn' ),
+			'description' => __( 'Remove Spawn support team SSH access from your server', 'spawn' ),
+			'category'    => 'spawn',
+			'execute_callback'    => [ Ability_Revoke_Support_Access::class, 'execute' ],
+			'input_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'customer_id' => [
+						'type'        => 'integer',
+						'description' => 'Customer ID (defaults to current user\'s customer account)',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success'     => [ 'type' => 'boolean' ],
+					'customer_id' => [ 'type' => 'integer' ],
+					'revoked_at'  => [ 'type' => 'string' ],
+					'agent_reply' => [ 'type' => 'string' ],
+				],
+			],
+			'permission_callback' => [ __CLASS__, 'check_customer_permission' ],
+		] );
 	}
 
 	/**
