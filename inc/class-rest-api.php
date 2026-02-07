@@ -2787,13 +2787,16 @@ class REST_API {
 	public static function litellm_callback( WP_REST_Request $request ): WP_REST_Response {
 		$body = $request->get_json_params();
 
-		// LiteLLM sends usage data in various formats depending on callback type.
-		// Standard format: model, usage.prompt_tokens, usage.completion_tokens, metadata.
-		$model             = $body['model'] ?? $body['model_id'] ?? '';
-		$usage             = $body['usage'] ?? [];
-		$prompt_tokens     = (int) ( $usage['prompt_tokens'] ?? 0 );
-		$completion_tokens = (int) ( $usage['completion_tokens'] ?? 0 );
-		$metadata          = $body['metadata'] ?? $body['litellm_params']['metadata'] ?? [];
+		// LiteLLM StandardLoggingPayload format:
+		// - prompt_tokens, completion_tokens at root level
+		// - response_cost: pre-calculated cost in USD
+		// - metadata.requester_ip_address: client IP
+		// - metadata.user_api_key_alias: API key alias if set
+		$model             = $body['model'] ?? '';
+		$prompt_tokens     = (int) ( $body['prompt_tokens'] ?? 0 );
+		$completion_tokens = (int) ( $body['completion_tokens'] ?? 0 );
+		$response_cost     = (float) ( $body['response_cost'] ?? 0.0 );
+		$metadata          = $body['metadata'] ?? [];
 		$spawn_customer_id = (int) ( $metadata['spawn_customer_id'] ?? 0 );
 
 		// Also check for user field (can be set as customer ID).
@@ -2801,55 +2804,32 @@ class REST_API {
 			$spawn_customer_id = (int) $body['user'];
 		}
 
-		// Try to identify customer by API key format: spawn-customer-{id}.
+		// Try to identify customer by API key alias format: spawn-customer-{id}.
 		if ( ! $spawn_customer_id ) {
-			// Check user_api_key_alias (LiteLLM passes this in metadata).
 			$api_key = $metadata['user_api_key_alias'] ?? '';
 			
-			// Also check the 'api_key' field in body if present.
-			if ( empty( $api_key ) ) {
-				$api_key = $body['api_key'] ?? '';
-			}
-			
-			// Parse customer ID from spawn-customer-{id} format.
 			if ( preg_match( '/^spawn-customer-(\d+)$/', $api_key, $matches ) ) {
 				$spawn_customer_id = (int) $matches[1];
-				error_log( "LiteLLM callback: Identified customer $spawn_customer_id by API key $api_key" );
 			}
 		}
 
-		// Try to identify customer by IP if no ID provided.
+		// Try to identify customer by server IP.
 		if ( ! $spawn_customer_id ) {
-			// Check requester_ip_address (StandardLoggingPayload field).
-			$client_ip = $metadata['requester_ip_address'] ?? '';
-			
-			// Fallback to legacy client_ip field.
-			if ( empty( $client_ip ) ) {
-				$client_ip = $body['litellm_params']['metadata']['client_ip'] ?? '';
-			}
-			
-			if ( empty( $client_ip ) ) {
-				// Try X-Forwarded-For from the original request.
-				$client_ip = $request->get_header( 'X-Forwarded-For' ) ?? '';
-				$client_ip = explode( ',', $client_ip )[0] ?? '';
-				$client_ip = trim( $client_ip );
-			}
+			// requester_ip_address is also at root level in StandardLoggingPayload.
+			$client_ip = $body['requester_ip_address'] ?? $metadata['requester_ip_address'] ?? '';
 			
 			if ( $client_ip ) {
 				$customer = Database::get_customer_by_server_ip( $client_ip );
 				if ( $customer ) {
 					$spawn_customer_id = (int) $customer['id'];
-					error_log( "LiteLLM callback: Identified customer $spawn_customer_id by IP $client_ip" );
 				}
 			}
 		}
 
 		if ( ! $spawn_customer_id ) {
-			// Log but don't fail - might be a test or admin request.
-			error_log( 'LiteLLM callback: No spawn_customer_id in metadata or by IP' );
 			return new WP_REST_Response( [
 				'status'  => 'skipped',
-				'message' => 'No customer ID in metadata.',
+				'message' => 'No customer ID in metadata or by IP.',
 			] );
 		}
 
@@ -2860,13 +2840,15 @@ class REST_API {
 			] );
 		}
 
-		// Calculate cost based on model pricing.
-		$pricing = self::ANTHROPIC_PRICING[ $model ] ?? self::ANTHROPIC_PRICING['default'];
-		
-		// Cost in dollars: (tokens / 1M) * price_per_MTok.
-		$input_cost  = ( $prompt_tokens / 1_000_000 ) * $pricing['input'];
-		$output_cost = ( $completion_tokens / 1_000_000 ) * $pricing['output'];
-		$total_cost  = $input_cost + $output_cost;
+		// Use LiteLLM's pre-calculated response_cost if available, otherwise calculate.
+		if ( $response_cost > 0 ) {
+			$total_cost = $response_cost;
+		} else {
+			$pricing     = self::ANTHROPIC_PRICING[ $model ] ?? self::ANTHROPIC_PRICING['default'];
+			$input_cost  = ( $prompt_tokens / 1_000_000 ) * $pricing['input'];
+			$output_cost = ( $completion_tokens / 1_000_000 ) * $pricing['output'];
+			$total_cost  = $input_cost + $output_cost;
+		}
 
 		// Convert to credits (1 credit = $0.01).
 		$credits_to_deduct = $total_cost * 100;
