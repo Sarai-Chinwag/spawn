@@ -2801,10 +2801,34 @@ class REST_API {
 			$spawn_customer_id = (int) $body['user'];
 		}
 
+		// Try to identify customer by API key format: spawn-customer-{id}.
+		if ( ! $spawn_customer_id ) {
+			// Check user_api_key_alias (LiteLLM passes this in metadata).
+			$api_key = $metadata['user_api_key_alias'] ?? '';
+			
+			// Also check the 'api_key' field in body if present.
+			if ( empty( $api_key ) ) {
+				$api_key = $body['api_key'] ?? '';
+			}
+			
+			// Parse customer ID from spawn-customer-{id} format.
+			if ( preg_match( '/^spawn-customer-(\d+)$/', $api_key, $matches ) ) {
+				$spawn_customer_id = (int) $matches[1];
+				error_log( "LiteLLM callback: Identified customer $spawn_customer_id by API key $api_key" );
+			}
+		}
+
 		// Try to identify customer by IP if no ID provided.
 		if ( ! $spawn_customer_id ) {
-			$client_ip = $body['litellm_params']['metadata']['client_ip'] ?? '';
-			if ( ! $client_ip ) {
+			// Check requester_ip_address (StandardLoggingPayload field).
+			$client_ip = $metadata['requester_ip_address'] ?? '';
+			
+			// Fallback to legacy client_ip field.
+			if ( empty( $client_ip ) ) {
+				$client_ip = $body['litellm_params']['metadata']['client_ip'] ?? '';
+			}
+			
+			if ( empty( $client_ip ) ) {
 				// Try X-Forwarded-For from the original request.
 				$client_ip = $request->get_header( 'X-Forwarded-For' ) ?? '';
 				$client_ip = explode( ',', $client_ip )[0] ?? '';
