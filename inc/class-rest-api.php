@@ -2850,11 +2850,9 @@ class REST_API {
 			$total_cost  = $input_cost + $output_cost;
 		}
 
-		// Convert to credits (1 credit = $0.01).
-		$credits_to_deduct = $total_cost * 100;
-
-		// Minimum deduction of 0.01 credits to avoid rounding to zero.
-		$credits_to_deduct = max( 0.01, round( $credits_to_deduct, 2 ) );
+		// credit_balance is stored in dollars as decimal(10,2), so round to 2 decimal places.
+		// Minimum deduction of $0.01 to avoid rounding to zero on tiny requests.
+		$amount_to_deduct = max( 0.01, round( $total_cost, 2 ) );
 
 		// Deduct from customer.
 		$customer = Database::get_customer( $spawn_customer_id );
@@ -2869,7 +2867,7 @@ class REST_API {
 		$current_balance = (float) $customer['credit_balance'];
 
 		// Deduct even if it goes negative (we'll handle blocking in pre-request).
-		$success = Database::deduct_credits( $spawn_customer_id, $credits_to_deduct );
+		$success = Database::deduct_credits( $spawn_customer_id, $amount_to_deduct );
 
 		if ( ! $success ) {
 			error_log( "LiteLLM callback: Failed to deduct credits for customer $spawn_customer_id" );
@@ -2898,7 +2896,7 @@ class REST_API {
 			'prompt_tokens'    => $prompt_tokens,
 			'completion_tokens'=> $completion_tokens,
 			'cost_usd'         => round( $total_cost, 6 ),
-			'credits_deducted' => $credits_to_deduct,
+			'amount_deducted'  => $amount_to_deduct,
 			'previous_balance' => $current_balance,
 			'new_balance'      => $new_balance,
 		] );
