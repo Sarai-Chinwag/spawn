@@ -2828,9 +2828,8 @@ class REST_API {
 		}
 
 		// Balance depleted and no auto-refill.
-		// Get customer's domain for the dashboard link.
-		$domain      = $customer['domain'] ?? '';
-		$dashboard   = $domain ? "https://{$domain}/spawn/dashboard/" : 'https://saraichinwag.com/spawn/dashboard/';
+		// Dashboard is always on saraichinwag.com (control plane), not customer's site.
+		$dashboard = 'https://saraichinwag.com/spawn/dashboard/';
 
 		return new WP_REST_Response( [
 			'allow'   => false,
