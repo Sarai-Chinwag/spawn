@@ -488,6 +488,24 @@ class REST_API {
 			]
 		);
 
+		// LiteLLM: Pre-request balance check.
+		register_rest_route(
+			self::NAMESPACE,
+			'/balance/check',
+			[
+				'methods'             => 'GET',
+				'callback'            => [ __CLASS__, 'balance_check' ],
+				'permission_callback' => '__return_true', // Called from local LiteLLM.
+				'args'                => [
+					'ip' => [
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
+
 		// Chat: Send message to customer's AI.
 		register_rest_route(
 			self::NAMESPACE,
@@ -2777,6 +2795,47 @@ class REST_API {
 	];
 
 	/**
+	 * Pre-request balance check for LiteLLM.
+	 *
+	 * Called by LiteLLM before proxying to Anthropic to check if customer has credits.
+	 * If balance <= 0 and auto_refill is disabled, returns allow: false.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response Response.
+	 */
+	public static function balance_check( WP_REST_Request $request ): WP_REST_Response {
+		$ip = $request->get_param( 'ip' );
+
+		// Find customer by IP.
+		$customer = Database::get_customer_by_server_ip( $ip );
+
+		if ( ! $customer ) {
+			// Unknown IP - allow (might be internal/test).
+			return new WP_REST_Response( [ 'allow' => true ] );
+		}
+
+		$balance     = (float) $customer['credit_balance'];
+		$auto_refill = (bool) $customer['auto_refill_enabled'];
+
+		// If auto-refill enabled, always allow (they'll be charged).
+		if ( $auto_refill ) {
+			return new WP_REST_Response( [ 'allow' => true ] );
+		}
+
+		// If balance > 0, allow.
+		if ( $balance > 0 ) {
+			return new WP_REST_Response( [ 'allow' => true ] );
+		}
+
+		// Balance depleted and no auto-refill.
+		return new WP_REST_Response( [
+			'allow'   => false,
+			'message' => 'Your AI credits have been depleted. Please add more credits or enable auto-refill to continue.',
+			'balance' => $balance,
+		] );
+	}
+
+	/**
 	 * Handle LiteLLM usage callback.
 	 *
 	 * Deducts credits based on actual token usage at pass-through pricing.
@@ -2870,7 +2929,7 @@ class REST_API {
 		$success = Database::deduct_credits( $spawn_customer_id, $amount_to_deduct );
 
 		if ( ! $success ) {
-			error_log( "LiteLLM callback: Failed to deduct credits for customer $spawn_customer_id" );
+			error_log( "LiteLLM callback: Failed to deduct $amount_to_deduct from customer $spawn_customer_id" );
 			return new WP_REST_Response( [
 				'status'  => 'error',
 				'message' => 'Failed to deduct credits.',
