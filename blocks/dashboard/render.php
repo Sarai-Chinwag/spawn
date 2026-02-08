@@ -75,16 +75,16 @@ if ( $is_admin_mode ) {
 	// Server and domain counts (all).
 	$servers_table = $wpdb->prefix . 'spawn_servers';
 	$domains_table = $wpdb->prefix . 'spawn_domains';
-	$servers       = $wpdb->get_results( "SELECT * FROM $servers_table", ARRAY_A ) ?: [];
-	$domains       = $wpdb->get_results( "SELECT * FROM $domains_table", ARRAY_A ) ?: [];
+	$servers       = $wpdb->get_results( "SELECT * FROM $servers_table", ARRAY_A ) ?: array();
+	$domains       = $wpdb->get_results( "SELECT * FROM $domains_table", ARRAY_A ) ?: array();
 
 	// Create synthetic admin "customer" for display.
-	$customer = [
+	$customer = array(
 		'id'             => 0,
 		'tier'           => 'admin',
-		'credit_balance' => $total_credits ?: 0,
+		'credit_balance' => $total_credits ? $total_credits : 0,
 		'status'         => 'admin',
-	];
+	);
 }
 
 if ( ! $customer && ! $is_admin ) {
@@ -121,7 +121,7 @@ $is_byok        = 'byok' === $billing_mode;
 $server_count   = count( $servers );
 $domain_count   = count( $domains );
 $active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
-$active_tab     = in_array( $active_tab, [ 'overview', 'ai', 'servers', 'domains' ], true ) ? $active_tab : 'overview';
+$active_tab     = in_array( $active_tab, array( 'overview', 'ai', 'servers', 'domains' ), true ) ? $active_tab : 'overview';
 
 // Fetch AI usage data for this month.
 if ( $is_admin_mode ) {
@@ -137,7 +137,7 @@ if ( $is_admin_mode ) {
 	$tier             = $customer ? ( $customer['tier'] ?? 'starter' ) : 'starter';
 	$tier_config      = \Spawn\Config::get_tier( $tier );
 	$included_credits = $tier_config['included_credits'] ?? 5.0;
-	$usage_data       = $customer ? \Spawn\Database::get_server_usage( (int) $customer['id'], 1 ) : [];
+	$usage_data       = $customer ? \Spawn\Database::get_server_usage( (int) $customer['id'], 1 ) : array();
 	$current_usage    = $usage_data[0] ?? null;
 	$credits_used     = (float) ( $current_usage['credits_used'] ?? 0 );
 	$requests_count   = (int) ( $current_usage['requests_count'] ?? 0 );
@@ -146,16 +146,16 @@ if ( $is_admin_mode ) {
 	$usage_percent    = $included_credits > 0 ? min( 100, ( $credits_used / $included_credits ) * 100 ) : 0;
 }
 
-$overview_url       = add_query_arg( [ 'tab' => 'overview' ], home_url( '/spawn/dashboard/' ) );
-$ai_url             = add_query_arg( [ 'tab' => 'ai' ], home_url( '/spawn/dashboard/' ) );
-$servers_url        = add_query_arg( [ 'tab' => 'servers' ], home_url( '/spawn/dashboard/' ) );
-$domains_url        = add_query_arg( [ 'tab' => 'domains' ], home_url( '/spawn/dashboard/' ) );
+$overview_url       = add_query_arg( array( 'tab' => 'overview' ), home_url( '/spawn/dashboard/' ) );
+$ai_url             = add_query_arg( array( 'tab' => 'ai' ), home_url( '/spawn/dashboard/' ) );
+$servers_url        = add_query_arg( array( 'tab' => 'servers' ), home_url( '/spawn/dashboard/' ) );
+$domains_url        = add_query_arg( array( 'tab' => 'domains' ), home_url( '/spawn/dashboard/' ) );
 $overview_is_active = ( 'overview' === $active_tab );
 $ai_is_active       = ( 'ai' === $active_tab );
 $servers_is_active  = ( 'servers' === $active_tab );
 $domains_is_active  = ( 'domains' === $active_tab );
 
-$servers_by_id = [];
+$servers_by_id = array();
 foreach ( $servers as $server ) {
 	if ( empty( $server['id'] ) ) {
 		continue;
@@ -276,7 +276,7 @@ foreach ( $servers as $server ) {
 						<p class="spawn-dashboard__usage-warning"><?php echo esc_html__( 'You\'ve used your included credits. Additional usage draws from your balance.', 'spawn' ); ?></p>
 					<?php endif; ?>
 					<?php if ( $is_admin_mode && isset( $customer_count ) ) : ?>
-						<p class="spawn-dashboard__muted"><?php echo sprintf( esc_html__( 'Across %d active customers', 'spawn' ), $customer_count ); ?></p>
+						<p class="spawn-dashboard__muted"><?php printf( esc_html__( 'Across %d active customers', 'spawn' ), $customer_count ); ?></p>
 					<?php endif; ?>
 				</div>
 				<div class="spawn-dashboard__card">
@@ -310,15 +310,15 @@ foreach ( $servers as $server ) {
 			<div class="spawn-dashboard__grid">
 				<?php foreach ( $servers as $server ) : ?>
 					<?php
-						$server_name = ! empty( $server['name'] ) ? $server['name'] : __( 'Untitled Server', 'spawn' );
-						$tier_label  = ! empty( $server['tier'] ) ? $server['tier'] : __( 'Unknown', 'spawn' );
-						$status_raw   = ! empty( $server['status'] ) ? $server['status'] : __( 'Unknown', 'spawn' );
-						$status_label = ucwords( str_replace( '_', ' ', (string) $status_raw ) );
-						$server_ip   = ! empty( $server['server_ip'] ) ? $server['server_ip'] : __( 'Not assigned', 'spawn' );
-						$wordpress_label = ! empty( $server['has_wordpress'] ) ? __( 'Enabled', 'spawn' ) : __( 'Not installed', 'spawn' );
+						$server_name      = ! empty( $server['name'] ) ? $server['name'] : __( 'Untitled Server', 'spawn' );
+						$tier_label       = ! empty( $server['tier'] ) ? $server['tier'] : __( 'Unknown', 'spawn' );
+						$status_raw       = ! empty( $server['status'] ) ? $server['status'] : __( 'Unknown', 'spawn' );
+						$status_label     = ucwords( str_replace( '_', ' ', (string) $status_raw ) );
+						$server_ip        = ! empty( $server['server_ip'] ) ? $server['server_ip'] : __( 'Not assigned', 'spawn' );
+						$wordpress_label  = ! empty( $server['has_wordpress'] ) ? __( 'Enabled', 'spawn' ) : __( 'Not installed', 'spawn' );
 						$tier_label       = ucwords( str_replace( '_', ' ', (string) $tier_label ) );
 						$status_key       = sanitize_key( (string) $status_raw );
-						$status_is_active = in_array( $status_key, [ 'active', 'running', 'online', 'ready' ], true );
+						$status_is_active = in_array( $status_key, array( 'active', 'running', 'online', 'ready' ), true );
 						$status_class     = 'spawn-dashboard__tab' . ( $status_is_active ? ' is-active' : '' );
 					?>
 					<div class="spawn-dashboard__card">
@@ -367,14 +367,14 @@ foreach ( $servers as $server ) {
 					<tbody>
 						<?php foreach ( $domains as $domain ) : ?>
 							<?php
-								$domain_name    = ! empty( $domain['domain'] ) ? $domain['domain'] : __( 'Unknown', 'spawn' );
-								$domain_server  = __( 'Unassigned', 'spawn' );
-								$server_id      = ! empty( $domain['server_id'] ) ? (int) $domain['server_id'] : 0;
-								$expires_label  = ! empty( $domain['expires_at'] ) ? mysql2date( get_option( 'date_format' ), $domain['expires_at'] ) : __( 'Not set', 'spawn' );
-								$auto_renew     = ! empty( $domain['auto_renew'] );
-								if ( $server_id && isset( $servers_by_id[ $server_id ] ) && '' !== $servers_by_id[ $server_id ] ) {
-									$domain_server = $servers_by_id[ $server_id ];
-								}
+								$domain_name   = ! empty( $domain['domain'] ) ? $domain['domain'] : __( 'Unknown', 'spawn' );
+								$domain_server = __( 'Unassigned', 'spawn' );
+								$server_id     = ! empty( $domain['server_id'] ) ? (int) $domain['server_id'] : 0;
+								$expires_label = ! empty( $domain['expires_at'] ) ? mysql2date( get_option( 'date_format' ), $domain['expires_at'] ) : __( 'Not set', 'spawn' );
+								$auto_renew    = ! empty( $domain['auto_renew'] );
+							if ( $server_id && isset( $servers_by_id[ $server_id ] ) && '' !== $servers_by_id[ $server_id ] ) {
+								$domain_server = $servers_by_id[ $server_id ];
+							}
 							?>
 							<tr>
 								<td><?php echo esc_html( $domain_name ); ?></td>

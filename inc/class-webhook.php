@@ -26,13 +26,13 @@ class Webhook {
 	 */
 	public static function init(): void {
 		// Register provisioner webhook route.
-		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
+		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
 
 		// Hook into stripe-integration webhook events.
-		add_action( 'stripe_integration_webhook_checkout_session_completed', [ __CLASS__, 'handle_checkout_completed' ], 10, 2 );
-		add_action( 'stripe_integration_webhook_invoice_paid', [ __CLASS__, 'handle_invoice_paid' ], 10, 2 );
-		add_action( 'stripe_integration_webhook_invoice_payment_failed', [ __CLASS__, 'handle_payment_failed' ], 10, 2 );
-		add_action( 'stripe_integration_webhook_customer_subscription_deleted', [ __CLASS__, 'handle_subscription_cancelled' ], 10, 2 );
+		add_action( 'stripe_integration_webhook_checkout_session_completed', array( __CLASS__, 'handle_checkout_completed' ), 10, 2 );
+		add_action( 'stripe_integration_webhook_invoice_paid', array( __CLASS__, 'handle_invoice_paid' ), 10, 2 );
+		add_action( 'stripe_integration_webhook_invoice_payment_failed', array( __CLASS__, 'handle_payment_failed' ), 10, 2 );
+		add_action( 'stripe_integration_webhook_customer_subscription_deleted', array( __CLASS__, 'handle_subscription_cancelled' ), 10, 2 );
 	}
 
 	/**
@@ -42,11 +42,11 @@ class Webhook {
 		register_rest_route(
 			'spawn/v1',
 			'/webhook/provisioner',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'handle_provisioner_webhook' ],
-				'permission_callback' => [ __CLASS__, 'verify_provisioner_webhook' ],
-			]
+				'callback'            => array( __CLASS__, 'handle_provisioner_webhook' ),
+				'permission_callback' => array( __CLASS__, 'verify_provisioner_webhook' ),
+			)
 		);
 	}
 
@@ -78,7 +78,7 @@ class Webhook {
 		return new WP_Error(
 			'unauthorized',
 			__( 'Invalid webhook authorization', 'spawn' ),
-			[ 'status' => 401 ]
+			array( 'status' => 401 )
 		);
 	}
 
@@ -94,10 +94,10 @@ class Webhook {
 
 		if ( 'provisioning_complete' !== $event ) {
 			error_log( sprintf( '[Spawn] Unknown provisioner event: %s', $event ) );
-			return new WP_REST_Response( [ 'received' => true ] );
+			return new WP_REST_Response( array( 'received' => true ) );
 		}
 
-		$success = Provisioner::handle_completion( [
+		$success = Provisioner::handle_completion( array(
 			'domain'               => $data['domain'] ?? '',
 			'server_ip'            => $data['server_ip'] ?? '',
 			'server_id'            => $data['server_id'] ?? '',
@@ -105,20 +105,23 @@ class Webhook {
 			'cloudflare_record_id' => $data['cloudflare_record_id'] ?? '',
 			'wp_admin_password'    => $data['wp_admin_password'] ?? '',
 			'success'              => true,
-		] );
+		) );
 
 		if ( ! $success ) {
 			error_log( '[Spawn] Failed to process provisioner completion webhook' );
 			return new WP_Error(
 				'processing_failed',
 				__( 'Failed to process webhook', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		error_log( sprintf( '[Spawn] Provisioning complete for domain: %s', $data['domain'] ?? 'unknown' ) );
 
-		return new WP_REST_Response( [ 'received' => true, 'processed' => true ] );
+		return new WP_REST_Response( array(
+			'received'  => true,
+			'processed' => true,
+		) );
 	}
 
 	/**
@@ -129,11 +132,11 @@ class Webhook {
 	 */
 	public static function handle_checkout_completed( $session, $event ): void {
 		$session  = is_object( $session ) ? $session->toArray() : (array) $session;
-		$metadata = $session['metadata'] ?? [];
+		$metadata = $session['metadata'] ?? array();
 
 		// Only handle Spawn events.
 		$source = $metadata['source'] ?? '';
-		if ( $source !== 'spawn' && $source !== '' ) {
+		if ( 'spawn' !== $source && '' !== $source ) {
 			// Check for legacy metadata without source.
 			if ( ! isset( $metadata['domain'] ) && ! isset( $metadata['type'] ) ) {
 				return; // Not ours.
@@ -165,8 +168,152 @@ class Webhook {
 			return;
 		}
 
+		// Check if this is a domain registration.
+		if ( ( $metadata['type'] ?? '' ) === 'domain_registration' ) {
+			self::process_domain_registration( $session );
+			return;
+		}
+
 		// Handle subscription checkout.
 		self::process_subscription_checkout( $session, $metadata );
+	}
+
+	/**
+	 * Process domain registration after successful payment.
+	 *
+	 * @param array $session Checkout session data.
+	 */
+	private static function process_domain_registration( array $session ): void {
+		$metadata    = $session['metadata'] ?? array();
+		$domain      = strtolower( trim( $metadata['domain'] ?? '' ) );
+		$domain      = preg_replace( '/^(https?:\/\/)?(www\.)?/', '', $domain );
+		$domain      = rtrim( $domain, '/' );
+		$domain      = sanitize_text_field( $domain );
+		$server_id   = isset( $metadata['server_id'] ) ? (int) $metadata['server_id'] : null;
+		$base_price  = isset( $metadata['base_price'] ) ? (float) $metadata['base_price'] : 0.0;
+		$customer_id = (int) ( $metadata['customer_id'] ?? 0 );
+
+		if ( ! $customer_id || empty( $domain ) ) {
+			error_log( '[Spawn] Domain registration webhook missing customer_id or domain' );
+			return;
+		}
+
+		$customer = Database::get_customer( $customer_id );
+		if ( ! $customer ) {
+			error_log( sprintf( '[Spawn] Domain registration webhook customer not found: %d', $customer_id ) );
+			return;
+		}
+
+		$registration = Name_Com::register( $domain, 1 );
+		if ( is_wp_error( $registration ) ) {
+			error_log( sprintf( '[Spawn] Domain registration API failed for %s (customer #%d): %s', $domain, $customer_id, $registration->get_error_message() ) );
+			self::send_domain_purchase_notification( $customer, $domain, $base_price, $registration->get_error_message() );
+			return;
+		}
+
+		$domain_id = Database::create_domain( array(
+			'user_id'        => (int) ( $customer['user_id'] ?? 0 ),
+			'server_id'      => $server_id,
+			'domain'         => $domain,
+			'registrar'      => 'namecom',
+			'registered_at'  => current_time( 'mysql' ),
+			'expires_at'     => $registration['expires_at'] ?? null,
+			'auto_renew'     => true,
+			'dns_configured' => false,
+			'ssl_configured' => false,
+		) );
+
+		if ( ! $domain_id ) {
+			error_log( sprintf( '[Spawn] Failed to insert domain record for %s (customer #%d)', $domain, $customer_id ) );
+		}
+
+		self::send_domain_registration_email( $customer, $domain, $registration['expires_at'] ?? null );
+		self::send_domain_purchase_notification( $customer, $domain, $base_price );
+
+		error_log( sprintf( '[Spawn] Domain registered: %s for customer #%d', $domain, $customer_id ) );
+	}
+
+	/**
+	 * Send customer confirmation after domain registration.
+	 *
+	 * @param array       $customer   Customer data.
+	 * @param string      $domain     Domain name.
+	 * @param string|null $expires_at Expiration date.
+	 */
+	private static function send_domain_registration_email( array $customer, string $domain, ?string $expires_at ): void {
+		$email   = $customer['email'] ?? '';
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'Your domain %s has been registered', 'spawn' ),
+			$domain
+		);
+
+		$expires_formatted = $expires_at
+			? wp_date( 'F j, Y', strtotime( $expires_at ) )
+			: __( 'in approximately one year', 'spawn' );
+
+		$message = sprintf(
+			/* translators: 1: domain name, 2: expiration date */
+			__(
+				"Hello,\n\n" .
+				"Your domain %1\$s has been successfully registered.\n\n" .
+				"Expiration date: %2\$s\n\n" .
+				"We'll let you know when it's time to renew.\n\n" .
+				'—The Spawn Team',
+				'spawn'
+			),
+			$domain,
+			$expires_formatted
+		);
+
+		if ( $email ) {
+			wp_mail( $email, $subject, $message );
+		}
+	}
+
+	/**
+	 * Send admin notification for domain purchase.
+	 *
+	 * @param array       $customer      Customer data.
+	 * @param string      $domain        Domain name.
+	 * @param float       $base_price    Price paid.
+	 * @param string|null $error_message Optional error message.
+	 */
+	private static function send_domain_purchase_notification( array $customer, string $domain, float $base_price, ?string $error_message = null ): void {
+		$admin_email = get_option( 'admin_email' );
+		$email       = $customer['email'] ?? '';
+		$customer_id = (int) ( $customer['id'] ?? 0 );
+
+		$subject = sprintf(
+			/* translators: %s: domain name */
+			__( 'New Domain Purchase: %s', 'spawn' ),
+			$domain
+		);
+
+		$message = sprintf(
+			__(
+				"A customer purchased a domain.\n\n" .
+				"Customer email: %1\$s\n" .
+				"Domain: %2\$s\n" .
+				"Price paid: $%3\$.2f\n" .
+				"Customer ID: %4\$d\n",
+				'spawn'
+			),
+			$email,
+			$domain,
+			$base_price,
+			$customer_id
+		);
+
+		if ( $error_message ) {
+			$message .= sprintf(
+				/* translators: %s: error message */
+				__( "\nRegistration error: %s", 'spawn' ),
+				$error_message
+			);
+		}
+
+		wp_mail( $admin_email, $subject, $message );
 	}
 
 	/**
@@ -206,7 +353,7 @@ class Webhook {
 			$existing_status = $existing_by_email['status'] ?? '';
 			// Only block if customer has an active/provisioning subscription.
 			// Allow if previous subscription was cancelled/deleted.
-			if ( in_array( $existing_status, [ 'active', 'provisioning', 'pending', 'payment_failed' ], true ) ) {
+			if ( in_array( $existing_status, array( 'active', 'provisioning', 'pending', 'payment_failed' ), true ) ) {
 				error_log( sprintf( '[Spawn] Customer already exists with email %s (status: %s). Skipping duplicate.', $email, $existing_status ) );
 				return;
 			}
@@ -221,9 +368,9 @@ class Webhook {
 			}
 		}
 
-		$customer_id = Database::create_customer( [
+		$customer_id = Database::create_customer( array(
 			'email'               => $email,
-			'domain'              => $domain ?: null,
+			'domain'              => $domain ? $domain : null,
 			'domain_type'         => $domain_type,
 			'domain_price'        => $domain_price > 0 ? $domain_price : null,
 			'subdomain'           => $is_subdomain,
@@ -233,7 +380,7 @@ class Webhook {
 			'stripe_customer'     => $session['customer'] ?? '',
 			'stripe_subscription' => $session['subscription'] ?? '',
 			'status'              => 'provisioning',
-		] );
+		) );
 
 		if ( ! $customer_id ) {
 			error_log( '[Spawn] Failed to create customer record' );
@@ -243,7 +390,7 @@ class Webhook {
 
 		error_log( sprintf( '[Spawn] Created customer #%d for %s (tier: %s, wants_website: %s, region: %s)', $customer_id, $email, $tier, $wants_website ? 'yes' : 'no', $customer_region ) );
 
-		$result = Provisioner::trigger( [
+		$result = Provisioner::trigger( array(
 			'customer_id'    => $customer_id,
 			'customer_email' => $email,
 			'domain'         => $domain,
@@ -251,11 +398,11 @@ class Webhook {
 			'tier'           => $tier,
 			'wants_website'  => $wants_website,
 			'subdomain'      => $is_subdomain,
-		] );
+		) );
 
 		if ( is_wp_error( $result ) ) {
 			error_log( sprintf( '[Spawn] Provisioning trigger failed: %s', $result->get_error_message() ) );
-			Database::update_customer( $customer_id, [ 'status' => 'failed' ] );
+			Database::update_customer( $customer_id, array( 'status' => 'failed' ) );
 			return;
 		}
 
@@ -289,11 +436,11 @@ class Webhook {
 		$current_balance = (float) ( $customer['credit_balance'] ?? 0 );
 		$new_balance     = $current_balance + $monthly_credits;
 
-		Database::update_customer( $customer['id'], [
+		Database::update_customer( $customer['id'], array(
 			'status'         => 'active',
 			'renewed_at'     => current_time( 'mysql' ),
 			'credit_balance' => $new_balance,
-		] );
+		) );
 
 		self::log( sprintf(
 			'Added $%.2f monthly credits to customer %d (tier: %s). Balance: $%.2f -> $%.2f',
@@ -321,9 +468,9 @@ class Webhook {
 
 		$customer = Database::get_customer_by_subscription( $subscription_id );
 		if ( $customer ) {
-			Database::update_customer( $customer['id'], [
+			Database::update_customer( $customer['id'], array(
 				'status' => 'payment_failed',
-			] );
+			) );
 		}
 	}
 
@@ -350,7 +497,7 @@ class Webhook {
 		}
 
 		// Skip if already cancelling or deleted.
-		if ( in_array( $customer['status'], [ 'cancelling', 'deleted' ], true ) ) {
+		if ( in_array( $customer['status'], array( 'cancelling', 'deleted' ), true ) ) {
 			return;
 		}
 

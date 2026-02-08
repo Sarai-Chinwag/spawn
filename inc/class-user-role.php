@@ -16,10 +16,10 @@ class User_Role {
 	 * Initialize user role functionality.
 	 */
 	public static function init(): void {
-		add_filter( 'show_admin_bar', [ __CLASS__, 'hide_admin_bar' ] );
-		add_action( 'admin_init', [ __CLASS__, 'redirect_admin' ] );
-		add_action( 'login_init', [ __CLASS__, 'redirect_login_page' ] );
-		add_action( 'template_redirect', [ __CLASS__, 'redirect_spawn_landing' ] );
+		add_filter( 'show_admin_bar', array( __CLASS__, 'hide_admin_bar' ) );
+		add_action( 'admin_init', array( __CLASS__, 'redirect_admin' ) );
+		add_action( 'login_init', array( __CLASS__, 'redirect_login_page' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_spawn_landing' ) );
 	}
 
 	/**
@@ -99,20 +99,20 @@ class User_Role {
 		}
 
 		// Allow password reset via WP if someone has an old link.
-		if ( in_array( $action, [ 'lostpassword', 'rp', 'resetpass' ], true ) ) {
+		if ( in_array( $action, array( 'lostpassword', 'rp', 'resetpass' ), true ) ) {
 			// Redirect to Spawn password reset instead.
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$key   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+			$key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$login = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
 
 			if ( $key && $login ) {
 				$redirect_url = add_query_arg(
-					[
+					array(
 						'action' => 'reset',
 						'key'    => $key,
 						'login'  => $login,
-					],
+					),
 					home_url( '/spawn/login/' )
 				);
 			} else {

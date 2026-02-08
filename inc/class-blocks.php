@@ -16,14 +16,14 @@ class Blocks {
 	 * Initialize blocks.
 	 */
 	public static function init(): void {
-		add_action( 'init', [ __CLASS__, 'register_blocks' ] );
+		add_action( 'init', array( __CLASS__, 'register_blocks' ) );
 	}
 
 	/**
 	 * Register all blocks.
 	 */
 	public static function register_blocks(): void {
-		$blocks = [
+		$blocks = array(
 			'tier-select',
 			'checkout',
 			'login',
@@ -31,7 +31,7 @@ class Blocks {
 			'account',
 			'chat',
 			'success',
-		];
+		);
 
 		foreach ( $blocks as $block ) {
 			// Use build directory if it exists (production), otherwise source (development).

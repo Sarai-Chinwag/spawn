@@ -26,137 +26,137 @@ class Auth_Controller {
 		register_rest_route(
 			'spawn/v1',
 			'/auth/login',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'login' ],
+				'callback'            => array( __CLASS__, 'login' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/register',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'register' ],
+				'callback'            => array( __CLASS__, 'register' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required'  => true,
 						'type'      => 'string',
 						'minLength' => 8,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/me',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'me' ],
+				'callback'            => array( __CLASS__, 'me' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/logout',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'logout' ],
+				'callback'            => array( __CLASS__, 'logout' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/forgot-password',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'forgot_password' ],
+				'callback'            => array( __CLASS__, 'forgot_password' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email' => [
+				'args'                => array(
+					'email' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/reset-password',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'reset_password' ],
+				'callback'            => array( __CLASS__, 'reset_password' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'token'    => [
+					),
+					'token'    => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required'  => true,
 						'type'      => 'string',
 						'minLength' => 8,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/google/configured',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'google_configured' ],
+				'callback'            => array( __CLASS__, 'google_configured' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/google',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'google_start' ],
+				'callback'            => array( __CLASS__, 'google_start' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/auth/google/callback',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'google_callback' ],
+				'callback'            => array( __CLASS__, 'google_callback' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 	}
 
@@ -176,7 +176,7 @@ class Auth_Controller {
 			return new WP_Error(
 				'invalid_credentials',
 				__( 'Invalid email or password.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
@@ -184,21 +184,21 @@ class Auth_Controller {
 			return new WP_Error(
 				'invalid_credentials',
 				__( 'Invalid email or password.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID, true );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'user'    => [
+			'user'    => array(
 				'id'    => $user->ID,
 				'email' => $user->user_email,
 				'name'  => $user->display_name,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -215,7 +215,7 @@ class Auth_Controller {
 			return new WP_Error(
 				'email_exists',
 				__( 'An account with this email already exists.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -225,7 +225,7 @@ class Auth_Controller {
 			return new WP_Error(
 				'registration_failed',
 				$user_id->get_error_message(),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -235,14 +235,14 @@ class Auth_Controller {
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'user'    => [
+			'user'    => array(
 				'id'    => $user->ID,
 				'email' => $user->user_email,
 				'name'  => $user->display_name,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -252,21 +252,21 @@ class Auth_Controller {
 	 */
 	public static function me(): WP_REST_Response {
 		if ( ! is_user_logged_in() ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'logged_in' => false,
-			] );
+			) );
 		}
 
 		$user = wp_get_current_user();
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'logged_in' => true,
-			'user'      => [
+			'user'      => array(
 				'id'    => $user->ID,
 				'email' => $user->user_email,
 				'name'  => $user->display_name,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -277,9 +277,9 @@ class Auth_Controller {
 	public static function logout(): WP_REST_Response {
 		wp_logout();
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-		] );
+		) );
 	}
 
 	/**
@@ -294,27 +294,27 @@ class Auth_Controller {
 
 		// Always return success to prevent email enumeration.
 		if ( ! $user ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => true,
 				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-			] );
+			) );
 		}
 
 		$reset_key = get_password_reset_key( $user );
 
 		if ( is_wp_error( $reset_key ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => true,
 				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-			] );
+			) );
 		}
 
 		$reset_url = add_query_arg(
-			[
+			array(
 				'action' => 'reset',
 				'key'    => $reset_key,
 				'login'  => rawurlencode( $user->user_login ),
-			],
+			),
 			home_url( '/spawn/login/' )
 		);
 
@@ -327,7 +327,7 @@ class Auth_Controller {
 				"To reset your password, click the link below:\n%s\n\n" .
 				"This link will expire in 24 hours.\n\n" .
 				"If you didn't request this, you can safely ignore this email.\n\n" .
-				"— %s",
+				'— %s',
 				'spawn'
 			),
 			$user->display_name ?: $user->user_login,
@@ -337,10 +337,10 @@ class Auth_Controller {
 
 		wp_mail( $email, $subject, $message );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
 			'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -364,7 +364,7 @@ class Auth_Controller {
 			return new WP_Error(
 				'invalid_reset',
 				__( 'Invalid password reset request.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -374,16 +374,16 @@ class Auth_Controller {
 			return new WP_Error(
 				'invalid_token',
 				__( 'This reset link has expired or is invalid. Please request a new one.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		reset_password( $user, $password );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
 			'message' => __( 'Password has been reset. You can now log in.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -392,9 +392,9 @@ class Auth_Controller {
 	 * @return WP_REST_Response Response.
 	 */
 	public static function google_configured(): WP_REST_Response {
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'configured' => Google_OAuth::is_configured(),
-		] );
+		) );
 	}
 
 	/**
@@ -407,13 +407,13 @@ class Auth_Controller {
 			return new WP_Error(
 				'google_oauth_not_configured',
 				__( 'Google OAuth is not configured.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'auth_url' => Google_OAuth::get_auth_url(),
-		] );
+		) );
 	}
 
 	/**
@@ -435,7 +435,7 @@ class Auth_Controller {
 			return new WP_Error(
 				'missing_code',
 				__( 'Missing authorization code.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 

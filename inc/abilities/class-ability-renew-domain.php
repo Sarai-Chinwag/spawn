@@ -61,54 +61,54 @@ class Ability_Renew_Domain {
 		$amount_cents    = (int) round( $marked_up_price * 100 );
 
 		// Create Stripe checkout session for domain renewal.
-		$session = StripeClient::create_checkout_session( [
+		$session = StripeClient::create_checkout_session( array(
 			'customer'       => $customer['stripe_customer'] ?? null,
 			'customer_email' => $customer['email'],
-			'metadata'       => [
+			'metadata'       => array(
 				'type'              => 'domain_renewal',
 				'domain'            => $domain,
 				'spawn_customer_id' => $customer_id,
 				'source'            => 'spawn',
-			],
-			'line_items'     => [
-				[
-					'price_data' => [
+			),
+			'line_items'     => array(
+				array(
+					'price_data' => array(
 						'currency'     => 'usd',
 						'unit_amount'  => $amount_cents,
-						'product_data' => [
+						'product_data' => array(
 							'name'        => sprintf(
 								/* translators: %s: domain name */
 								__( 'Domain Renewal: %s', 'spawn' ),
 								$domain
 							),
 							'description' => __( 'One-year domain renewal', 'spawn' ),
-						],
-					],
+						),
+					),
 					'quantity'   => 1,
-				],
-			],
+				),
+			),
 			'mode'           => 'payment',
 			'success_url'    => add_query_arg(
-				[
+				array(
 					'renewed' => '1',
 					'domain'  => $domain,
-				],
+				),
 				home_url( '/spawn/dashboard/' )
 			),
 			'cancel_url'     => home_url( '/spawn/dashboard/' ),
-		] );
+		) );
 
 		if ( is_wp_error( $session ) ) {
 			return $session;
 		}
 
-		return [
+		return array(
 			'success'       => true,
 			'checkout_url'  => $session['url'],
 			'session_id'    => $session['id'],
 			'domain'        => $domain,
 			'renewal_price' => $marked_up_price,
-		];
+		);
 	}
 
 	/**

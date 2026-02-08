@@ -28,16 +28,16 @@ class Payment_Helpers {
 	public static function create_credit_checkout_session( array $params ): array|WP_Error {
 		$amount_dollars = (int) $params['amount'] / 100;
 
-		$session_params = [
-			'mode'         => 'payment',
-			'success_url'  => home_url( '/spawn/dashboard/?credits_purchased=1&session_id={CHECKOUT_SESSION_ID}' ),
-			'cancel_url'   => home_url( '/spawn/dashboard/' ),
-			'line_items'   => [
-				[
-					'price_data' => [
+		$session_params = array(
+			'mode'        => 'payment',
+			'success_url' => home_url( '/spawn/dashboard/?credits_purchased=1&session_id={CHECKOUT_SESSION_ID}' ),
+			'cancel_url'  => home_url( '/spawn/dashboard/' ),
+			'line_items'  => array(
+				array(
+					'price_data' => array(
 						'currency'     => 'usd',
 						'unit_amount'  => (int) $params['amount'],
-						'product_data' => [
+						'product_data' => array(
 							'name'        => sprintf(
 								/* translators: %d: number of credits */
 								__( '%d Spawn Credits', 'spawn' ),
@@ -48,18 +48,18 @@ class Payment_Helpers {
 								__( '$%d credit purchase', 'spawn' ),
 								$amount_dollars
 							),
-						],
-					],
-					'quantity' => 1,
-				],
-			],
-			'metadata'     => [
+						),
+					),
+					'quantity'   => 1,
+				),
+			),
+			'metadata'    => array(
 				'type'              => 'credit_purchase',
 				'credits'           => $params['credits'],
 				'spawn_customer_id' => $params['spawn_customer_id'],
 				'source'            => 'spawn',
-			],
-		];
+			),
+		);
 
 		// Use existing Stripe customer if available.
 		if ( ! empty( $params['customer_id'] ) ) {
@@ -78,7 +78,7 @@ class Payment_Helpers {
 	 * @return bool|WP_Error True on success, error on failure.
 	 */
 	public static function handle_credit_purchase( array $session ): bool|WP_Error {
-		$metadata = $session['metadata'] ?? [];
+		$metadata = $session['metadata'] ?? array();
 
 		if ( ( $metadata['type'] ?? '' ) !== 'credit_purchase' ) {
 			return true; // Not a credit purchase, skip.
@@ -127,7 +127,7 @@ class Payment_Helpers {
 			return new WP_Error(
 				'no_payment_method',
 				__( 'No default payment method found.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -151,7 +151,7 @@ class Payment_Helpers {
 		int $credits,
 		int $spawn_customer_id
 	): array|WP_Error {
-		return StripeClient::create_payment_intent( [
+		return StripeClient::create_payment_intent( array(
 			'amount'         => $amount_cents,
 			'currency'       => 'usd',
 			'customer'       => $customer_id,
@@ -163,13 +163,13 @@ class Payment_Helpers {
 				__( 'Auto-refill: %d Spawn Credits', 'spawn' ),
 				$credits
 			),
-			'metadata'       => [
+			'metadata'       => array(
 				'type'              => 'auto_refill',
 				'credits'           => $credits,
 				'spawn_customer_id' => $spawn_customer_id,
 				'source'            => 'spawn',
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -249,19 +249,19 @@ class Payment_Helpers {
 			return new WP_Error(
 				'no_subscription_item',
 				__( 'No subscription item found', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// Update the subscription item with the new price.
-		return StripeClient::update_subscription( $subscription_id, [
-			'items' => [
-				[
+		return StripeClient::update_subscription( $subscription_id, array(
+			'items'              => array(
+				array(
 					'id'    => $item_id,
 					'price' => $new_price_id,
-				],
-			],
+				),
+			),
 			'proration_behavior' => 'create_prorations',
-		] );
+		) );
 	}
 }

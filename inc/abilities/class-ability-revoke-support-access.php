@@ -34,19 +34,19 @@ class Ability_Revoke_Support_Access {
 			"The customer has requested to revoke support access. Please remove any SSH keys containing '%s' from /root/.ssh/authorized_keys.\n\n" .
 			"To remove the key, run:\n" .
 			"grep -v '%s' /root/.ssh/authorized_keys > /tmp/auth_keys_new && " .
-			"mv /tmp/auth_keys_new /root/.ssh/authorized_keys && " .
+			'mv /tmp/auth_keys_new /root/.ssh/authorized_keys && ' .
 			"chmod 600 /root/.ssh/authorized_keys\n\n" .
-			"Confirm when complete.",
+			'Confirm when complete.',
 			self::SUPPORT_KEY_IDENTIFIER,
 			self::SUPPORT_KEY_IDENTIFIER
 		);
 
 		// Use send-message ability.
-		$result = Ability_Send_Message::execute( [
+		$result = Ability_Send_Message::execute( array(
 			'message'     => $message,
 			'customer_id' => $customer_id,
 			'system_note' => 'Support access revoke request',
-		] );
+		) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -54,11 +54,11 @@ class Ability_Revoke_Support_Access {
 
 		$customer_id_resolved = $result['customer_id'] ?? $customer_id;
 
-		return [
+		return array(
 			'success'     => true,
 			'customer_id' => $customer_id_resolved,
 			'revoked_at'  => current_time( 'mysql' ),
 			'agent_reply' => $result['reply'] ?? null,
-		];
+		);
 	}
 }

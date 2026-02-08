@@ -46,67 +46,67 @@ class Config {
 	 */
 	public static function get_tiers(): array {
 		// Get Stripe price IDs from stored options.
-		$prices = get_option( 'spawn_stripe_prices', [] );
+		$prices = get_option( 'spawn_stripe_prices', array() );
 
-		return [
-			'starter'  => [
-				'name'            => __( 'Starter', 'spawn' ),
-				'price'           => 20,
-				'description'     => __( 'Perfect for personal use', 'spawn' ),
-				'stripe_price_id' => $prices['vps_starter'] ?? '',
-				'hetzner_type_us' => 'cpx21',
-				'hetzner_type_eu' => 'cpx22',
-				'vcpu'            => 3, // cpx21 has 3, cpx22 has 2
-				'vcpu_shared'     => true,
-				'ram_gb'          => 4,
-				'disk_gb'         => 80,
+		return array(
+			'starter'  => array(
+				'name'             => __( 'Starter', 'spawn' ),
+				'price'            => 20,
+				'description'      => __( 'Perfect for personal use', 'spawn' ),
+				'stripe_price_id'  => $prices['vps_starter'] ?? '',
+				'hetzner_type_us'  => 'cpx21',
+				'hetzner_type_eu'  => 'cpx22',
+				'vcpu'             => 3, // cpx21 has 3, cpx22 has 2
+				'vcpu_shared'      => true,
+				'ram_gb'           => 4,
+				'disk_gb'          => 80,
 				'included_credits' => self::DEFAULT_STARTER_CREDITS,
-				'features'        => [
+				'features'         => array(
 					__( '$5 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
-				],
-			],
-			'pro'      => [
-				'name'            => __( 'Pro', 'spawn' ),
-				'price'           => 50,
-				'description'     => __( 'More power for bigger projects', 'spawn' ),
-				'stripe_price_id' => $prices['vps_pro'] ?? '',
-				'hetzner_type_us' => 'cpx31',
-				'hetzner_type_eu' => 'cpx32',
-				'vcpu'            => 4,
-				'vcpu_shared'     => true,
-				'ram_gb'          => 8,
-				'disk_gb'         => 160,
+				),
+			),
+			'pro'      => array(
+				'name'             => __( 'Pro', 'spawn' ),
+				'price'            => 50,
+				'description'      => __( 'More power for bigger projects', 'spawn' ),
+				'stripe_price_id'  => $prices['vps_pro'] ?? '',
+				'hetzner_type_us'  => 'cpx31',
+				'hetzner_type_eu'  => 'cpx32',
+				'vcpu'             => 4,
+				'vcpu_shared'      => true,
+				'ram_gb'           => 8,
+				'disk_gb'          => 160,
 				'included_credits' => 20.00,
-				'features'        => [
+				'features'         => array(
 					__( '$20 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
-				],
-			],
-			'business' => [
-				'name'            => __( 'Business', 'spawn' ),
-				'price'           => 100,
-				'description'     => __( 'Maximum power for teams', 'spawn' ),
-				'stripe_price_id' => $prices['vps_business'] ?? '',
-				'hetzner_type_us' => 'cpx41',
-				'hetzner_type_eu' => 'cpx42',
-				'vcpu'            => 8,
-				'vcpu_shared'     => true,
-				'ram_gb'          => 16,
-				'disk_gb'         => 240, // cpx41=240, cpx42=320
+				),
+			),
+			'business' => array(
+				'name'             => __( 'Business', 'spawn' ),
+				'price'            => 100,
+				'description'      => __( 'Maximum power for teams', 'spawn' ),
+				'stripe_price_id'  => $prices['vps_business'] ?? '',
+				'hetzner_type_us'  => 'cpx41',
+				'hetzner_type_eu'  => 'cpx42',
+				'vcpu'             => 8,
+				'vcpu_shared'      => true,
+				'ram_gb'           => 16,
+				'disk_gb'          => 240, // cpx41=240, cpx42=320
 				'included_credits' => self::DEFAULT_STARTER_CREDITS * 8,
-				'features'        => [
+				'features'         => array(
 					__( '$40 AI credits/month', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
 					__( 'Best for heavy work', 'spawn' ),
-				],
-			],
-		];
+				),
+			),
+		);
 	}
 
 	/**
@@ -185,7 +185,7 @@ class Config {
 		$location     = self::get_server_location( $wants_website, $customer_region );
 		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website, $customer_region );
 
-		return [
+		return array(
 			'tier'            => $tier_id,
 			'hetzner_type'    => $hetzner_type,
 			'location'        => $location,
@@ -194,7 +194,7 @@ class Config {
 			'vcpu_shared'     => $tier['vcpu_shared'],
 			'ram_gb'          => $tier['ram_gb'],
 			'disk_gb'         => $tier['disk_gb'],
-		];
+		);
 	}
 
 	/**
@@ -216,18 +216,18 @@ class Config {
 	 * @return array Public tier data.
 	 */
 	public static function get_public_tiers(): array {
-		$tiers = self::get_tiers();
-		$public = [];
+		$tiers  = self::get_tiers();
+		$public = array();
 
 		foreach ( $tiers as $id => $tier ) {
-			$public[ $id ] = [
+			$public[ $id ] = array(
 				'name'        => $tier['name'],
 				'price'       => $tier['price'],
 				'description' => $tier['description'],
 				'ram_gb'      => $tier['ram_gb'],
 				'disk_gb'     => $tier['disk_gb'],
 				'features'    => $tier['features'],
-			];
+			);
 		}
 
 		return $public;
@@ -262,14 +262,14 @@ class Config {
 		}
 
 		// Server costs (approximate).
-		$server_costs = [
+		$server_costs = array(
 			'cpx21' => 9.99,
 			'cpx22' => 6.99,
 			'cpx31' => 17.99,
 			'cpx32' => 11.99,
 			'cpx41' => 33.49,
 			'cpx42' => 21.99,
-		];
+		);
 
 		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website );
 		$server_cost  = $server_costs[ $hetzner_type ] ?? 9.99;
@@ -279,7 +279,7 @@ class Config {
 		$total_cost   = $server_cost + $credits_cost;
 		$margin       = $net_received - $total_cost;
 
-		return [
+		return array(
 			'price'        => $tier['price'],
 			'stripe_fee'   => round( $stripe_fee, 2 ),
 			'net_received' => round( $net_received, 2 ),
@@ -288,6 +288,6 @@ class Config {
 			'total_cost'   => round( $total_cost, 2 ),
 			'margin'       => round( $margin, 2 ),
 			'margin_pct'   => round( ( $margin / $tier['price'] ) * 100, 1 ),
-		];
+		);
 	}
 }

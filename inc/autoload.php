@@ -14,33 +14,33 @@ namespace Spawn;
 				return;
 			}
 
-			$class_map = [
+			$class_map = array(
 				'\Spawn\Google_OAuth' => SPAWN_PLUGIN_DIR . 'inc/class-google-oauth.php',
-			];
+			);
 
 			if ( isset( $class_map[ $class ] ) ) {
 				require_once $class_map[ $class ];
 				return;
 			}
 
-		// Remove namespace prefix.
-		$relative_class = substr( $class, strlen( 'Spawn\\' ) );
+			// Remove namespace prefix.
+			$relative_class = substr( $class, strlen( 'Spawn\\' ) );
 
-		// Handle Abilities namespace specially.
-		if ( strpos( $relative_class, 'Abilities\\' ) === 0 ) {
-			$ability_class = substr( $relative_class, strlen( 'Abilities\\' ) );
-			$file = SPAWN_PLUGIN_DIR . 'inc/abilities/class-' . strtolower( str_replace( '_', '-', $ability_class ) ) . '.php';
-		} elseif ( strpos( $relative_class, 'Controllers\\' ) === 0 ) {
-			// Handle Controllers namespace.
-			$controller_class = substr( $relative_class, strlen( 'Controllers\\' ) );
-			$file = SPAWN_PLUGIN_DIR . 'inc/controllers/class-' . strtolower( str_replace( '_', '-', $controller_class ) ) . '.php';
-		} else {
-			// Convert to file path.
-			$file = SPAWN_PLUGIN_DIR . 'inc/class-' . strtolower( str_replace( [ '\\', '_' ], [ '/', '-' ], $relative_class ) ) . '.php';
-		}
+			// Handle Abilities namespace specially.
+			if ( strpos( $relative_class, 'Abilities\\' ) === 0 ) {
+				$ability_class = substr( $relative_class, strlen( 'Abilities\\' ) );
+				$file          = SPAWN_PLUGIN_DIR . 'inc/abilities/class-' . strtolower( str_replace( '_', '-', $ability_class ) ) . '.php';
+			} elseif ( strpos( $relative_class, 'Controllers\\' ) === 0 ) {
+				// Handle Controllers namespace.
+				$controller_class = substr( $relative_class, strlen( 'Controllers\\' ) );
+				$file             = SPAWN_PLUGIN_DIR . 'inc/controllers/class-' . strtolower( str_replace( '_', '-', $controller_class ) ) . '.php';
+			} else {
+				// Convert to file path.
+				$file = SPAWN_PLUGIN_DIR . 'inc/class-' . strtolower( str_replace( array( '\\', '_' ), array( '/', '-' ), $relative_class ) ) . '.php';
+			}
 
-		if ( file_exists( $file ) ) {
-			require_once $file;
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
 		}
-	}
-);
+	);

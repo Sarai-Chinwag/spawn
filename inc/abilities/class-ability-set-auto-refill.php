@@ -38,13 +38,13 @@ class Ability_Set_Auto_Refill {
 
 		// If no changes specified, just return current settings.
 		if ( null === $enabled && null === $threshold && null === $amount ) {
-			return [
+			return array(
 				'customer_id' => $customer_id,
 				'enabled'     => $current['enabled'] ?? false,
 				'threshold'   => (float) ( $current['threshold'] ?? 5.00 ),
 				'amount'      => (float) ( $current['amount'] ?? 10.00 ),
 				'message'     => 'Current auto-refill settings retrieved.',
-			];
+			);
 		}
 
 		// Merge with current settings.
@@ -85,7 +85,7 @@ class Ability_Set_Auto_Refill {
 
 		$action = $new_enabled ? 'enabled' : 'disabled';
 
-		return [
+		return array(
 			'customer_id' => $customer_id,
 			'enabled'     => $new_enabled,
 			'threshold'   => $new_threshold,
@@ -97,7 +97,7 @@ class Ability_Set_Auto_Refill {
 				$new_threshold,
 				$new_amount
 			),
-		];
+		);
 	}
 
 	/**

@@ -28,7 +28,7 @@ class Ability_Get_Status {
 			return $customer;
 		}
 
-		return [
+		return array(
 			'customer_id'    => (int) $customer['id'],
 			'email'          => $customer['email'],
 			'domain'         => $customer['domain'],
@@ -37,7 +37,7 @@ class Ability_Get_Status {
 			'server_ip'      => $customer['server_ip'],
 			'credit_balance' => (float) $customer['credit_balance'],
 			'created_at'     => $customer['created_at'],
-		];
+		);
 	}
 
 	/**

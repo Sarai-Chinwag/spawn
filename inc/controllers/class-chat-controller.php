@@ -26,79 +26,79 @@ class Chat_Controller {
 		register_rest_route(
 			'spawn/v1',
 			'/chat/send',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'send' ],
+				'callback'            => array( __CLASS__, 'send' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'message'    => [
+				'args'                => array(
+					'message'    => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-					'sessionKey' => [
+					),
+					'sessionKey' => array(
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'context'    => [
+					),
+					'context'    => array(
 						'type'    => 'object',
-						'default' => [],
-					],
-				],
-			]
+						'default' => array(),
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/chat/sessions',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'list_sessions' ],
+				'callback'            => array( __CLASS__, 'list_sessions' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/chat/sessions/(?P<sessionKey>[a-zA-Z0-9_%:-]+)/history',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'session_history' ],
+				'callback'            => array( __CLASS__, 'session_history' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'sessionKey' => [
+				'args'                => array(
+					'sessionKey' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'limit'      => [
+					),
+					'limit'      => array(
 						'type'    => 'integer',
 						'default' => 50,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		register_rest_route(
 			'spawn/v1',
 			'/chat/generate-title',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'generate_title' ],
+				'callback'            => array( __CLASS__, 'generate_title' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'username' => [
+				'args'                => array(
+					'username' => array(
 						'type'              => 'string',
 						'default'           => 'friend',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'wordBank' => [
+					),
+					'wordBank' => array(
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 	}
 
@@ -133,7 +133,7 @@ class Chat_Controller {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -141,15 +141,15 @@ class Chat_Controller {
 			return new WP_Error(
 				'empty_message',
 				__( 'Message cannot be empty.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// If server not ready, return placeholder.
 		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Your website is still being set up! This usually takes a few minutes. I'll be fully operational once it's ready. In the meantime, is there anything you'd like to plan for your site?",
-			] );
+			) );
 		}
 
 		// Build system context for the AI.
@@ -160,7 +160,7 @@ class Chat_Controller {
 			"Site: %s\n" .
 			"Status: %s\n" .
 			"Mobile channel configured: %s\n\n" .
-			"This is the Spawn web chat. Help the user with their WordPress site.",
+			'This is the Spawn web chat. Help the user with their WordPress site.',
 			$customer['email'],
 			$customer['domain'],
 			$customer['status'],
@@ -171,38 +171,44 @@ class Chat_Controller {
 		$gateway_token = $customer['openclaw_token'] ?? '';
 
 		if ( empty( $gateway_token ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I'm still getting configured. Try again in a moment!",
-			] );
+			) );
 		}
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[ 'role' => 'system', 'content' => $system_prompt ],
-				[ 'role' => 'user', 'content' => $message ],
-			],
-		];
+			'messages' => array(
+				array(
+					'role'    => 'system',
+					'content' => $system_prompt,
+				),
+				array(
+					'role'    => 'user',
+					'content' => $message,
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type'  => 'application/json',
 			'Authorization' => 'Bearer ' . $gateway_token,
-		];
+		);
 
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $gateway_url, [
+		$response = wp_remote_post( $gateway_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I'm having trouble connecting right now. Your site might be restarting. Try again in a moment!",
-			] );
+			) );
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -210,22 +216,22 @@ class Chat_Controller {
 
 		if ( $code >= 400 ) {
 			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Something went wrong: $error_msg. Try again in a moment!",
-			] );
+			) );
 		}
 
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
 		if ( empty( $reply ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I didn't get a response. Could you try again?",
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'reply' => $reply,
-		] );
+		) );
 	}
 
 	/**
@@ -250,24 +256,30 @@ class Chat_Controller {
 			"Site: %s (%s)\n" .
 			"User: %s <%s>\n" .
 			"Interface: Web chat block\n\n" .
-			"This is a self-spawned OpenClaw installation running on the same server as WordPress.",
+			'This is a self-spawned OpenClaw installation running on the same server as WordPress.',
 			$site_name,
 			$site_url,
 			$current_user->display_name ?: $current_user->user_login,
 			$current_user->user_email
 		);
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[ 'role' => 'system', 'content' => $system_prompt ],
-				[ 'role' => 'user', 'content' => $message ],
-			],
-		];
+			'messages' => array(
+				array(
+					'role'    => 'system',
+					'content' => $system_prompt,
+				),
+				array(
+					'role'    => 'user',
+					'content' => $message,
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type' => 'application/json',
-		];
+		);
 
 		// Add auth token if configured for local OpenClaw.
 		$gateway_token = get_option( 'spawn_local_openclaw_token', '' );
@@ -279,16 +291,16 @@ class Chat_Controller {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $gateway_url, [
+		$response = wp_remote_post( $gateway_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Connection to local OpenClaw failed: ' . $response->get_error_message(),
-			] );
+			) );
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
@@ -296,22 +308,22 @@ class Chat_Controller {
 
 		if ( $code >= 400 ) {
 			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Local OpenClaw error: $error_msg",
-			] );
+			) );
 		}
 
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
 		if ( empty( $reply ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'No response received from local agent.',
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'reply' => $reply,
-		] );
+		) );
 	}
 
 	/**
@@ -326,9 +338,9 @@ class Chat_Controller {
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_token ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Control plane chat not configured. Set spawn_openclaw_token in Settings → Spawn.',
-			] );
+			) );
 		}
 
 		$chat_url = $gateway_base . '/v1/chat/completions';
@@ -350,62 +362,68 @@ class Chat_Controller {
 			$current_user->user_email
 		);
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[ 'role' => 'system', 'content' => $system_prompt ],
-				[ 'role' => 'user', 'content' => $message ],
-			],
-		];
+			'messages' => array(
+				array(
+					'role'    => 'system',
+					'content' => $system_prompt,
+				),
+				array(
+					'role'    => 'user',
+					'content' => $message,
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type'  => 'application/json',
 			'Authorization' => 'Bearer ' . $gateway_token,
-		];
+		);
 
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $chat_url, [
+		$response = wp_remote_post( $chat_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Connection failed: ' . $response->get_error_message(),
-			] );
+			) );
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( 401 === $code ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Authentication failed. Check spawn_openclaw_token matches your gateway auth token.',
-			] );
+			) );
 		}
 
 		if ( $code >= 400 ) {
 			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Gateway error: $error_msg",
-			] );
+			) );
 		}
 
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
 		if ( empty( $reply ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'No response received from agent.',
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'reply' => $reply,
-		] );
+		) );
 	}
 
 	/**
@@ -422,7 +440,7 @@ class Chat_Controller {
 				\Spawn\Self_Spawn::get_gateway_url(),
 				'', // No token needed for local.
 				'sessions_list',
-				[]
+				array()
 			);
 		}
 
@@ -432,23 +450,23 @@ class Chat_Controller {
 			$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
-				return new WP_REST_Response( [ 'sessions' => [] ] );
+				return new WP_REST_Response( array( 'sessions' => array() ) );
 			}
 
-			return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', [] );
+			return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', array() );
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
-			return new WP_REST_Response( [ 'sessions' => [] ] );
+			return new WP_REST_Response( array( 'sessions' => array() ) );
 		}
 
 		return self::invoke_openclaw_tool(
 			'http://' . $customer['server_ip'] . ':18789',
 			$customer['openclaw_token'],
 			'sessions_list',
-			[]
+			array()
 		);
 	}
 
@@ -469,10 +487,10 @@ class Chat_Controller {
 				\Spawn\Self_Spawn::get_gateway_url(),
 				'', // No token needed for local.
 				'sessions_history',
-				[
+				array(
 					'sessionKey' => $session_key,
 					'limit'      => $limit,
-				]
+				)
 			);
 		}
 
@@ -482,34 +500,34 @@ class Chat_Controller {
 			$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
-				return new WP_REST_Response( [ 'messages' => [] ] );
+				return new WP_REST_Response( array( 'messages' => array() ) );
 			}
 
 			return self::invoke_openclaw_tool(
 				$gateway_url,
 				$gateway_token,
 				'sessions_history',
-				[
+				array(
 					'sessionKey' => $session_key,
 					'limit'      => $limit,
-				]
+				)
 			);
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
-			return new WP_REST_Response( [ 'messages' => [] ] );
+			return new WP_REST_Response( array( 'messages' => array() ) );
 		}
 
 		return self::invoke_openclaw_tool(
 			'http://' . $customer['server_ip'] . ':18789',
 			$customer['openclaw_token'],
 			'sessions_history',
-			[
+			array(
 				'sessionKey' => $session_key,
 				'limit'      => $limit,
-			]
+			)
 		);
 	}
 
@@ -537,9 +555,9 @@ class Chat_Controller {
 			$title = 'chat-' . time();
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'title' => $title,
-		] );
+		) );
 	}
 
 	/**
@@ -559,23 +577,23 @@ class Chat_Controller {
 	): WP_REST_Response|WP_Error {
 		$url = rtrim( $gateway_url, '/' ) . '/tools/invoke';
 
-		$response = wp_remote_post( $url, [
-			'headers' => [
+		$response = wp_remote_post( $url, array(
+			'headers' => array(
 				'Content-Type'  => 'application/json',
 				'Authorization' => 'Bearer ' . $gateway_token,
-			],
-			'body'    => wp_json_encode( [
+			),
+			'body'    => wp_json_encode( array(
 				'tool' => $tool,
 				'args' => $args,
-			] ),
+			) ),
 			'timeout' => 30,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
 				'openclaw_error',
 				__( 'Failed to connect to OpenClaw', 'spawn' ),
-				[ 'status' => 502 ]
+				array( 'status' => 502 )
 			);
 		}
 
@@ -586,7 +604,7 @@ class Chat_Controller {
 			return new WP_Error(
 				'openclaw_error',
 				$body['error'] ?? __( 'OpenClaw request failed', 'spawn' ),
-				[ 'status' => $code ]
+				array( 'status' => $code )
 			);
 		}
 

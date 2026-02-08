@@ -59,13 +59,13 @@ class Ability_Scale_VPS {
 			return new WP_Error( 'update_failed', __( 'Failed to update tier in database', 'spawn' ) );
 		}
 
-		return [
+		return array(
 			'success'        => true,
 			'new_tier'       => $new_tier,
 			'server_id'      => $customer['server_id'],
 			'effective_date' => current_time( 'mysql' ),
 			'note'           => __( 'Server resize initiated. May require reboot.', 'spawn' ),
-		];
+		);
 	}
 
 	/**
@@ -84,14 +84,14 @@ class Ability_Scale_VPS {
 			escapeshellarg( $new_tier )
 		);
 
-		$output = [];
+		$output      = array();
 		$return_code = 0;
 		exec( $command, $output, $return_code );
 
-		if ( $return_code !== 0 ) {
+		if ( 0 !== $return_code ) {
 			$error_msg = implode( "\n", $output );
-			return new WP_Error( 
-				'hetzner_error', 
+			return new WP_Error(
+				'hetzner_error',
 				sprintf( __( 'Hetzner resize failed: %s', 'spawn' ), $error_msg )
 			);
 		}

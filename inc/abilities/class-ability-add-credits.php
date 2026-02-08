@@ -44,11 +44,11 @@ class Ability_Add_Credits {
 		// Get updated balance.
 		$new_balance = Database::get_credit_balance( (int) $customer['id'] );
 
-		return [
+		return array(
 			'success'     => true,
 			'added'       => $amount,
 			'new_balance' => $new_balance,
-		];
+		);
 	}
 
 	/**

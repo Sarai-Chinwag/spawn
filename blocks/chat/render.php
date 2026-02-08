@@ -15,11 +15,11 @@ use Spawn\Branding;
 $is_fullpage = ! empty( $attributes['fullpage'] );
 $extra_class = $is_fullpage ? 'wp-block-spawn-chat--fullpage' : '';
 
-$session_key = isset( $attributes['sessionKey'] ) ? $attributes['sessionKey'] : '';
-$wrapper_attributes = get_block_wrapper_attributes( [
+$session_key        = isset( $attributes['sessionKey'] ) ? $attributes['sessionKey'] : '';
+$wrapper_attributes = get_block_wrapper_attributes( array(
 	'class'            => $extra_class,
 	'data-session-key' => $session_key,
-] );
+) );
 
 // Branding.
 $brand_name     = Branding::get_brand_name();
@@ -83,23 +83,23 @@ $username     = $current_user->display_name ?: $current_user->user_login;
 
 // Pass customer context to JS.
 if ( $is_admin && ! $customer ) {
-	$chat_context = [
+	$chat_context = array(
 		'customer_id' => 0,
 		'domain'      => Branding::get_subdomain_suffix(),
 		'status'      => 'admin',
 		'has_mobile'  => true,
 		'is_admin'    => true,
 		'username'    => $username,
-	];
+	);
 } else {
-	$chat_context = [
+	$chat_context = array(
 		'customer_id' => $customer['id'],
 		'domain'      => $customer['domain'],
 		'status'      => $customer['status'],
 		'has_mobile'  => false, // TODO: Check if they have mobile channel configured.
 		'first_visit' => empty( $customer['server_ip'] ) ? false : true,
 		'username'    => $username,
-	];
+	);
 }
 ?>
 <div <?php echo $wrapper_attributes; ?> data-context="<?php echo esc_attr( wp_json_encode( $chat_context ) ); ?>">

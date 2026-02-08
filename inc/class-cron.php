@@ -24,7 +24,7 @@ class Cron {
 	/**
 	 * Warning intervals in days before expiry.
 	 */
-	private const WARNING_INTERVALS = [ 30, 14, 7, 1 ];
+	private const WARNING_INTERVALS = array( 30, 14, 7, 1 );
 
 	/**
 	 * Days before expiry to trigger auto-renewal (if enabled).
@@ -40,12 +40,12 @@ class Cron {
 	 * Initialize cron handlers.
 	 */
 	public static function init(): void {
-		add_action( self::RENEWAL_HOOK, [ __CLASS__, 'process_domain_renewals' ] );
+		add_action( self::RENEWAL_HOOK, array( __CLASS__, 'process_domain_renewals' ) );
 
 		// Auto-refill handlers.
-		add_action( 'spawn_credits_auto_refill_needed', [ __CLASS__, 'handle_auto_refill_needed' ], 10, 2 );
-		add_action( 'spawn_auto_refill_success', [ __CLASS__, 'send_auto_refill_success_email' ], 10, 3 );
-		add_action( 'spawn_auto_refill_failed', [ __CLASS__, 'send_auto_refill_failed_email' ], 10, 2 );
+		add_action( 'spawn_credits_auto_refill_needed', array( __CLASS__, 'handle_auto_refill_needed' ), 10, 2 );
+		add_action( 'spawn_auto_refill_success', array( __CLASS__, 'send_auto_refill_success_email' ), 10, 3 );
+		add_action( 'spawn_auto_refill_failed', array( __CLASS__, 'send_auto_refill_failed_email' ), 10, 2 );
 	}
 
 	/**
@@ -100,10 +100,10 @@ class Cron {
 	 * @param array $customer Customer data from database.
 	 */
 	private static function process_renewal_warnings( array $customer ): void {
-		$customer_id    = (int) $customer['id'];
-		$domain         = $customer['domain'];
-		$expires_at     = $customer['domain_expires_at'];
-		$auto_renew     = (bool) ( $customer['domain_auto_renew'] ?? false );
+		$customer_id = (int) $customer['id'];
+		$domain      = $customer['domain'];
+		$expires_at  = $customer['domain_expires_at'];
+		$auto_renew  = (bool) ( $customer['domain_auto_renew'] ?? false );
 
 		// Calculate days until expiry.
 		$expires_timestamp = strtotime( $expires_at );
@@ -206,7 +206,7 @@ class Cron {
 		}
 
 		// Apply markup.
-		$markup        = (float) get_option( 'spawn_domain_markup', 1.5 );
+		$markup          = (float) get_option( 'spawn_domain_markup', 1.5 );
 		$marked_up_price = round( $renewal_price * $markup, 2 );
 
 		self::log( sprintf( 'Renewal price for %s: $%.2f (with markup)', $domain, $marked_up_price ) );
@@ -248,7 +248,7 @@ class Cron {
 				sprintf(
 					"Domain auto-renewal API call failed after successful payment.\n\n" .
 					"Customer ID: %d\nDomain: %s\nEmail: %s\nError: %s\n\n" .
-					"MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.",
+					'MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.',
 					$customer_id,
 					$domain,
 					$email,
@@ -324,7 +324,7 @@ class Cron {
 
 		$amount_cents = (int) round( $renewal_price * 100 );
 
-		return \StripeIntegration\StripeClient::create_payment_intent( [
+		return \StripeIntegration\StripeClient::create_payment_intent( array(
 			'amount'         => $amount_cents,
 			'currency'       => 'usd',
 			'customer'       => $stripe_customer_id,
@@ -336,13 +336,13 @@ class Cron {
 				__( 'Domain renewal: %s (1 year)', 'spawn' ),
 				$customer['domain']
 			),
-			'metadata'       => [
+			'metadata'       => array(
 				'type'              => 'domain_auto_renewal',
 				'domain'            => $customer['domain'],
 				'spawn_customer_id' => $customer_id,
 				'source'            => 'spawn',
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -374,7 +374,7 @@ class Cron {
 				"New expiration date: %3\$s\n\n" .
 				"You can manage your auto-renewal settings in your dashboard under Settings → Domain.\n\n" .
 				"Thank you for using Spawn!\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,
@@ -406,10 +406,10 @@ class Cron {
 		);
 
 		$expires_formatted = wp_date( 'F j, Y', strtotime( $expires ) );
-		$renewal_url       = add_query_arg( [
+		$renewal_url       = add_query_arg( array(
 			'action' => 'renew',
 			'domain' => $domain,
-		], home_url( '/spawn/dashboard/' ) );
+		), home_url( '/spawn/dashboard/' ) );
 
 		$message = sprintf(
 			/* translators: 1: domain name, 2: expiration date, 3: failure reason, 4: renewal URL */
@@ -420,7 +420,7 @@ class Cron {
 				"Reason: %3\$s\n\n" .
 				"Please renew manually to avoid losing your domain:\n%4\$s\n\n" .
 				"You may need to update your payment method in your dashboard under Settings → Billing.\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,
@@ -461,13 +461,13 @@ class Cron {
 	private static function get_warnings_sent( int $customer_id ): array {
 		$customer = Database::get_customer( $customer_id );
 		if ( ! $customer ) {
-			return [];
+			return array();
 		}
 
 		$warnings_json = $customer['renewal_warnings_sent'] ?? '[]';
 		$warnings      = json_decode( $warnings_json, true );
 
-		return is_array( $warnings ) ? $warnings : [];
+		return is_array( $warnings ) ? $warnings : array();
 	}
 
 	/**
@@ -477,9 +477,9 @@ class Cron {
 	 * @param array $warnings    Array of warning intervals sent.
 	 */
 	private static function set_warnings_sent( int $customer_id, array $warnings ): void {
-		Database::update_customer( $customer_id, [
+		Database::update_customer( $customer_id, array(
 			'renewal_warnings_sent' => wp_json_encode( array_values( array_unique( $warnings ) ) ),
-		] );
+		) );
 	}
 
 	/**
@@ -488,7 +488,7 @@ class Cron {
 	 * @param int $customer_id Customer ID.
 	 */
 	public static function clear_warnings_sent( int $customer_id ): void {
-		self::set_warnings_sent( $customer_id, [] );
+		self::set_warnings_sent( $customer_id, array() );
 	}
 
 	/**
@@ -515,20 +515,20 @@ class Cron {
 		};
 
 		// Build renewal URL.
-		$renewal_url = add_query_arg( [
+		$renewal_url = add_query_arg( array(
 			'action' => 'renew',
 			'domain' => $domain,
-		], home_url( '/spawn/dashboard/' ) );
+		), home_url( '/spawn/dashboard/' ) );
 
 		$expires_formatted = wp_date( 'F j, Y', strtotime( $expires ) );
 
 		// Build message based on urgency.
 		$urgency_intro = match ( $warning_interval ) {
-			30      => __( "This is a friendly reminder that your domain registration is coming up for renewal.", 'spawn' ),
-			14      => __( "Your domain registration will expire in approximately two weeks.", 'spawn' ),
-			7       => __( "Your domain registration expires in just one week. Please take action soon to avoid losing your domain.", 'spawn' ),
+			30      => __( 'This is a friendly reminder that your domain registration is coming up for renewal.', 'spawn' ),
+			14      => __( 'Your domain registration will expire in approximately two weeks.', 'spawn' ),
+			7       => __( 'Your domain registration expires in just one week. Please take action soon to avoid losing your domain.', 'spawn' ),
 			1       => __( "Your domain expires TOMORROW. If you don't renew today, you may lose your domain.", 'spawn' ),
-			default => __( "Your domain registration is expiring soon.", 'spawn' ),
+			default => __( 'Your domain registration is expiring soon.', 'spawn' ),
 		};
 
 		// Add auto-renewal status info.
@@ -558,7 +558,7 @@ class Cron {
 				"%4\$s\n\n" .
 				"If you do not renew before the expiration date, your domain may become available for others to register.%5\$s\n\n" .
 				"If you have any questions, please contact support.\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$urgency_intro,
@@ -569,7 +569,7 @@ class Cron {
 		);
 
 		// Set content type for potential HTML in future.
-		$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
+		$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
 		$sent = wp_mail( $email, $subject, $message, $headers );
 
@@ -693,7 +693,7 @@ class Cron {
 				"1. Purchase credits from your dashboard\n" .
 				"2. Enable auto-refill to automatically top up when balance gets low\n\n" .
 				"To enable auto-refill, visit your dashboard and go to Settings → Credits.\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,
@@ -737,7 +737,7 @@ class Cron {
 				"Credits added: %3\$d\n" .
 				"New balance: $%4\$.2f\n\n" .
 				"You can manage your auto-refill settings in your dashboard under Settings → Credits.\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,
@@ -781,7 +781,7 @@ class Cron {
 				"Current balance: $%3\$.2f\n\n" .
 				"Please update your payment method or manually purchase credits to continue using your AI assistant.\n\n" .
 				"You can do this from your dashboard under Settings → Billing.\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,

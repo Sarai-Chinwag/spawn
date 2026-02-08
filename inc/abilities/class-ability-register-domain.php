@@ -61,31 +61,31 @@ class Ability_Register_Domain {
 		$price      = round( $base_price * $markup, 2 );
 
 		// Create Stripe checkout session for domain purchase.
-		$checkout_args = [
+		$checkout_args = array(
 			'mode'        => 'payment',
-			'line_items'  => [
-				[
-					'price_data' => [
+			'line_items'  => array(
+				array(
+					'price_data' => array(
 						'currency'     => 'usd',
 						'unit_amount'  => (int) ( $price * 100 ),
-						'product_data' => [
+						'product_data' => array(
 							'name'        => sprintf( __( 'Domain Registration: %s', 'spawn' ), $domain ),
 							'description' => __( '1 year registration', 'spawn' ),
-						],
-					],
+						),
+					),
 					'quantity'   => 1,
-				],
-			],
-			'metadata'    => [
+				),
+			),
+			'metadata'    => array(
 				'type'        => 'domain_registration',
 				'domain'      => $domain,
 				'customer_id' => $customer['id'],
 				'server_id'   => $server_id,
 				'base_price'  => $base_price,
-			],
+			),
 			'success_url' => home_url( '/spawn/dashboard/?tab=domains&domain_registered=' . urlencode( $domain ) ),
 			'cancel_url'  => home_url( '/spawn/dashboard/?tab=domains' ),
-		];
+		);
 
 		// Add customer if they have a Stripe ID.
 		if ( ! empty( $customer['stripe_customer'] ) ) {
@@ -100,7 +100,7 @@ class Ability_Register_Domain {
 			return $session;
 		}
 
-		return [
+		return array(
 			'success'      => true,
 			'domain'       => $domain,
 			'price'        => $price,
@@ -112,7 +112,7 @@ class Ability_Register_Domain {
 				$price
 			),
 			'instructions' => __( 'Provide the checkout URL to your user to complete the purchase.', 'spawn' ),
-		];
+		);
 	}
 
 	/**

@@ -31,12 +31,12 @@ class Ability_Get_Domain_Renewal_Info {
 
 		// Check if this is a registered domain (not subdomain/BYOD).
 		if ( 'register' !== ( $customer['domain_type'] ?? '' ) ) {
-			return [
+			return array(
 				'renewable'   => false,
 				'domain'      => $customer['domain'],
 				'domain_type' => $customer['domain_type'] ?? 'subdomain',
 				'message'     => __( 'This domain type does not require renewal through Spawn.', 'spawn' ),
-			];
+			);
 		}
 
 		$domain     = $customer['domain'];
@@ -60,7 +60,7 @@ class Ability_Get_Domain_Renewal_Info {
 			$renewal_price = round( $renewal_price * $markup, 2 );
 		}
 
-		return [
+		return array(
 			'renewable'           => true,
 			'domain'              => $domain,
 			'domain_type'         => 'register',
@@ -72,7 +72,7 @@ class Ability_Get_Domain_Renewal_Info {
 			'is_expired'          => $days_until_expiry < 0,
 			'is_expiring_soon'    => $days_until_expiry <= 30 && $days_until_expiry >= 0,
 			'auto_renew_enabled'  => (bool) ( $customer['domain_auto_renew'] ?? false ),
-		];
+		);
 	}
 
 	/**

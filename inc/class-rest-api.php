@@ -26,9 +26,9 @@ class REST_API {
 	 * Initialize REST API.
 	 */
 	public static function init(): void {
-		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
-		add_action( 'rest_api_init', [ Controllers\Auth_Controller::class, 'register_routes' ] );
-		add_action( 'rest_api_init', [ Controllers\Chat_Controller::class, 'register_routes' ] );
+		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
+		add_action( 'rest_api_init', array( Controllers\Auth_Controller::class, 'register_routes' ) );
+		add_action( 'rest_api_init', array( Controllers\Chat_Controller::class, 'register_routes' ) );
 	}
 
 	/**
@@ -39,736 +39,736 @@ class REST_API {
 		register_rest_route(
 			self::NAMESPACE,
 			'/domain/search',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'search_domain' ],
+				'callback'            => array( __CLASS__, 'search_domain' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'domain' => [
+				'args'                => array(
+					'domain' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Create checkout session.
 		register_rest_route(
 			self::NAMESPACE,
 			'/checkout/session',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'create_checkout_session' ],
+				'callback'            => array( __CLASS__, 'create_checkout_session' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'         => [
+				'args'                => array(
+					'email'         => array(
 						'required' => true,
 						'type'     => 'string',
 						'format'   => 'email',
-					],
-					'tier'          => [
+					),
+					'tier'          => array(
 						'type'    => 'string',
-						'enum'    => [ 'starter', 'pro', 'business' ],
+						'enum'    => array( 'starter', 'pro', 'business' ),
 						'default' => 'starter',
-					],
-					'wants_website' => [
+					),
+					'wants_website' => array(
 						'type'    => 'boolean',
 						'default' => true,
-					],
-					'domain'        => [
+					),
+					'domain'        => array(
 						'required' => false,
 						'type'     => 'string',
-					],
-					'domain_type'   => [
+					),
+					'domain_type'   => array(
 						'type'    => 'string',
-						'enum'    => [ 'subdomain', 'register', 'byod' ],
+						'enum'    => array( 'subdomain', 'register', 'byod' ),
 						'default' => 'subdomain',
-					],
-					'domain_price'  => [
+					),
+					'domain_price'  => array(
 						'type'    => 'number',
 						'default' => 0,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Get tiers/pricing.
 		register_rest_route(
 			self::NAMESPACE,
 			'/tiers',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_tiers' ],
+				'callback'            => array( __CLASS__, 'get_tiers' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Get checkout/provisioning status by session ID.
 		register_rest_route(
 			self::NAMESPACE,
 			'/checkout/status',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_checkout_status' ],
+				'callback'            => array( __CLASS__, 'get_checkout_status' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'session_id' => [
+				'args'                => array(
+					'session_id' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Auth: Login.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/login',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'auth_login' ],
+				'callback'            => array( __CLASS__, 'auth_login' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Auth: Register.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/register',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'auth_register' ],
+				'callback'            => array( __CLASS__, 'auth_register' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required'  => true,
 						'type'      => 'string',
 						'minLength' => 8,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Auth: Get current user.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/me',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'auth_me' ],
+				'callback'            => array( __CLASS__, 'auth_me' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Auth: Logout.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/logout',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'auth_logout' ],
+				'callback'            => array( __CLASS__, 'auth_logout' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Auth: Request password reset.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/forgot-password',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'auth_forgot_password' ],
+				'callback'            => array( __CLASS__, 'auth_forgot_password' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email' => [
+				'args'                => array(
+					'email' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Auth: Reset password with token.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/reset-password',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'auth_reset_password' ],
+				'callback'            => array( __CLASS__, 'auth_reset_password' ),
 				'permission_callback' => '__return_true',
-				'args'                => [
-					'email'    => [
+				'args'                => array(
+					'email'    => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_email',
-					],
-					'token'    => [
+					),
+					'token'    => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-					'password' => [
+					),
+					'password' => array(
 						'required'  => true,
 						'type'      => 'string',
 						'minLength' => 8,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Auth: Google OAuth configured.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/google/configured',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'auth_google_configured' ],
+				'callback'            => array( __CLASS__, 'auth_google_configured' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Auth: Start Google OAuth.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/google',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'auth_google_start' ],
+				'callback'            => array( __CLASS__, 'auth_google_start' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Auth: Google OAuth callback.
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/google/callback',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'auth_google_callback' ],
+				'callback'            => array( __CLASS__, 'auth_google_callback' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Customer: Get current customer.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/me',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_customer' ],
+				'callback'            => array( __CLASS__, 'get_customer' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Customer: Billing portal.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/billing-portal',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_billing_portal' ],
+				'callback'            => array( __CLASS__, 'get_billing_portal' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Customer: Upgrade/change plan.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/upgrade',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'upgrade_plan' ],
+				'callback'            => array( __CLASS__, 'upgrade_plan' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'tier' => [
+				'args'                => array(
+					'tier' => array(
 						'required' => true,
 						'type'     => 'string',
-						'enum'     => [ 'starter', 'pro', 'business' ],
-					],
-				],
-			]
+						'enum'     => array( 'starter', 'pro', 'business' ),
+					),
+				),
+			)
 		);
 
 		// Customer: Toggle website preference.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/toggle-website',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'toggle_website' ],
+				'callback'            => array( __CLASS__, 'toggle_website' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'wants_website' => [
+				'args'                => array(
+					'wants_website' => array(
 						'required' => true,
 						'type'     => 'boolean',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Customer: Cancel subscription.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/cancel',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'cancel_subscription' ],
+				'callback'            => array( __CLASS__, 'cancel_subscription' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Customer: Get invoices.
 		register_rest_route(
 			self::NAMESPACE,
 			'/customer/invoices',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_invoices' ],
+				'callback'            => array( __CLASS__, 'get_invoices' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Credits: Get balance.
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/balance',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_credit_balance' ],
+				'callback'            => array( __CLASS__, 'get_credit_balance' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Credits: Purchase credits (dynamic amount, $10 minimum).
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/purchase',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'purchase_credits' ],
+				'callback'            => array( __CLASS__, 'purchase_credits' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'amount' => [
+				'args'                => array(
+					'amount' => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'minimum'           => 10,
 						'sanitize_callback' => 'absint',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Credits: Deduct credits (internal/callback use).
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/deduct',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'deduct_credits' ],
-				'permission_callback' => [ __CLASS__, 'verify_internal_request' ],
-				'args'                => [
-					'customer_id' => [
+				'callback'            => array( __CLASS__, 'deduct_credits' ),
+				'permission_callback' => array( __CLASS__, 'verify_internal_request' ),
+				'args'                => array(
+					'customer_id' => array(
 						'required' => true,
 						'type'     => 'integer',
-					],
-					'amount'      => [
+					),
+					'amount'      => array(
 						'required' => true,
 						'type'     => 'number',
-					],
-					'reason'      => [
+					),
+					'reason'      => array(
 						'type'    => 'string',
 						'default' => 'api_call',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Credits: Get available packages.
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/packages',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_credit_packages' ],
+				'callback'            => array( __CLASS__, 'get_credit_packages' ),
 				'permission_callback' => '__return_true',
-			]
+			)
 		);
 
 		// Credits: Get auto-refill settings.
 		register_rest_route(
 			self::NAMESPACE,
 			'/account/auto-refill',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_auto_refill' ],
+				'callback'            => array( __CLASS__, 'get_auto_refill' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Credits: Update auto-refill settings.
 		register_rest_route(
 			self::NAMESPACE,
 			'/account/auto-refill',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'update_auto_refill_settings' ],
+				'callback'            => array( __CLASS__, 'update_auto_refill_settings' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'enabled'   => [
+				'args'                => array(
+					'enabled'   => array(
 						'required' => true,
 						'type'     => 'boolean',
-					],
-					'threshold' => [
+					),
+					'threshold' => array(
 						'type'    => 'number',
 						'default' => 5.00,
 						'minimum' => 1.00,
 						'maximum' => 100.00,
-					],
-					'amount'    => [
+					),
+					'amount'    => array(
 						'type'    => 'number',
 						'default' => 10.00,
 						'minimum' => 10.00,
 						'maximum' => 100.00,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Legacy: Credits auto-refill (old endpoint, forwards to new one).
 		register_rest_route(
 			self::NAMESPACE,
 			'/credits/auto-refill',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'update_auto_refill' ],
+				'callback'            => array( __CLASS__, 'update_auto_refill' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'enabled'   => [
+				'args'                => array(
+					'enabled'   => array(
 						'required' => true,
 						'type'     => 'boolean',
-					],
-					'threshold' => [
+					),
+					'threshold' => array(
 						'type'    => 'integer',
 						'default' => 100,
-					],
-					'amount'    => [
+					),
+					'amount'    => array(
 						'type'    => 'integer',
 						'default' => 1000,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// LiteLLM: Usage callback for credit deduction.
 		register_rest_route(
 			self::NAMESPACE,
 			'/litellm/callback',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'litellm_callback' ],
-				'permission_callback' => [ __CLASS__, 'verify_litellm_callback' ],
-			]
+				'callback'            => array( __CLASS__, 'litellm_callback' ),
+				'permission_callback' => array( __CLASS__, 'verify_litellm_callback' ),
+			)
 		);
 
 		// LiteLLM: Pre-request balance check.
 		register_rest_route(
 			self::NAMESPACE,
 			'/balance/check',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'balance_check' ],
+				'callback'            => array( __CLASS__, 'balance_check' ),
 				'permission_callback' => '__return_true', // Called from local LiteLLM.
-				'args'                => [
-					'ip' => [
+				'args'                => array(
+					'ip' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Chat: Send message to customer's AI.
 		register_rest_route(
 			self::NAMESPACE,
 			'/chat/send',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'chat_send' ],
+				'callback'            => array( __CLASS__, 'chat_send' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'message'    => [
+				'args'                => array(
+					'message'    => array(
 						'required' => true,
 						'type'     => 'string',
-					],
-					'sessionKey' => [
+					),
+					'sessionKey' => array(
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'context'    => [
+					),
+					'context'    => array(
 						'type'    => 'object',
-						'default' => [],
-					],
-				],
-			]
+						'default' => array(),
+					),
+				),
+			)
 		);
 
 		// Chat: List sessions from customer's OpenClaw.
 		register_rest_route(
 			self::NAMESPACE,
 			'/chat/sessions',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'chat_sessions_list' ],
+				'callback'            => array( __CLASS__, 'chat_sessions_list' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Chat: Get session history from customer's OpenClaw.
 		register_rest_route(
 			self::NAMESPACE,
 			'/chat/sessions/(?P<sessionKey>[a-zA-Z0-9_:-]+)/history',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'chat_session_history' ],
+				'callback'            => array( __CLASS__, 'chat_session_history' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'sessionKey' => [
+				'args'                => array(
+					'sessionKey' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'limit'      => [
+					),
+					'limit'      => array(
 						'type'    => 'integer',
 						'default' => 50,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Chat: Generate session title via system agent.
 		register_rest_route(
 			self::NAMESPACE,
 			'/chat/generate-title',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'chat_generate_title' ],
+				'callback'            => array( __CLASS__, 'chat_generate_title' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'username' => [
+				'args'                => array(
+					'username' => array(
 						'type'              => 'string',
 						'default'           => 'friend',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-					'wordBank' => [
+					),
+					'wordBank' => array(
 						'type'              => 'string',
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Servers: List servers.
 		register_rest_route(
 			self::NAMESPACE,
 			'/servers',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_servers' ],
+				'callback'            => array( __CLASS__, 'get_servers' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Servers: Get server details.
 		register_rest_route(
 			self::NAMESPACE,
 			'/servers/(?P<id>\d+)',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_server' ],
+				'callback'            => array( __CLASS__, 'get_server' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'id' => [
+				'args'                => array(
+					'id' => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Servers: Scale server tier.
 		register_rest_route(
 			self::NAMESPACE,
 			'/servers/(?P<id>\d+)/scale',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'scale_server' ],
+				'callback'            => array( __CLASS__, 'scale_server' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'id'   => [
+				'args'                => array(
+					'id'   => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-					'tier' => [
+					),
+					'tier' => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Servers: Delete server.
 		register_rest_route(
 			self::NAMESPACE,
 			'/servers/(?P<id>\d+)',
-			[
+			array(
 				'methods'             => 'DELETE',
-				'callback'            => [ __CLASS__, 'delete_server' ],
+				'callback'            => array( __CLASS__, 'delete_server' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'id' => [
+				'args'                => array(
+					'id' => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Domains: List domains.
 		register_rest_route(
 			self::NAMESPACE,
 			'/domains',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_domains' ],
+				'callback'            => array( __CLASS__, 'get_domains' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Domains: Assign domain to server.
 		register_rest_route(
 			self::NAMESPACE,
 			'/domains/(?P<id>\d+)/assign',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'assign_domain' ],
+				'callback'            => array( __CLASS__, 'assign_domain' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'id'        => [
+				'args'                => array(
+					'id'        => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-					'server_id' => [
+					),
+					'server_id' => array(
 						'required'          => false,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Domains: Toggle auto-renew.
 		register_rest_route(
 			self::NAMESPACE,
 			'/domains/(?P<id>\d+)/auto-renew',
-			[
+			array(
 				'methods'             => 'PUT',
-				'callback'            => [ __CLASS__, 'update_domain_auto_renew_for_domain' ],
+				'callback'            => array( __CLASS__, 'update_domain_auto_renew_for_domain' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'id'      => [
+				'args'                => array(
+					'id'      => array(
 						'required'          => true,
 						'type'              => 'integer',
 						'sanitize_callback' => 'absint',
-					],
-					'enabled' => [
+					),
+					'enabled' => array(
 						'required' => true,
 						'type'     => 'boolean',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Usage: Get usage summary.
 		register_rest_route(
 			self::NAMESPACE,
 			'/usage',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_usage' ],
+				'callback'            => array( __CLASS__, 'get_usage' ),
 				'permission_callback' => 'is_user_logged_in',
-				'args'                => [
-					'months' => [
+				'args'                => array(
+					'months' => array(
 						'type'              => 'integer',
 						'default'           => 3,
 						'sanitize_callback' => 'absint',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Account: Get domain auto-renew setting.
 		register_rest_route(
 			self::NAMESPACE,
 			'/account/domain-auto-renew',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_domain_auto_renew' ],
+				'callback'            => array( __CLASS__, 'get_domain_auto_renew' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 
 		// Account: Update domain auto-renew setting.
 		register_rest_route(
 			self::NAMESPACE,
 			'/account/domain-auto-renew',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'update_domain_auto_renew' ],
-				'permission_callback' => [ __CLASS__, 'can_set_domain_auto_renew' ],
-				'args'                => [
-					'enabled' => [
+				'callback'            => array( __CLASS__, 'update_domain_auto_renew' ),
+				'permission_callback' => array( __CLASS__, 'can_set_domain_auto_renew' ),
+				'args'                => array(
+					'enabled' => array(
 						'required' => true,
 						'type'     => 'boolean',
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// Provisioning status (for success page polling).
 		register_rest_route(
 			self::NAMESPACE,
 			'/provisioning/status',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'get_provisioning_status' ],
+				'callback'            => array( __CLASS__, 'get_provisioning_status' ),
 				'permission_callback' => 'is_user_logged_in',
-			]
+			)
 		);
 	}
 
@@ -780,13 +780,13 @@ class REST_API {
 	 */
 	public static function search_domain( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$domain = $request->get_param( 'domain' );
-		
+
 		// Validate domain format.
 		if ( ! preg_match( '/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/i', $domain ) ) {
 			return new WP_Error(
 				'invalid_domain',
 				__( 'Invalid domain format', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -821,13 +821,49 @@ class REST_API {
 	/**
 	 * European country codes for region detection.
 	 */
-	private const EU_COUNTRIES = [
-		'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
-		'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
-		'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', // EU members
-		'GB', 'CH', 'NO', 'IS', 'LI', 'UA', 'BY', 'MD', 'RS', 'BA',
-		'ME', 'MK', 'AL', 'XK', // Other European countries
-	];
+	private const EU_COUNTRIES = array(
+		'AT',
+		'BE',
+		'BG',
+		'HR',
+		'CY',
+		'CZ',
+		'DK',
+		'EE',
+		'FI',
+		'FR',
+		'DE',
+		'GR',
+		'HU',
+		'IE',
+		'IT',
+		'LV',
+		'LT',
+		'LU',
+		'MT',
+		'NL',
+		'PL',
+		'PT',
+		'RO',
+		'SK',
+		'SI',
+		'ES',
+		'SE', // EU members
+		'GB',
+		'CH',
+		'NO',
+		'IS',
+		'LI',
+		'UA',
+		'BY',
+		'MD',
+		'RS',
+		'BA',
+		'ME',
+		'MK',
+		'AL',
+		'XK', // Other European countries
+	);
 
 	/**
 	 * Detect customer region from IP/headers.
@@ -869,7 +905,7 @@ class REST_API {
 			return new WP_Error(
 				'stripe_not_available',
 				__( 'Payment processing is not configured on this site.', 'spawn' ),
-				[ 'status' => 503 ]
+				array( 'status' => 503 )
 			);
 		}
 
@@ -887,42 +923,42 @@ class REST_API {
 			return new WP_Error(
 				'invalid_tier',
 				__( 'Invalid tier selected', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// Build line items.
-		$line_items = [
-			[
+		$line_items = array(
+			array(
 				'price'    => $tier_config['stripe_price_id'],
 				'quantity' => 1,
-			],
-		];
+			),
+		);
 
 		// Add domain registration as one-time fee if applicable.
 		if ( $wants_website && 'register' === $domain_type && $domain_price > 0 ) {
-			$line_items[] = [
-				'price_data' => [
+			$line_items[] = array(
+				'price_data' => array(
 					'currency'     => 'usd',
 					'unit_amount'  => (int) ( $domain_price * 100 ), // Stripe uses cents.
-					'product_data' => [
+					'product_data' => array(
 						'name'        => sprintf(
 							/* translators: %s: domain name */
 							__( 'Domain Registration: %s', 'spawn' ),
 							$domain
 						),
 						'description' => __( 'One-time domain registration fee (1 year)', 'spawn' ),
-					],
-				],
+					),
+				),
 				'quantity'   => 1,
-			];
+			);
 		}
 
 		// Create Stripe checkout session using shared stripe-integration plugin.
 		// Save payment method for future charges (auto-refill credits).
-		$session = StripeClient::create_checkout_session( [
-			'customer_email'    => $email,
-			'metadata'          => [
+		$session = StripeClient::create_checkout_session( array(
+			'customer_email'            => $email,
+			'metadata'                  => array(
 				'tier'            => $tier,
 				'wants_website'   => $wants_website ? 'true' : 'false',
 				'domain'          => $domain,
@@ -930,27 +966,27 @@ class REST_API {
 				'domain_price'    => $domain_price,
 				'customer_region' => $customer_region,
 				'source'          => 'spawn',
-			],
-			'line_items'        => $line_items,
-			'mode'              => 'subscription',
+			),
+			'line_items'                => $line_items,
+			'mode'                      => 'subscription',
 			'payment_method_collection' => 'always',
-			'subscription_data' => [
-				'metadata' => [
+			'subscription_data'         => array(
+				'metadata' => array(
 					'tier'   => $tier,
 					'source' => 'spawn',
-				],
-			],
-			'success_url'       => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
-			'cancel_url'        => home_url( '/spawn/' ),
-		] );
+				),
+			),
+			'success_url'               => home_url( '/spawn/success?session_id={CHECKOUT_SESSION_ID}' ),
+			'cancel_url'                => home_url( '/spawn/' ),
+		) );
 
 		if ( is_wp_error( $session ) ) {
 			return $session;
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'url' => $session['url'],
-		] );
+		) );
 	}
 
 	/**
@@ -977,7 +1013,7 @@ class REST_API {
 			return new WP_Error(
 				'stripe_not_available',
 				__( 'Payment processing is not configured on this site.', 'spawn' ),
-				[ 'status' => 503 ]
+				array( 'status' => 503 )
 			);
 		}
 
@@ -987,7 +1023,7 @@ class REST_API {
 			return new WP_Error(
 				'missing_session_id',
 				__( 'Missing session ID.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -995,11 +1031,11 @@ class REST_API {
 		$session = StripeClient::retrieve_checkout_session( $session_id );
 
 		if ( is_wp_error( $session ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => false,
 				'status'  => 'not_found',
 				'error'   => __( 'Session not found or expired.', 'spawn' ),
-			] );
+			) );
 		}
 
 		// Get customer email from session.
@@ -1016,11 +1052,11 @@ class REST_API {
 		}
 
 		if ( empty( $customer_email ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => false,
 				'status'  => 'not_found',
 				'error'   => __( 'Could not determine customer from session.', 'spawn' ),
-			] );
+			) );
 		}
 
 		// Look up customer in our database by email.
@@ -1028,18 +1064,18 @@ class REST_API {
 
 		if ( ! $customer ) {
 			// Customer record not yet created - webhook may not have fired yet.
-			return new WP_REST_Response( [
-				'success' => true,
-				'status'  => 'pending',
-				'message' => __( 'Payment received. Setting up your account...', 'spawn' ),
-				'progress' => [
+			return new WP_REST_Response( array(
+				'success'  => true,
+				'status'   => 'pending',
+				'message'  => __( 'Payment received. Setting up your account...', 'spawn' ),
+				'progress' => array(
 					'payment'   => true,
 					'server'    => false,
 					'wordpress' => false,
 					'ai'        => false,
 					'percent'   => 10,
-				],
-			] );
+				),
+			) );
 		}
 
 		// Map customer status to provisioning progress.
@@ -1050,51 +1086,51 @@ class REST_API {
 		switch ( $status ) {
 			case 'active':
 			case 'ready':
-				return new WP_REST_Response( [
-					'success'  => true,
-					'status'   => 'active',
-					'customer' => [
+				return new WP_REST_Response( array(
+					'success'      => true,
+					'status'       => 'active',
+					'customer'     => array(
 						'id'        => (int) $customer['id'],
 						'domain'    => $customer['domain'] ?? '',
 						'status'    => $status,
 						'server_ip' => $customer['server_ip'] ?? null,
 						'tier'      => $customer['tier'] ?? 'starter',
-					],
+					),
 					'progress'     => $progress,
 					'redirect_url' => home_url( '/spawn/dashboard/' ),
-				] );
+				) );
 
 			case 'failed':
 			case 'error':
-				return new WP_REST_Response( [
-					'success' => true,
-					'status'  => 'failed',
-					'error'   => __( 'Server setup failed. Our team has been notified.', 'spawn' ),
-					'customer' => [
+				return new WP_REST_Response( array(
+					'success'  => true,
+					'status'   => 'failed',
+					'error'    => __( 'Server setup failed. Our team has been notified.', 'spawn' ),
+					'customer' => array(
 						'id'     => (int) $customer['id'],
 						'domain' => $customer['domain'] ?? '',
 						'status' => $status,
 						'tier'   => $customer['tier'] ?? 'starter',
-					],
-				] );
+					),
+				) );
 
 			case 'pending':
 			case 'provisioning':
 			case 'creating':
 			case 'configuring':
 			default:
-				return new WP_REST_Response( [
+				return new WP_REST_Response( array(
 					'success'  => true,
 					'status'   => 'provisioning',
-					'customer' => [
+					'customer' => array(
 						'id'        => (int) $customer['id'],
 						'domain'    => $customer['domain'] ?? '',
 						'status'    => $status,
 						'server_ip' => $customer['server_ip'] ?? null,
 						'tier'      => $customer['tier'] ?? 'starter',
-					],
+					),
 					'progress' => $progress,
-				] );
+				) );
 		}
 	}
 
@@ -1109,7 +1145,7 @@ class REST_API {
 		$has_server_id = ! empty( $customer['hetzner_server_id'] ) || ! empty( $customer['server_id'] );
 		$has_server_ip = ! empty( $customer['server_ip'] );
 		$has_wordpress = ! empty( $customer['openclaw_token'] );
-		$is_active     = in_array( $status, [ 'active', 'ready' ], true );
+		$is_active     = in_array( $status, array( 'active', 'ready' ), true );
 
 		// Determine which steps are complete.
 		$payment_done   = true; // If we got here, payment is done.
@@ -1137,13 +1173,13 @@ class REST_API {
 			}
 		}
 
-		return [
+		return array(
 			'payment'   => $payment_done,
 			'server'    => $server_done,
 			'wordpress' => $wordpress_done,
 			'ai'        => $ai_done,
 			'percent'   => $percent,
-		];
+		);
 	}
 
 	/**
@@ -1163,7 +1199,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_credentials',
 				__( 'Invalid email or password.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
@@ -1171,15 +1207,15 @@ class REST_API {
 		wp_set_auth_cookie( $user->ID, true );
 		wp_set_current_user( $user->ID );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'user'    => [
+			'user'    => array(
 				'id'    => $user->ID,
 				'email' => $user->user_email,
 				'name'  => $user->display_name,
-			],
+			),
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
-		] );
+		) );
 	}
 
 	/**
@@ -1197,7 +1233,7 @@ class REST_API {
 			return new WP_Error(
 				'email_exists',
 				__( 'An account with this email already exists.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1208,7 +1244,7 @@ class REST_API {
 			return new WP_Error(
 				'registration_failed',
 				$user_id->get_error_message(),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1220,15 +1256,15 @@ class REST_API {
 		wp_set_auth_cookie( $user_id, true );
 		wp_set_current_user( $user_id );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'user'    => [
+			'user'    => array(
 				'id'    => $user_id,
 				'email' => $email,
 				'name'  => $email,
-			],
+			),
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
-		] );
+		) );
 	}
 
 	/**
@@ -1238,21 +1274,21 @@ class REST_API {
 	 */
 	public static function auth_me(): WP_REST_Response {
 		if ( ! is_user_logged_in() ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'logged_in' => false,
-			] );
+			) );
 		}
 
 		$user = wp_get_current_user();
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'logged_in' => true,
-			'user'      => [
+			'user'      => array(
 				'id'    => $user->ID,
 				'email' => $user->user_email,
 				'name'  => $user->display_name,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -1263,9 +1299,9 @@ class REST_API {
 	public static function auth_logout(): WP_REST_Response {
 		wp_logout();
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-		] );
+		) );
 	}
 
 	/**
@@ -1280,29 +1316,29 @@ class REST_API {
 
 		// Always return success to prevent email enumeration.
 		if ( ! $user ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => true,
 				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-			] );
+			) );
 		}
 
 		// Generate reset key.
 		$reset_key = get_password_reset_key( $user );
 
 		if ( is_wp_error( $reset_key ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success' => true,
 				'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-			] );
+			) );
 		}
 
 		// Build reset URL (goes to Spawn reset page, not wp-login.php).
 		$reset_url = add_query_arg(
-			[
+			array(
 				'action' => 'reset',
 				'key'    => $reset_key,
 				'login'  => rawurlencode( $user->user_login ),
-			],
+			),
 			home_url( '/spawn/login/' )
 		);
 
@@ -1316,7 +1352,7 @@ class REST_API {
 				"To reset your password, click the link below:\n%s\n\n" .
 				"This link will expire in 24 hours.\n\n" .
 				"If you didn't request this, you can safely ignore this email.\n\n" .
-				"— %s",
+				'— %s',
 				'spawn'
 			),
 			$user->display_name ?: $user->user_login,
@@ -1326,10 +1362,10 @@ class REST_API {
 
 		wp_mail( $email, $subject, $message );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
 			'message' => __( 'If an account exists with this email, a reset link has been sent.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -1353,7 +1389,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_reset',
 				__( 'Invalid password reset request.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1364,17 +1400,17 @@ class REST_API {
 			return new WP_Error(
 				'invalid_token',
 				__( 'This reset link has expired or is invalid. Please request a new one.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// Reset the password.
 		reset_password( $user, $password );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
 			'message' => __( 'Password has been reset. You can now log in.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -1383,9 +1419,9 @@ class REST_API {
 	 * @return WP_REST_Response Response.
 	 */
 	public static function auth_google_configured(): WP_REST_Response {
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'configured' => Google_OAuth::is_configured(),
-		] );
+		) );
 	}
 
 	/**
@@ -1398,13 +1434,13 @@ class REST_API {
 			return new WP_Error(
 				'google_oauth_not_configured',
 				__( 'Google OAuth is not configured.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'auth_url' => Google_OAuth::get_auth_url(),
-		] );
+		) );
 	}
 
 	/**
@@ -1424,7 +1460,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_state',
 				__( 'Invalid OAuth state.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1432,7 +1468,7 @@ class REST_API {
 			return new WP_Error(
 				'missing_code',
 				__( 'Missing authorization code.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1454,7 +1490,7 @@ class REST_API {
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 
-		wp_redirect( home_url( '/spawn/dashboard/' ) );
+		wp_safe_redirect( home_url( '/spawn/dashboard/' ) );
 		exit;
 	}
 
@@ -1468,15 +1504,15 @@ class REST_API {
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'success'  => false,
 				'customer' => null,
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'  => true,
-			'customer' => [
+			'customer' => array(
 				'id'             => (int) $customer['id'],
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
@@ -1488,8 +1524,8 @@ class REST_API {
 				'server_ip'      => $customer['server_ip'],
 				'status'         => $customer['status'],
 				'created_at'     => $customer['created_at'],
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -1503,7 +1539,7 @@ class REST_API {
 			return new WP_Error(
 				'stripe_not_available',
 				__( 'Billing portal is not available on this site.', 'spawn' ),
-				[ 'status' => 503 ]
+				array( 'status' => 503 )
 			);
 		}
 
@@ -1514,7 +1550,7 @@ class REST_API {
 			return new WP_Error(
 				'no_subscription',
 				__( 'No active subscription found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1527,9 +1563,9 @@ class REST_API {
 			return $portal;
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'url' => $portal['url'],
-		] );
+		) );
 	}
 
 	/**
@@ -1547,7 +1583,7 @@ class REST_API {
 			return new WP_Error(
 				'no_subscription',
 				__( 'No active subscription found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1557,7 +1593,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_tier',
 				__( 'Invalid tier selected.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1576,9 +1612,9 @@ class REST_API {
 		}
 
 		// Pro-rate credits on upgrade.
-		$old_tier    = $customer['tier'] ?? 'starter';
-		$old_credits = Config::get_included_credits( $old_tier );
-		$new_credits = Config::get_included_credits( $new_tier );
+		$old_tier       = $customer['tier'] ?? 'starter';
+		$old_credits    = Config::get_included_credits( $old_tier );
+		$new_credits    = Config::get_included_credits( $new_tier );
 		$credits_to_add = 0;
 
 		if ( $new_credits > $old_credits ) {
@@ -1598,12 +1634,12 @@ class REST_API {
 		// Update database.
 		Database::update_tier( (int) $customer['id'], $new_tier );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'       => true,
 			'tier'          => $new_tier,
 			'credits_added' => $credits_to_add,
 			'new_balance'   => Database::get_credit_balance( (int) $customer['id'] ),
-		] );
+		) );
 	}
 
 	/**
@@ -1625,20 +1661,20 @@ class REST_API {
 			return new WP_Error(
 				'no_subscription',
 				__( 'No active subscription found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
 		// Update preference (note: doesn't change server specs after provisioning).
 		Database::update_wants_website( (int) $customer['id'], $wants_website );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'       => true,
 			'wants_website' => $wants_website,
-			'note'          => $customer['status'] === 'active'
+			'note'          => 'active' === $customer['status']
 				? __( 'Preference updated. Server type cannot be changed after provisioning.', 'spawn' )
 				: __( 'Preference updated.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -1652,7 +1688,7 @@ class REST_API {
 			return new WP_Error(
 				'stripe_not_available',
 				__( 'Subscription management is not available on this site.', 'spawn' ),
-				[ 'status' => 503 ]
+				array( 'status' => 503 )
 			);
 		}
 
@@ -1663,7 +1699,7 @@ class REST_API {
 			return new WP_Error(
 				'no_subscription',
 				__( 'No active subscription found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1677,14 +1713,14 @@ class REST_API {
 		}
 
 		// Update status in database.
-		Database::update_customer( (int) $customer['id'], [
+		Database::update_customer( (int) $customer['id'], array(
 			'status'       => 'cancelled',
 			'cancelled_at' => current_time( 'mysql' ),
-		] );
+		) );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-		] );
+		) );
 	}
 
 	/**
@@ -1698,7 +1734,7 @@ class REST_API {
 			return new WP_Error(
 				'stripe_not_available',
 				__( 'Invoice history is not available on this site.', 'spawn' ),
-				[ 'status' => 503 ]
+				array( 'status' => 503 )
 			);
 		}
 
@@ -1709,7 +1745,7 @@ class REST_API {
 			return new WP_Error(
 				'no_subscription',
 				__( 'No active subscription found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1719,9 +1755,9 @@ class REST_API {
 			return $invoices;
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'invoices' => $invoices,
-		] );
+		) );
 	}
 
 	/**
@@ -1737,16 +1773,16 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
 		$auto_refill = Database::get_auto_refill_settings( (int) $customer['id'] );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'balance'     => (float) $customer['credit_balance'],
 			'auto_refill' => $auto_refill,
-		] );
+		) );
 	}
 
 	/**
@@ -1764,7 +1800,7 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1773,7 +1809,7 @@ class REST_API {
 			return new WP_Error(
 				'amount_too_low',
 				__( 'Minimum purchase is $10.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1781,22 +1817,22 @@ class REST_API {
 		$credits = $amount * 100;
 
 		// Create Stripe checkout session for one-time payment using Payment_Helpers.
-		$session = Payment_Helpers::create_credit_checkout_session( [
+		$session = Payment_Helpers::create_credit_checkout_session( array(
 			'customer_id'       => $customer['stripe_customer'] ?? null,
 			'customer_email'    => $customer['email'],
 			'amount'            => $amount * 100, // Stripe uses cents.
 			'credits'           => $credits,
 			'spawn_customer_id' => $customer['id'],
-		] );
+		) );
 
 		if ( is_wp_error( $session ) ) {
 			return $session;
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'session_id'   => $session['id'],
 			'checkout_url' => $session['url'],
-		] );
+		) );
 	}
 
 	/**
@@ -1815,7 +1851,7 @@ class REST_API {
 			return new WP_Error(
 				'customer_not_found',
 				__( 'Customer not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1826,11 +1862,11 @@ class REST_API {
 			return new WP_Error(
 				'insufficient_credits',
 				__( 'Insufficient credits.', 'spawn' ),
-				[
+				array(
 					'status'   => 402,
 					'balance'  => $current_balance,
 					'required' => $amount,
-				]
+				)
 			);
 		}
 
@@ -1840,14 +1876,14 @@ class REST_API {
 			return new WP_Error(
 				'deduction_failed',
 				__( 'Failed to deduct credits.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		$new_balance = Database::get_credit_balance( $customer_id );
 
 		// Check if auto-refill is needed.
-		$auto_refill = Database::get_auto_refill_settings( $customer_id );
+		$auto_refill      = Database::get_auto_refill_settings( $customer_id );
 		$refill_triggered = false;
 		if ( $auto_refill && $auto_refill['enabled'] && $new_balance < $auto_refill['threshold'] ) {
 			// Trigger auto-refill (this would typically queue a Stripe charge).
@@ -1855,14 +1891,14 @@ class REST_API {
 			$refill_triggered = true;
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'          => true,
 			'previous_balance' => $current_balance,
 			'deducted'         => $amount,
 			'new_balance'      => $new_balance,
 			'reason'           => $reason,
 			'refill_triggered' => $refill_triggered,
-		] );
+		) );
 	}
 
 	/**
@@ -1883,9 +1919,9 @@ class REST_API {
 		$user_id = get_current_user_id();
 		$servers = Database::get_servers_by_user( $user_id );
 
-		return new WP_REST_Response( [
-			'servers' => array_map( [ __CLASS__, 'format_server' ], $servers ),
-		] );
+		return new WP_REST_Response( array(
+			'servers' => array_map( array( __CLASS__, 'format_server' ), $servers ),
+		) );
 	}
 
 	/**
@@ -1902,7 +1938,7 @@ class REST_API {
 			return new WP_Error(
 				'server_not_found',
 				__( 'Server not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1910,13 +1946,13 @@ class REST_API {
 			return new WP_Error(
 				'forbidden',
 				__( 'You do not have access to this server.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'server' => self::format_server( $server ),
-		] );
+		) );
 	}
 
 	/**
@@ -1934,7 +1970,7 @@ class REST_API {
 			return new WP_Error(
 				'server_not_found',
 				__( 'Server not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1942,7 +1978,7 @@ class REST_API {
 			return new WP_Error(
 				'forbidden',
 				__( 'You do not have access to this server.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
@@ -1950,7 +1986,7 @@ class REST_API {
 			return new WP_Error(
 				'missing_tier',
 				__( 'Tier is required.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -1959,28 +1995,28 @@ class REST_API {
 			return new WP_Error(
 				'invalid_tier',
 				__( 'Invalid tier selected.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
-		$updated = Database::update_server( $server_id, [
+		$updated = Database::update_server( $server_id, array(
 			'tier' => $new_tier,
-		] );
+		) );
 
 		if ( ! $updated ) {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to update server.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		$server = Database::get_server( $server_id );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'server'  => self::format_server( $server ?? [] ),
-		] );
+			'server'  => self::format_server( $server ?? array() ),
+		) );
 	}
 
 	/**
@@ -1997,7 +2033,7 @@ class REST_API {
 			return new WP_Error(
 				'server_not_found',
 				__( 'Server not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2005,7 +2041,7 @@ class REST_API {
 			return new WP_Error(
 				'forbidden',
 				__( 'You do not have access to this server.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
@@ -2015,13 +2051,13 @@ class REST_API {
 			return new WP_Error(
 				'delete_failed',
 				__( 'Failed to delete server.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-		] );
+		) );
 	}
 
 	/**
@@ -2033,9 +2069,9 @@ class REST_API {
 		$user_id = get_current_user_id();
 		$domains = Database::get_domains_by_user( $user_id );
 
-		return new WP_REST_Response( [
-			'domains' => array_map( [ __CLASS__, 'format_domain' ], $domains ),
-		] );
+		return new WP_REST_Response( array(
+			'domains' => array_map( array( __CLASS__, 'format_domain' ), $domains ),
+		) );
 	}
 
 	/**
@@ -2052,13 +2088,13 @@ class REST_API {
 		} else {
 			$server_id = (int) $server_id;
 		}
-		$domain    = Database::get_domain( $domain_id );
+		$domain = Database::get_domain( $domain_id );
 
 		if ( ! $domain ) {
 			return new WP_Error(
 				'domain_not_found',
 				__( 'Domain not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2066,7 +2102,7 @@ class REST_API {
 			return new WP_Error(
 				'forbidden',
 				__( 'You do not have access to this domain.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
@@ -2076,7 +2112,7 @@ class REST_API {
 				return new WP_Error(
 					'server_not_found',
 					__( 'Server not found.', 'spawn' ),
-					[ 'status' => 404 ]
+					array( 'status' => 404 )
 				);
 			}
 
@@ -2084,7 +2120,7 @@ class REST_API {
 				return new WP_Error(
 					'forbidden',
 					__( 'You do not have access to this server.', 'spawn' ),
-					[ 'status' => 403 ]
+					array( 'status' => 403 )
 				);
 			}
 		}
@@ -2095,16 +2131,16 @@ class REST_API {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to assign domain.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		$domain = Database::get_domain( $domain_id );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'domain'  => self::format_domain( $domain ?? [] ),
-		] );
+			'domain'  => self::format_domain( $domain ?? array() ),
+		) );
 	}
 
 	/**
@@ -2122,7 +2158,7 @@ class REST_API {
 			return new WP_Error(
 				'domain_not_found',
 				__( 'Domain not found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2130,28 +2166,28 @@ class REST_API {
 			return new WP_Error(
 				'forbidden',
 				__( 'You do not have access to this domain.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
-		$updated = Database::update_domain( $domain_id, [
+		$updated = Database::update_domain( $domain_id, array(
 			'auto_renew' => $enabled ? 1 : 0,
-		] );
+		) );
 
 		if ( ! $updated ) {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to update domain.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		$domain = Database::get_domain( $domain_id );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
-			'domain'  => self::format_domain( $domain ?? [] ),
-		] );
+			'domain'  => self::format_domain( $domain ?? array() ),
+		) );
 	}
 
 	/**
@@ -2166,9 +2202,9 @@ class REST_API {
 		$months  = $months > 0 ? $months : 3;
 		$usage   = Database::get_user_usage( $user_id, $months );
 
-		return new WP_REST_Response( [
-			'usage' => array_map( [ __CLASS__, 'format_usage_period' ], $usage ),
-		] );
+		return new WP_REST_Response( array(
+			'usage' => array_map( array( __CLASS__, 'format_usage_period' ), $usage ),
+		) );
 	}
 
 	/**
@@ -2178,7 +2214,7 @@ class REST_API {
 	 * @return array Formatted server.
 	 */
 	private static function format_server( array $server ): array {
-		return [
+		return array(
 			'id'            => (int) ( $server['id'] ?? 0 ),
 			'name'          => $server['name'] ?? '',
 			'tier'          => $server['tier'] ?? 'starter',
@@ -2186,7 +2222,7 @@ class REST_API {
 			'server_ip'     => $server['server_ip'] ?? null,
 			'has_wordpress' => ! empty( $server['has_wordpress'] ),
 			'created_at'    => $server['created_at'] ?? null,
-		];
+		);
 	}
 
 	/**
@@ -2197,13 +2233,13 @@ class REST_API {
 	 */
 	private static function format_domain( array $domain ): array {
 		$server_id = $domain['server_id'] ?? null;
-		return [
+		return array(
 			'id'         => (int) ( $domain['id'] ?? 0 ),
 			'domain'     => $domain['domain'] ?? '',
 			'server_id'  => is_null( $server_id ) ? null : (int) $server_id,
 			'expires_at' => $domain['expires_at'] ?? null,
 			'auto_renew' => ! empty( $domain['auto_renew'] ),
-		];
+		);
 	}
 
 	/**
@@ -2213,14 +2249,14 @@ class REST_API {
 	 * @return array Formatted usage.
 	 */
 	private static function format_usage_period( array $usage ): array {
-		return [
+		return array(
 			'period_start'   => $usage['period_start'] ?? null,
 			'period_end'     => $usage['period_end'] ?? null,
 			'credits_used'   => (float) ( $usage['credits_used'] ?? 0 ),
 			'requests_count' => (int) ( $usage['requests_count'] ?? 0 ),
 			'tokens_input'   => (int) ( $usage['tokens_input'] ?? 0 ),
 			'tokens_output'  => (int) ( $usage['tokens_output'] ?? 0 ),
-		];
+		);
 	}
 
 	/**
@@ -2236,17 +2272,17 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
 		$settings = Database::get_auto_refill_settings( (int) $customer['id'] );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'enabled'   => $settings['enabled'] ?? false,
 			'threshold' => (float) ( $settings['threshold'] ?? 5.00 ),
 			'amount'    => (float) ( $settings['amount'] ?? 10.00 ),
-		] );
+		) );
 	}
 
 	/**
@@ -2263,7 +2299,7 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2276,7 +2312,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_threshold',
 				__( 'Threshold must be between $1 and $100.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -2285,7 +2321,7 @@ class REST_API {
 			return new WP_Error(
 				'invalid_amount',
 				__( 'Refill amount must be between $10 and $100.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -2300,18 +2336,18 @@ class REST_API {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to update auto-refill settings.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'  => true,
-			'settings' => [
+			'settings' => array(
 				'enabled'   => $enabled,
 				'threshold' => $threshold,
 				'amount'    => $amount,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -2328,7 +2364,7 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2341,17 +2377,17 @@ class REST_API {
 			return new WP_Error(
 				'invalid_threshold',
 				__( 'Threshold must be between 0 and 10,000.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// Amount must match a valid package.
-		$valid_amounts = [ 1000, 3000, 7500 ];
+		$valid_amounts = array( 1000, 3000, 7500 );
 		if ( ! in_array( $amount, $valid_amounts, true ) ) {
 			return new WP_Error(
 				'invalid_amount',
 				__( 'Amount must be 1000, 3000, or 7500 credits.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -2366,18 +2402,18 @@ class REST_API {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to update auto-refill settings.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success'  => true,
-			'settings' => [
+			'settings' => array(
 				'enabled'   => $enabled,
 				'threshold' => $threshold,
 				'amount'    => $amount,
-			],
-		] );
+			),
+		) );
 	}
 
 	/**
@@ -2388,14 +2424,14 @@ class REST_API {
 	 * @return bool|WP_Error True if valid, error otherwise.
 	 */
 	public static function verify_internal_request( WP_REST_Request $request ): bool|WP_Error {
-		$api_key = $request->get_header( 'X-Spawn-Internal-Key' );
+		$api_key      = $request->get_header( 'X-Spawn-Internal-Key' );
 		$expected_key = get_option( 'spawn_internal_api_key', '' );
 
 		if ( empty( $expected_key ) ) {
 			return new WP_Error(
 				'not_configured',
 				__( 'Internal API key not configured.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
@@ -2403,7 +2439,7 @@ class REST_API {
 			return new WP_Error(
 				'unauthorized',
 				__( 'Invalid internal API key.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
@@ -2416,31 +2452,31 @@ class REST_API {
 	 * @return array Credit packages.
 	 */
 	private static function get_credit_packages_config(): array {
-		return [
-			'small'  => [
+		return array(
+			'small'  => array(
 				'name'        => __( 'Small', 'spawn' ),
 				'credits'     => 1000,
 				'price'       => 10,
 				'description' => __( '1,000 credits for $10', 'spawn' ),
 				'per_credit'  => 0.01,
-			],
-			'medium' => [
+			),
+			'medium' => array(
 				'name'        => __( 'Medium', 'spawn' ),
 				'credits'     => 3000,
 				'price'       => 25,
 				'description' => __( '3,000 credits for $25 (17% bonus)', 'spawn' ),
 				'per_credit'  => 0.0083,
 				'bonus'       => '17%',
-			],
-			'large'  => [
+			),
+			'large'  => array(
 				'name'        => __( 'Large', 'spawn' ),
 				'credits'     => 7500,
 				'price'       => 50,
 				'description' => __( '7,500 credits for $50 (50% bonus)', 'spawn' ),
 				'per_credit'  => 0.0067,
 				'bonus'       => '50%',
-			],
-		];
+			),
+		);
 	}
 
 	/**
@@ -2470,7 +2506,7 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -2478,15 +2514,15 @@ class REST_API {
 			return new WP_Error(
 				'empty_message',
 				__( 'Message cannot be empty.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
 		// For now, if no server IP yet (provisioning), use a placeholder response.
 		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Your website is still being set up! This usually takes a few minutes. I'll be fully operational once it's ready. In the meantime, is there anything you'd like to plan for your site?",
-			] );
+			) );
 		}
 
 		// Build system context for the AI.
@@ -2497,9 +2533,9 @@ class REST_API {
 			"Site: %s\n" .
 			"Status: %s\n" .
 			"Mobile channel configured: %s\n\n" .
-			"This is the Spawn web chat. Help the user with their WordPress site. " .
+			'This is the Spawn web chat. Help the user with their WordPress site. ' .
 			"If they haven't set up mobile messaging yet, guide them through setting up " .
-			"Telegram, Discord, or Signal for a better experience.",
+			'Telegram, Discord, or Signal for a better experience.',
 			$customer['email'],
 			$customer['domain'],
 			$customer['status'],
@@ -2512,44 +2548,44 @@ class REST_API {
 		$gateway_token = $customer['openclaw_token'] ?? '';
 
 		if ( empty( $gateway_token ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I'm still getting configured. Try again in a moment!",
-			] );
+			) );
 		}
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[
+			'messages' => array(
+				array(
 					'role'    => 'system',
 					'content' => $system_prompt,
-				],
-				[
+				),
+				array(
 					'role'    => 'user',
 					'content' => $message,
-				],
-			],
-		];
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type'  => 'application/json',
 			'Authorization' => 'Bearer ' . $gateway_token,
-		];
+		);
 
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $gateway_url, [
+		$response = wp_remote_post( $gateway_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I'm having trouble connecting right now. Your site might be restarting. Try again in a moment!",
-			] );
+			) );
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -2557,22 +2593,22 @@ class REST_API {
 
 		if ( $code >= 400 ) {
 			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Something went wrong: $error_msg. Try again in a moment!",
-			] );
+			) );
 		}
 
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
 		if ( empty( $reply ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "I didn't get a response. Could you try again?",
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'reply' => $reply,
-		] );
+		) );
 	}
 
 	/**
@@ -2590,9 +2626,9 @@ class REST_API {
 		$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 		if ( empty( $gateway_token ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Control plane chat not configured. Set spawn_openclaw_token in Settings → Spawn.',
-			] );
+			) );
 		}
 
 		// Use OpenAI-compatible chat completions endpoint for synchronous response.
@@ -2610,78 +2646,78 @@ class REST_API {
 			"User: %s <%s>\n" .
 			"Interface: Web chat block (temporary)\n\n" .
 			"This is the Spawn plugin's web-based chat interface. It exists to help users " .
-			"get started before they set up a proper messaging channel (Telegram, Discord, Signal, etc.) " .
-			"which OpenClaw supports natively. Help them configure a real messaging channel when appropriate.",
+			'get started before they set up a proper messaging channel (Telegram, Discord, Signal, etc.) ' .
+			'which OpenClaw supports natively. Help them configure a real messaging channel when appropriate.',
 			$site_name,
 			$site_url,
 			$current_user->display_name ?: $current_user->user_login,
 			$current_user->user_email
 		);
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[
+			'messages' => array(
+				array(
 					'role'    => 'system',
 					'content' => $system_prompt,
-				],
-				[
+				),
+				array(
 					'role'    => 'user',
 					'content' => $message,
-				],
-			],
-		];
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type'  => 'application/json',
 			'Authorization' => 'Bearer ' . $gateway_token,
-		];
+		);
 
 		// Pass session key for conversation continuity.
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $chat_url, [
+		$response = wp_remote_post( $chat_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Connection failed: ' . $response->get_error_message(),
-			] );
+			) );
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( 401 === $code ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'Authentication failed. Check spawn_openclaw_token matches your gateway auth token.',
-			] );
+			) );
 		}
 
 		if ( $code >= 400 ) {
 			$error_msg = $body['error']['message'] ?? "HTTP $code";
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => "Gateway error: $error_msg",
-			] );
+			) );
 		}
 
 		// Extract reply from OpenAI chat completions response format.
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
 		if ( empty( $reply ) ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'reply' => 'No response received from agent.',
-			] );
+			) );
 		}
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'reply' => $reply,
-		] );
+		) );
 	}
 
 	/**
@@ -2712,24 +2748,27 @@ class REST_API {
 			if ( ! empty( $provider ) && ! empty( $model ) ) {
 				$prompt = sprintf(
 					"Generate a two-word code name like 'azure-phoenix' or 'cosmic-owl' for user '%s'. " .
-					"Use words from this bank: %s. " .
-					"Format: adjective-noun, lowercase, hyphenated. Return ONLY the code name.",
+					'Use words from this bank: %s. ' .
+					'Format: adjective-noun, lowercase, hyphenated. Return ONLY the code name.',
 					$username,
 					$word_bank
 				);
 
-				$messages = [
-					[ 'role' => 'user', 'content' => $prompt ],
-				];
+				$messages = array(
+					array(
+						'role'    => 'user',
+						'content' => $prompt,
+					),
+				);
 
 				try {
 					$result = \DataMachine\Engine\AI\RequestBuilder::build(
 						$messages,
 						$provider,
 						$model,
-						[], // No tools
+						array(), // No tools
 						'system',
-						[]
+						array()
 					);
 
 					if ( ! empty( $result['success'] ) && ! empty( $result['data']['content'] ) ) {
@@ -2738,7 +2777,10 @@ class REST_API {
 						$title = strtolower( $title );
 
 						if ( ! empty( $title ) && strlen( $title ) <= 40 ) {
-							return new WP_REST_Response( [ 'title' => $title, 'method' => 'datamachine' ] );
+							return new WP_REST_Response( array(
+								'title'  => $title,
+								'method' => 'datamachine',
+							) );
 						}
 					}
 				} catch ( \Exception $e ) {
@@ -2748,11 +2790,14 @@ class REST_API {
 		}
 
 		// Fallback: random word combo in code name format.
-		$adj  = $words[ array_rand( array_slice( $words, 0, (int) ( count( $words ) / 2 ) ) ) ];
-		$noun = $words[ array_rand( array_slice( $words, (int) ( count( $words ) / 2 ) ) ) ];
+		$adj   = $words[ array_rand( array_slice( $words, 0, (int) ( count( $words ) / 2 ) ) ) ];
+		$noun  = $words[ array_rand( array_slice( $words, (int) ( count( $words ) / 2 ) ) ) ];
 		$title = strtolower( trim( $adj ) ) . '-' . strtolower( trim( $noun ) );
 
-		return new WP_REST_Response( [ 'title' => $title, 'method' => 'fallback' ] );
+		return new WP_REST_Response( array(
+			'title'  => $title,
+			'method' => 'fallback',
+		) );
 	}
 
 	/**
@@ -2775,7 +2820,7 @@ class REST_API {
 			return new WP_Error(
 				'unauthorized',
 				__( 'Invalid callback secret.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
@@ -2786,13 +2831,25 @@ class REST_API {
 	 * Anthropic model pricing per MTok (pass-through, no markup).
 	 * Opus 4.5 only - the only model capable enough for this use case.
 	 */
-	private const ANTHROPIC_PRICING = [
-		'claude-opus-4-20250514'     => [ 'input' => 5.0, 'output' => 25.0 ],
-		'claude-opus-4.5'            => [ 'input' => 5.0, 'output' => 25.0 ],
-		'anthropic/claude-opus-4-20250514' => [ 'input' => 5.0, 'output' => 25.0 ],
+	private const ANTHROPIC_PRICING = array(
+		'claude-opus-4-20250514'           => array(
+			'input'  => 5.0,
+			'output' => 25.0,
+		),
+		'claude-opus-4.5'                  => array(
+			'input'  => 5.0,
+			'output' => 25.0,
+		),
+		'anthropic/claude-opus-4-20250514' => array(
+			'input'  => 5.0,
+			'output' => 25.0,
+		),
 		// Default = Opus pricing (only model we use).
-		'default'                    => [ 'input' => 5.0, 'output' => 25.0 ],
-	];
+		'default'                          => array(
+			'input'  => 5.0,
+			'output' => 25.0,
+		),
+	);
 
 	/**
 	 * Pre-request balance check for LiteLLM.
@@ -2811,7 +2868,7 @@ class REST_API {
 
 		if ( ! $customer ) {
 			// Unknown IP - allow (might be internal/test).
-			return new WP_REST_Response( [ 'allow' => true ] );
+			return new WP_REST_Response( array( 'allow' => true ) );
 		}
 
 		$balance     = (float) $customer['credit_balance'];
@@ -2819,24 +2876,24 @@ class REST_API {
 
 		// If auto-refill enabled, always allow (they'll be charged).
 		if ( $auto_refill ) {
-			return new WP_REST_Response( [ 'allow' => true ] );
+			return new WP_REST_Response( array( 'allow' => true ) );
 		}
 
 		// If balance > 0, allow.
 		if ( $balance > 0 ) {
-			return new WP_REST_Response( [ 'allow' => true ] );
+			return new WP_REST_Response( array( 'allow' => true ) );
 		}
 
 		// Balance depleted and no auto-refill.
 		// Dashboard is on the control plane (wherever Spawn is installed).
 		$dashboard = home_url( '/spawn/dashboard/' );
 
-		return new WP_REST_Response( [
-			'allow'   => false,
-			'message' => "Your AI credits have been depleted. Add credits or enable auto-refill at: {$dashboard}",
-			'balance' => $balance,
+		return new WP_REST_Response( array(
+			'allow'         => false,
+			'message'       => "Your AI credits have been depleted. Add credits or enable auto-refill at: {$dashboard}",
+			'balance'       => $balance,
 			'dashboard_url' => $dashboard,
-		] );
+		) );
 	}
 
 	/**
@@ -2859,7 +2916,7 @@ class REST_API {
 		$prompt_tokens     = (int) ( $body['prompt_tokens'] ?? 0 );
 		$completion_tokens = (int) ( $body['completion_tokens'] ?? 0 );
 		$response_cost     = (float) ( $body['response_cost'] ?? 0.0 );
-		$metadata          = $body['metadata'] ?? [];
+		$metadata          = $body['metadata'] ?? array();
 		$spawn_customer_id = (int) ( $metadata['spawn_customer_id'] ?? 0 );
 
 		// Also check for user field (can be set as customer ID).
@@ -2870,7 +2927,7 @@ class REST_API {
 		// Try to identify customer by API key alias format: spawn-customer-{id}.
 		if ( ! $spawn_customer_id ) {
 			$api_key = $metadata['user_api_key_alias'] ?? '';
-			
+
 			if ( preg_match( '/^spawn-customer-(\d+)$/', $api_key, $matches ) ) {
 				$spawn_customer_id = (int) $matches[1];
 			}
@@ -2880,7 +2937,7 @@ class REST_API {
 		if ( ! $spawn_customer_id ) {
 			// requester_ip_address is also at root level in StandardLoggingPayload.
 			$client_ip = $body['requester_ip_address'] ?? $metadata['requester_ip_address'] ?? '';
-			
+
 			if ( $client_ip ) {
 				$customer = Database::get_customer_by_server_ip( $client_ip );
 				if ( $customer ) {
@@ -2890,17 +2947,17 @@ class REST_API {
 		}
 
 		if ( ! $spawn_customer_id ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'status'  => 'skipped',
 				'message' => 'No customer ID in metadata or by IP.',
-			] );
+			) );
 		}
 
-		if ( $prompt_tokens === 0 && $completion_tokens === 0 ) {
-			return new WP_REST_Response( [
+		if ( 0 === $prompt_tokens && 0 === $completion_tokens ) {
+			return new WP_REST_Response( array(
 				'status'  => 'skipped',
 				'message' => 'No tokens to charge.',
-			] );
+			) );
 		}
 
 		// Use LiteLLM's pre-calculated response_cost if available, otherwise calculate.
@@ -2921,10 +2978,10 @@ class REST_API {
 		$customer = Database::get_customer( $spawn_customer_id );
 		if ( ! $customer ) {
 			error_log( "LiteLLM callback: Customer $spawn_customer_id not found" );
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'status'  => 'error',
 				'message' => 'Customer not found.',
-			], 404 );
+			), 404 );
 		}
 
 		$current_balance = (float) $customer['credit_balance'];
@@ -2934,10 +2991,10 @@ class REST_API {
 
 		if ( ! $success ) {
 			error_log( "LiteLLM callback: Failed to deduct $amount_to_deduct from customer $spawn_customer_id" );
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'status'  => 'error',
 				'message' => 'Failed to deduct credits.',
-			], 500 );
+			), 500 );
 		}
 
 		// Record usage for tracking/billing reconciliation.
@@ -2953,16 +3010,16 @@ class REST_API {
 			do_action( 'spawn_credits_auto_refill_needed', $spawn_customer_id, $auto_refill );
 		}
 
-		return new WP_REST_Response( [
-			'status'           => 'success',
-			'model'            => $model,
-			'prompt_tokens'    => $prompt_tokens,
-			'completion_tokens'=> $completion_tokens,
-			'cost_usd'         => round( $total_cost, 6 ),
-			'amount_deducted'  => $amount_to_deduct,
-			'previous_balance' => $current_balance,
-			'new_balance'      => $new_balance,
-		] );
+		return new WP_REST_Response( array(
+			'status'            => 'success',
+			'model'             => $model,
+			'prompt_tokens'     => $prompt_tokens,
+			'completion_tokens' => $completion_tokens,
+			'cost_usd'          => round( $total_cost, 6 ),
+			'amount_deducted'   => $amount_to_deduct,
+			'previous_balance'  => $current_balance,
+			'new_balance'       => $new_balance,
+		) );
 	}
 
 	/**
@@ -2975,7 +3032,7 @@ class REST_API {
 			return new WP_Error(
 				'not_logged_in',
 				__( 'You must be logged in.', 'spawn' ),
-				[ 'status' => 401 ]
+				array( 'status' => 401 )
 			);
 		}
 
@@ -2988,7 +3045,7 @@ class REST_API {
 				return new WP_Error(
 					'no_customer',
 					__( 'No customer account found.', 'spawn' ),
-					[ 'status' => 404 ]
+					array( 'status' => 404 )
 				);
 			}
 		}
@@ -3009,19 +3066,19 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
 		// Check if this is a registered domain.
 		$is_renewable = 'register' === ( $customer['domain_type'] ?? '' );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'enabled'     => (bool) ( $customer['domain_auto_renew'] ?? false ),
 			'domain'      => $customer['domain'],
 			'domain_type' => $customer['domain_type'] ?? 'subdomain',
 			'renewable'   => $is_renewable,
-		] );
+		) );
 	}
 
 	/**
@@ -3036,51 +3093,51 @@ class REST_API {
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer ) {
-			return new WP_REST_Response( [
+			return new WP_REST_Response( array(
 				'status'  => 'not_found',
 				'message' => __( 'No customer account found. Your account may still be processing.', 'spawn' ),
-			] );
+			) );
 		}
 
 		$status = $customer['status'] ?? 'pending';
 
 		// Determine provisioning progress.
 		$progress = match ( $status ) {
-			'pending'       => [
+			'pending'       => array(
 				'percent' => 10,
 				'step'    => 'payment',
 				'message' => __( 'Payment confirmed, starting setup...', 'spawn' ),
-			],
-			'provisioning'  => [
+			),
+			'provisioning'  => array(
 				'percent' => 50,
 				'step'    => 'provisioning',
 				'message' => __( 'Setting up your server...', 'spawn' ),
-			],
-			'active'        => [
+			),
+			'active'        => array(
 				'percent' => 100,
 				'step'    => 'complete',
 				'message' => __( 'Your AI is ready!', 'spawn' ),
-			],
-			'failed'        => [
+			),
+			'failed'        => array(
 				'percent' => 0,
 				'step'    => 'failed',
 				'message' => __( 'Setup failed. We\'ve been notified and will contact you.', 'spawn' ),
-			],
-			default         => [
+			),
+			default         => array(
 				'percent' => 0,
 				'step'    => 'unknown',
 				'message' => __( 'Checking status...', 'spawn' ),
-			],
+			),
 		};
 
-		return new WP_REST_Response( [
-			'status'       => $status,
-			'progress'     => $progress,
-			'domain'       => $customer['domain'] ?? '',
-			'server_ip'    => $customer['server_ip'] ?? '',
-			'chat_url'     => home_url( '/spawn/chat/' ),
+		return new WP_REST_Response( array(
+			'status'        => $status,
+			'progress'      => $progress,
+			'domain'        => $customer['domain'] ?? '',
+			'server_ip'     => $customer['server_ip'] ?? '',
+			'chat_url'      => home_url( '/spawn/chat/' ),
 			'dashboard_url' => home_url( '/spawn/dashboard/' ),
-		] );
+		) );
 	}
 
 	/**
@@ -3097,7 +3154,7 @@ class REST_API {
 			return new WP_Error(
 				'no_customer',
 				__( 'No customer account found.', 'spawn' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -3106,7 +3163,7 @@ class REST_API {
 			return new WP_Error(
 				'not_renewable',
 				__( 'Auto-renewal is only available for registered domains.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -3121,7 +3178,7 @@ class REST_API {
 				return new WP_Error(
 					'no_payment_method',
 					__( 'A payment method is required for auto-renewal. Please add a payment method first.', 'spawn' ),
-					[ 'status' => 400 ]
+					array( 'status' => 400 )
 				);
 			}
 
@@ -3132,21 +3189,21 @@ class REST_API {
 					return new WP_Error(
 						'no_payment_method',
 						__( 'No valid payment method found. Please add a payment method in the billing portal.', 'spawn' ),
-						[ 'status' => 400 ]
+						array( 'status' => 400 )
 					);
 				}
 			}
 		}
 
-		$success = Database::update_customer( (int) $customer['id'], [
+		$success = Database::update_customer( (int) $customer['id'], array(
 			'domain_auto_renew' => $enabled ? 1 : 0,
-		] );
+		) );
 
 		if ( ! $success ) {
 			return new WP_Error(
 				'update_failed',
 				__( 'Failed to update auto-renewal setting.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
@@ -3159,14 +3216,14 @@ class REST_API {
 			$customer['domain']
 		) );
 
-		return new WP_REST_Response( [
+		return new WP_REST_Response( array(
 			'success' => true,
 			'enabled' => $enabled,
 			'domain'  => $customer['domain'],
 			'message' => $enabled
 				? __( 'Auto-renewal enabled. Your domain will be automatically renewed 7 days before expiry.', 'spawn' )
 				: __( 'Auto-renewal disabled. You will receive warning emails before your domain expires.', 'spawn' ),
-		] );
+		) );
 	}
 
 	/**
@@ -3202,7 +3259,7 @@ class REST_API {
 					"Customer ID: %d\n" .
 					"Domain: %s\n" .
 					"Error: %s\n\n" .
-					"MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.",
+					'MANUAL INTERVENTION REQUIRED: Renew the domain manually via Name.com dashboard.',
 					$customer_id,
 					$domain,
 					$renewal_result->get_error_message()
@@ -3276,7 +3333,7 @@ class REST_API {
 				"Great news! Your domain %1\$s has been successfully renewed.\n\n" .
 				"New expiration date: %2\$s\n\n" .
 				"Thank you for using Spawn!\n\n" .
-				"—The Spawn Team",
+				'—The Spawn Team',
 				'spawn'
 			),
 			$domain,
@@ -3300,22 +3357,22 @@ class REST_API {
 			$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
-				return new WP_REST_Response( [ 'sessions' => [] ] );
+				return new WP_REST_Response( array( 'sessions' => array() ) );
 			}
 
-			return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', [] );
+			return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', array() );
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
-			return new WP_REST_Response( [ 'sessions' => [] ] );
+			return new WP_REST_Response( array( 'sessions' => array() ) );
 		}
 
 		$gateway_url   = 'http://' . $customer['server_ip'] . ':18789';
 		$gateway_token = $customer['openclaw_token'];
 
-		return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', [] );
+		return self::invoke_openclaw_tool( $gateway_url, $gateway_token, 'sessions_list', array() );
 	}
 
 	/**
@@ -3335,24 +3392,24 @@ class REST_API {
 			$gateway_token = get_option( 'spawn_openclaw_token', '' );
 
 			if ( empty( $gateway_url ) || empty( $gateway_token ) ) {
-				return new WP_REST_Response( [ 'messages' => [] ] );
+				return new WP_REST_Response( array( 'messages' => array() ) );
 			}
 
 			return self::invoke_openclaw_tool(
 				$gateway_url,
 				$gateway_token,
 				'sessions_history',
-				[
+				array(
 					'sessionKey' => $session_key,
 					'limit'      => $limit,
-				]
+				)
 			);
 		}
 
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer || empty( $customer['server_ip'] ) || empty( $customer['openclaw_token'] ) ) {
-			return new WP_REST_Response( [ 'messages' => [] ] );
+			return new WP_REST_Response( array( 'messages' => array() ) );
 		}
 
 		$gateway_url   = 'http://' . $customer['server_ip'] . ':18789';
@@ -3362,10 +3419,10 @@ class REST_API {
 			$gateway_url,
 			$gateway_token,
 			'sessions_history',
-			[
+			array(
 				'sessionKey' => $session_key,
 				'limit'      => $limit,
-			]
+			)
 		);
 	}
 
@@ -3386,23 +3443,23 @@ class REST_API {
 	): WP_REST_Response|WP_Error {
 		$url = rtrim( $gateway_url, '/' ) . '/tools/invoke';
 
-		$response = wp_remote_post( $url, [
-			'headers' => [
+		$response = wp_remote_post( $url, array(
+			'headers' => array(
 				'Content-Type'  => 'application/json',
 				'Authorization' => 'Bearer ' . $gateway_token,
-			],
-			'body'    => wp_json_encode( [
+			),
+			'body'    => wp_json_encode( array(
 				'tool' => $tool,
 				'args' => $args,
-			] ),
+			) ),
 			'timeout' => 30,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
 				'openclaw_error',
 				__( 'Failed to connect to OpenClaw', 'spawn' ),
-				[ 'status' => 502 ]
+				array( 'status' => 502 )
 			);
 		}
 
@@ -3413,7 +3470,7 @@ class REST_API {
 			return new WP_Error(
 				'openclaw_error',
 				$body['error']['message'] ?? __( 'OpenClaw request failed', 'spawn' ),
-				[ 'status' => $code ]
+				array( 'status' => $code )
 			);
 		}
 

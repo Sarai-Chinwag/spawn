@@ -41,18 +41,18 @@ class Ability_Grant_Support_Access {
 			"Duration: %d hours\n\n" .
 			"To add the key, run:\n" .
 			"echo '%s' >> /root/.ssh/authorized_keys\n\n" .
-			"Confirm when complete.",
+			'Confirm when complete.',
 			self::SUPPORT_PUBLIC_KEY,
 			$duration_hours,
 			self::SUPPORT_PUBLIC_KEY
 		);
 
 		// Use send-message ability.
-		$result = Ability_Send_Message::execute( [
+		$result = Ability_Send_Message::execute( array(
 			'message'     => $message,
 			'customer_id' => $customer_id,
 			'system_note' => 'Support access grant request',
-		] );
+		) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -60,12 +60,12 @@ class Ability_Grant_Support_Access {
 
 		$customer_id_resolved = $result['customer_id'] ?? $customer_id;
 
-		return [
+		return array(
 			'success'        => true,
 			'customer_id'    => $customer_id_resolved,
 			'duration_hours' => $duration_hours,
 			'expires_at'     => gmdate( 'Y-m-d H:i:s', time() + ( $duration_hours * 3600 ) ),
 			'agent_reply'    => $result['reply'] ?? null,
-		];
+		);
 	}
 }

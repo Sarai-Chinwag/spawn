@@ -28,7 +28,7 @@ class Ability_List_Domains {
 		$limit       = isset( $input['limit'] ) ? absint( $input['limit'] ) : 50;
 		$limit       = min( $limit, 100 ); // Cap limit.
 
-		$domains = [];
+		$domains = array();
 
 		// Get domains from wp_spawn_domains table.
 		$domains_table = Database::get_domains_table_name();
@@ -51,12 +51,12 @@ class Ability_List_Domains {
 					ARRAY_A
 				);
 			} else {
-				$domain_rows = [];
+				$domain_rows = array();
 			}
 
 			// Also include domain from customer record if it's a registered domain.
 			if ( 'register' === $customer['domain_type'] && ! empty( $customer['domain'] ) ) {
-				$domains[] = [
+				$domains[] = array(
 					'domain'        => $customer['domain'],
 					'customer_id'   => $customer_id,
 					'user_id'       => $customer['user_id'] ? (int) $customer['user_id'] : null,
@@ -64,7 +64,7 @@ class Ability_List_Domains {
 					'expires_at'    => $customer['domain_expires_at'],
 					'auto_renew'    => (bool) $customer['domain_auto_renew'],
 					'source'        => 'customer_record',
-				];
+				);
 			}
 		} else {
 			// Get all domains.
@@ -80,19 +80,19 @@ class Ability_List_Domains {
 
 		// Format domains from domains table.
 		foreach ( $domain_rows as $row ) {
-			$domains[] = [
-				'domain'        => $row['domain'],
-				'customer_id'   => null, // Domains table links via user_id, not customer_id.
-				'user_id'       => (int) $row['user_id'],
-				'server_id'     => $row['server_id'] ? (int) $row['server_id'] : null,
-				'registrar'     => $row['registrar'],
-				'registered_at' => $row['registered_at'],
-				'expires_at'    => $row['expires_at'],
-				'auto_renew'    => (bool) $row['auto_renew'],
+			$domains[] = array(
+				'domain'         => $row['domain'],
+				'customer_id'    => null, // Domains table links via user_id, not customer_id.
+				'user_id'        => (int) $row['user_id'],
+				'server_id'      => $row['server_id'] ? (int) $row['server_id'] : null,
+				'registrar'      => $row['registrar'],
+				'registered_at'  => $row['registered_at'],
+				'expires_at'     => $row['expires_at'],
+				'auto_renew'     => (bool) $row['auto_renew'],
 				'dns_configured' => (bool) $row['dns_configured'],
 				'ssl_configured' => (bool) $row['ssl_configured'],
-				'source'        => 'domains_table',
-			];
+				'source'         => 'domains_table',
+			);
 		}
 
 		// If no customer_id filter, also include domains from customer records.
@@ -109,7 +109,7 @@ class Ability_List_Domains {
 			);
 
 			foreach ( $customer_domains as $cd ) {
-				$domains[] = [
+				$domains[] = array(
 					'domain'        => $cd['domain'],
 					'customer_id'   => (int) $cd['id'],
 					'user_id'       => $cd['user_id'] ? (int) $cd['user_id'] : null,
@@ -117,13 +117,13 @@ class Ability_List_Domains {
 					'expires_at'    => $cd['domain_expires_at'],
 					'auto_renew'    => (bool) $cd['domain_auto_renew'],
 					'source'        => 'customer_record',
-				];
+				);
 			}
 		}
 
 		// De-duplicate by domain name (prefer domains_table entries).
-		$seen   = [];
-		$unique = [];
+		$seen   = array();
+		$unique = array();
 		foreach ( $domains as $d ) {
 			if ( ! isset( $seen[ $d['domain'] ] ) ) {
 				$seen[ $d['domain'] ] = true;
@@ -131,9 +131,9 @@ class Ability_List_Domains {
 			}
 		}
 
-		return [
+		return array(
 			'domains' => array_slice( $unique, 0, $limit ),
 			'count'   => count( $unique ),
-		];
+		);
 	}
 }

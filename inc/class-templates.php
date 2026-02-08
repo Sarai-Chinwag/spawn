@@ -17,11 +17,11 @@ class Templates {
 	 * Initialize hooks.
 	 */
 	public static function init(): void {
-		add_filter( 'theme_page_templates', [ __CLASS__, 'register_templates' ] );
-		add_filter( 'template_include', [ __CLASS__, 'load_template' ] );
+		add_filter( 'theme_page_templates', array( __CLASS__, 'register_templates' ) );
+		add_filter( 'template_include', array( __CLASS__, 'load_template' ) );
 
 		// Bridge hook for ad blockers - fire theme hook too.
-		add_action( 'spawn_before_page_content', [ __CLASS__, 'bridge_theme_hook' ] );
+		add_action( 'spawn_before_page_content', array( __CLASS__, 'bridge_theme_hook' ) );
 	}
 
 	/**

@@ -240,7 +240,7 @@ class Database {
 
 		$result = $wpdb->insert(
 			self::get_table_name(),
-			[
+			array(
 				'user_id'             => $data['user_id'] ?? null,
 				'email'               => $data['email'],
 				'domain'              => $data['domain'] ?? null,
@@ -258,8 +258,8 @@ class Database {
 				'credit_balance'      => $data['credit_balance'] ?? Config::get_included_credits( $tier ),
 				'customer_region'     => $customer_region,
 				'created_at'          => current_time( 'mysql' ),
-			],
-			[ '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s' ]
+			),
+			array( '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -278,10 +278,10 @@ class Database {
 		$result = $wpdb->update(
 			self::get_table_name(),
 			$data,
-			[ 'id' => $id ]
+			array( 'id' => $id )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -295,14 +295,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
 				self::get_table_name(),
 				$id
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -315,7 +315,7 @@ class Database {
 	public static function get_all_customers( string $order_by = 'created_at', string $order = 'DESC' ): array {
 		global $wpdb;
 
-		$allowed_columns = [ 'id', 'email', 'domain', 'status', 'created_at', 'credit_balance' ];
+		$allowed_columns = array( 'id', 'email', 'domain', 'status', 'created_at', 'credit_balance' );
 		$order_by        = in_array( $order_by, $allowed_columns, true ) ? $order_by : 'created_at';
 		$order           = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
 
@@ -328,7 +328,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $results ?: [];
+		return $results ? $results : array();
 	}
 
 	/**
@@ -342,14 +342,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE stripe_subscription = %s",
+				'SELECT * FROM %i WHERE stripe_subscription = %s',
 				self::get_table_name(),
 				$subscription_id
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -363,14 +363,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE domain = %s",
+				'SELECT * FROM %i WHERE domain = %s',
 				self::get_table_name(),
 				$domain
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -384,14 +384,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE email = %s",
+				'SELECT * FROM %i WHERE email = %s',
 				self::get_table_name(),
 				$email
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -405,14 +405,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
 				self::get_table_name(),
 				$user_id
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -426,14 +426,14 @@ class Database {
 
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE server_ip = %s",
+				'SELECT * FROM %i WHERE server_ip = %s',
 				self::get_table_name(),
 				$ip
 			),
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -450,7 +450,7 @@ class Database {
 		if ( ! in_array( $tier, Config::get_tier_ids(), true ) ) {
 			return false;
 		}
-		return self::update_customer( $id, [ 'tier' => $tier ] );
+		return self::update_customer( $id, array( 'tier' => $tier ) );
 	}
 
 	/**
@@ -464,7 +464,7 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function update_wants_website( int $id, bool $wants_website ): bool {
-		return self::update_customer( $id, [ 'wants_website' => $wants_website ? 1 : 0 ] );
+		return self::update_customer( $id, array( 'wants_website' => $wants_website ? 1 : 0 ) );
 	}
 
 	/**
@@ -479,7 +479,7 @@ class Database {
 
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET credit_balance = credit_balance - %f WHERE id = %d AND credit_balance >= %f",
+				'UPDATE %i SET credit_balance = credit_balance - %f WHERE id = %d AND credit_balance >= %f',
 				self::get_table_name(),
 				$amount,
 				$id,
@@ -513,14 +513,14 @@ class Database {
 
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE %i SET credit_balance = credit_balance + %f WHERE id = %d",
+				'UPDATE %i SET credit_balance = credit_balance + %f WHERE id = %d',
 				self::get_table_name(),
 				$amount,
 				$id
 			)
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -533,11 +533,11 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function update_auto_refill( int $id, bool $enabled, int $threshold = 100, int $amount = 1000 ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'auto_refill_enabled'   => $enabled ? 1 : 0,
 			'auto_refill_threshold' => $threshold,
 			'auto_refill_amount'    => $amount,
-		] );
+		) );
 	}
 
 	/**
@@ -550,11 +550,11 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function update_auto_refill_settings( int $id, bool $enabled, float $threshold = 5.00, float $amount = 10.00 ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'auto_refill_enabled'   => $enabled ? 1 : 0,
 			'auto_refill_threshold' => $threshold,
 			'auto_refill_amount'    => $amount,
-		] );
+		) );
 	}
 
 	/**
@@ -569,11 +569,11 @@ class Database {
 			return null;
 		}
 
-		return [
+		return array(
 			'enabled'   => (bool) $customer['auto_refill_enabled'],
 			'threshold' => (int) $customer['auto_refill_threshold'],
 			'amount'    => (int) $customer['auto_refill_amount'],
-		];
+		);
 	}
 
 	/**
@@ -592,7 +592,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $results ?: [];
+		return $results ? $results : array();
 	}
 
 	/**
@@ -613,7 +613,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $results ?: [];
+		return $results ? $results : array();
 	}
 
 	/**
@@ -633,7 +633,7 @@ class Database {
 			)
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -644,9 +644,9 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function update_payment_method( int $id, string $payment_method_id ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'stripe_payment_method' => $payment_method_id,
-		] );
+		) );
 	}
 
 	/**
@@ -670,11 +670,11 @@ class Database {
 	public static function schedule_deletion( int $id, int $grace_days = 7 ): bool {
 		$deletion_date = gmdate( 'Y-m-d H:i:s', strtotime( "+{$grace_days} days" ) );
 
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'status'                => 'cancelling',
 			'cancelled_at'          => current_time( 'mysql' ),
 			'scheduled_deletion_at' => $deletion_date,
-		] );
+		) );
 	}
 
 	/**
@@ -693,7 +693,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $results ?: [];
+		return $results ? $results : array();
 	}
 
 	/**
@@ -712,7 +712,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $results ?: [];
+		return $results ? $results : array();
 	}
 
 	/**
@@ -722,11 +722,11 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function mark_deleted( int $id ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'status'    => 'deleted',
 			'server_id' => null,
 			'server_ip' => null,
-		] );
+		) );
 	}
 
 	/**
@@ -736,11 +736,11 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function reactivate_customer( int $id ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'status'                => 'active',
 			'cancelled_at'          => null,
 			'scheduled_deletion_at' => null,
-		] );
+		) );
 	}
 
 	/**
@@ -751,9 +751,9 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function set_cloudflare_record_id( int $id, string $record_id ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'cloudflare_record_id' => $record_id,
-		] );
+		) );
 	}
 
 	/**
@@ -764,9 +764,9 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function set_hetzner_server_id( int $id, string $server_id ): bool {
-		return self::update_customer( $id, [
+		return self::update_customer( $id, array(
 			'hetzner_server_id' => $server_id,
-		] );
+		) );
 	}
 
 	// =========================================================================
@@ -784,7 +784,7 @@ class Database {
 
 		$result = $wpdb->insert(
 			self::get_servers_table_name(),
-			[
+			array(
 				'user_id'           => $data['user_id'],
 				'name'              => $data['name'] ?? '',
 				'tier'              => $data['tier'] ?? 'starter',
@@ -795,8 +795,8 @@ class Database {
 				'openclaw_token'    => $data['openclaw_token'] ?? null,
 				'has_wordpress'     => ! empty( $data['has_wordpress'] ) ? 1 : 0,
 				'status'            => $data['status'] ?? 'pending',
-			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ]
+			),
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -820,7 +820,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $row ?: null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -839,7 +839,7 @@ class Database {
 				$user_id
 			),
 			ARRAY_A
-		) ?: [];
+		) ?: array();
 	}
 
 	/**
@@ -857,7 +857,7 @@ class Database {
 		return $wpdb->update(
 			self::get_servers_table_name(),
 			$data,
-			[ 'id' => $id ]
+			array( 'id' => $id )
 		) !== false;
 	}
 
@@ -872,8 +872,8 @@ class Database {
 
 		return $wpdb->delete(
 			self::get_servers_table_name(),
-			[ 'id' => $id ],
-			[ '%d' ]
+			array( 'id' => $id ),
+			array( '%d' )
 		) !== false;
 	}
 
@@ -892,7 +892,7 @@ class Database {
 
 		$result = $wpdb->insert(
 			self::get_domains_table_name(),
-			[
+			array(
 				'user_id'        => $data['user_id'],
 				'server_id'      => $data['server_id'] ?? null,
 				'domain'         => $data['domain'],
@@ -902,8 +902,8 @@ class Database {
 				'auto_renew'     => ! empty( $data['auto_renew'] ) ? 1 : 0,
 				'dns_configured' => ! empty( $data['dns_configured'] ) ? 1 : 0,
 				'ssl_configured' => ! empty( $data['ssl_configured'] ) ? 1 : 0,
-			],
-			[ '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d' ]
+			),
+			array( '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -927,7 +927,7 @@ class Database {
 			ARRAY_A
 		);
 
-		return $row ?: null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -946,7 +946,7 @@ class Database {
 				$user_id
 			),
 			ARRAY_A
-		) ?: [];
+		) ?: array();
 	}
 
 	/**
@@ -962,7 +962,7 @@ class Database {
 		return $wpdb->update(
 			self::get_domains_table_name(),
 			$data,
-			[ 'id' => $id ]
+			array( 'id' => $id )
 		) !== false;
 	}
 
@@ -977,8 +977,8 @@ class Database {
 
 		return $wpdb->delete(
 			self::get_domains_table_name(),
-			[ 'id' => $id ],
-			[ '%d' ]
+			array( 'id' => $id ),
+			array( '%d' )
 		) !== false;
 	}
 
@@ -990,7 +990,7 @@ class Database {
 	 * @return bool Success.
 	 */
 	public static function assign_domain_to_server( int $domain_id, ?int $server_id ): bool {
-		return self::update_domain( $domain_id, [ 'server_id' => $server_id ] );
+		return self::update_domain( $domain_id, array( 'server_id' => $server_id ) );
 	}
 
 	// =========================================================================
@@ -1040,7 +1040,7 @@ class Database {
 		// Insert new record.
 		return $wpdb->insert(
 			self::get_usage_table_name(),
-			[
+			array(
 				'user_id'        => $user_id,
 				'server_id'      => $server_id,
 				'credits_used'   => $credits_used,
@@ -1049,8 +1049,8 @@ class Database {
 				'tokens_output'  => $tokens_out,
 				'period_start'   => $period_start,
 				'period_end'     => $period_end,
-			],
-			[ '%d', '%d', '%f', '%d', '%d', '%d', '%s', '%s' ]
+			),
+			array( '%d', '%d', '%f', '%d', '%d', '%d', '%s', '%s' )
 		) !== false;
 	}
 
@@ -1074,7 +1074,7 @@ class Database {
 				$cutoff
 			),
 			ARRAY_A
-		) ?: [];
+		) ?: array();
 	}
 
 	/**
@@ -1097,6 +1097,6 @@ class Database {
 				$cutoff
 			),
 			ARRAY_A
-		) ?: [];
+		) ?: array();
 	}
 }

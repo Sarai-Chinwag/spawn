@@ -39,9 +39,9 @@ class Ability_Send_Message {
 
 		// Check if server is ready.
 		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
-			return new WP_Error( 
-				'server_not_ready', 
-				__( 'Customer server is not ready yet.', 'spawn' ) 
+			return new WP_Error(
+				'server_not_ready',
+				__( 'Customer server is not ready yet.', 'spawn' )
 			);
 		}
 
@@ -49,9 +49,9 @@ class Ability_Send_Message {
 		$gateway_token = $customer['openclaw_token'] ?? '';
 
 		if ( empty( $gateway_token ) ) {
-			return new WP_Error( 
-				'no_token', 
-				__( 'Customer OpenClaw token not configured.', 'spawn' ) 
+			return new WP_Error(
+				'no_token',
+				__( 'Customer OpenClaw token not configured.', 'spawn' )
 			);
 		}
 
@@ -60,39 +60,45 @@ class Ability_Send_Message {
 			"[Spawn System Message]\n" .
 			"Customer: %s\n" .
 			"Site: %s\n" .
-			"%s",
+			'%s',
 			$customer['email'],
 			$customer['domain'] ?? 'N/A',
 			! empty( $system_note ) ? "\nContext: $system_note" : ''
 		);
 
-		$payload = [
+		$payload = array(
 			'model'    => 'openclaw:main',
-			'messages' => [
-				[ 'role' => 'system', 'content' => $system_prompt ],
-				[ 'role' => 'user', 'content' => $message ],
-			],
-		];
+			'messages' => array(
+				array(
+					'role'    => 'system',
+					'content' => $system_prompt,
+				),
+				array(
+					'role'    => 'user',
+					'content' => $message,
+				),
+			),
+		);
 
-		$headers = [
+		$headers = array(
 			'Content-Type'  => 'application/json',
 			'Authorization' => 'Bearer ' . $gateway_token,
-		];
+		);
 
 		if ( ! empty( $session_key ) ) {
 			$headers['x-openclaw-session-key'] = $session_key;
 		}
 
-		$response = wp_remote_post( $gateway_url, [
+		$response = wp_remote_post( $gateway_url, array(
 			'headers' => $headers,
 			'body'    => wp_json_encode( $payload ),
 			'timeout' => 120,
-		] );
+		) );
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 
-				'connection_failed', 
-				__( 'Failed to connect to customer agent: ', 'spawn' ) . $response->get_error_message() 
+			return new WP_Error(
+				'connection_failed',
+				__( 'Failed to connect to customer agent: ', 'spawn' ) . $response->get_error_message()
 			);
 		}
 
@@ -106,11 +112,11 @@ class Ability_Send_Message {
 
 		$reply = $body['choices'][0]['message']['content'] ?? null;
 
-		return [
+		return array(
 			'success'     => true,
 			'customer_id' => (int) $customer['id'],
 			'reply'       => $reply,
-		];
+		);
 	}
 
 	/**
@@ -128,7 +134,7 @@ class Ability_Send_Message {
 				return new WP_Error( 'not_logged_in', __( 'You must be logged in.', 'spawn' ) );
 			}
 			$customer = Database::get_customer_by_user_id( $user->ID );
-			
+
 			if ( ! $customer ) {
 				$customer = Database::get_customer_by_email( $user->user_email );
 			}

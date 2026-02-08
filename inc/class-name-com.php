@@ -34,10 +34,10 @@ class Name_Com {
 	 * @return array{username: string, token: string} Credentials.
 	 */
 	private static function get_credentials(): array {
-		return [
+		return array(
 			'username' => get_option( 'spawn_namecom_username', '' ),
 			'token'    => get_option( 'spawn_namecom_token', '' ),
-		];
+		);
 	}
 
 	/**
@@ -48,27 +48,27 @@ class Name_Com {
 	 * @param array  $data     Request data.
 	 * @return array|WP_Error Response or error.
 	 */
-	private static function request( string $endpoint, string $method = 'GET', array $data = [] ): array|WP_Error {
+	private static function request( string $endpoint, string $method = 'GET', array $data = array() ): array|WP_Error {
 		$creds = self::get_credentials();
 
 		if ( empty( $creds['username'] ) || empty( $creds['token'] ) ) {
 			return new WP_Error(
 				'namecom_not_configured',
 				__( 'Name.com is not configured', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		$args = [
+		$args = array(
 			'method'  => $method,
-			'headers' => [
+			'headers' => array(
 				'Authorization' => 'Basic ' . base64_encode( $creds['username'] . ':' . $creds['token'] ),
 				'Content-Type'  => 'application/json',
-			],
+			),
 			'timeout' => 30,
-		];
+		);
 
-		if ( ! empty( $data ) && in_array( $method, [ 'POST', 'PUT', 'PATCH' ], true ) ) {
+		if ( ! empty( $data ) && in_array( $method, array( 'POST', 'PUT', 'PATCH' ), true ) ) {
 			$args['body'] = wp_json_encode( $data );
 		}
 
@@ -86,11 +86,11 @@ class Name_Com {
 			return new WP_Error(
 				'namecom_api_error',
 				$message,
-				[ 'status' => $code ]
+				array( 'status' => $code )
 			);
 		}
 
-		return $body ?? [];
+		return $body ?? array();
 	}
 
 	/**
@@ -100,33 +100,33 @@ class Name_Com {
 	 * @return array|WP_Error Availability result or error.
 	 */
 	public static function check_availability( string $domain ): array|WP_Error {
-		$result = self::request( '/domains:checkAvailability', 'POST', [
-			'domainNames' => [ $domain ],
-		] );
+		$result = self::request( '/domains:checkAvailability', 'POST', array(
+			'domainNames' => array( $domain ),
+		) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		$results = $result['results'] ?? [];
-		
+		$results = $result['results'] ?? array();
+
 		if ( empty( $results ) ) {
 			return new WP_Error(
 				'no_results',
 				__( 'No availability results returned', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		$domain_result = $results[0];
 
-		return [
-			'domain'      => $domain_result['domainName'] ?? $domain,
-			'available'   => $domain_result['purchasable'] ?? false,
-			'premium'     => $domain_result['premium'] ?? false,
-			'price'       => $domain_result['purchasePrice'] ?? null,
-			'renewal'     => $domain_result['renewalPrice'] ?? null,
-		];
+		return array(
+			'domain'    => $domain_result['domainName'] ?? $domain,
+			'available' => $domain_result['purchasable'] ?? false,
+			'premium'   => $domain_result['premium'] ?? false,
+			'price'     => $domain_result['purchasePrice'] ?? null,
+			'renewal'   => $domain_result['renewalPrice'] ?? null,
+		);
 	}
 
 	/**
@@ -136,28 +136,28 @@ class Name_Com {
 	 * @param array  $tlds    TLDs to check (default: com, net, org).
 	 * @return array|WP_Error Search results or error.
 	 */
-	public static function search( string $keyword, array $tlds = [ 'com', 'net', 'org' ] ): array|WP_Error {
-		$domains = [];
+	public static function search( string $keyword, array $tlds = array( 'com', 'net', 'org' ) ): array|WP_Error {
+		$domains = array();
 		foreach ( $tlds as $tld ) {
 			$domains[] = $keyword . '.' . $tld;
 		}
 
-		$result = self::request( '/domains:checkAvailability', 'POST', [
+		$result = self::request( '/domains:checkAvailability', 'POST', array(
 			'domainNames' => $domains,
-		] );
+		) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		$available = [];
-		foreach ( $result['results'] ?? [] as $domain_result ) {
+		$available = array();
+		foreach ( $result['results'] ?? array() as $domain_result ) {
 			if ( $domain_result['purchasable'] ?? false ) {
-				$available[] = [
+				$available[] = array(
 					'domain'  => $domain_result['domainName'],
 					'premium' => $domain_result['premium'] ?? false,
 					'price'   => $domain_result['purchasePrice'] ?? null,
-				];
+				);
 			}
 		}
 
@@ -185,18 +185,46 @@ class Name_Com {
 		$result = self::request(
 			'/domains/' . rawurlencode( $domain ) . ':renew',
 			'POST',
-			[ 'years' => $years ]
+			array( 'years' => $years )
 		);
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		return [
+		return array(
 			'domain'     => $result['domainName'] ?? $domain,
 			'expires_at' => $result['expireDate'] ?? null,
 			'renewed'    => true,
-		];
+		);
+	}
+
+	/**
+	 * Register a domain for specified years.
+	 *
+	 * @param string $domain Domain to register.
+	 * @param int    $years  Number of years to register (default: 1).
+	 * @return array|WP_Error Registration result with expiration or error.
+	 */
+	public static function register( string $domain, int $years = 1 ): array|WP_Error {
+		$result = self::request(
+			'/domains',
+			'POST',
+			array(
+				'domainName' => $domain,
+				'years'      => $years,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return array(
+			'domain'     => $result['domainName'] ?? $domain,
+			'expires_at' => $result['expireDate'] ?? null,
+			'registered' => true,
+		);
 	}
 
 	/**
@@ -218,7 +246,7 @@ class Name_Com {
 			return new WP_Error(
 				'no_renewal_price',
 				__( 'Unable to determine renewal price', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 

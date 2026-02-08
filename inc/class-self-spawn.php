@@ -227,7 +227,7 @@ class Self_Spawn {
 				'message' => sprintf(
 					/* translators: %s: Error message */
 					__( 'Failed to install OpenClaw: %s', 'spawn' ),
-					$result['error'] ?: $result['output']
+					$result['error'] ? $result['error'] : $result['output']
 				),
 			);
 		}
@@ -381,7 +381,7 @@ class Self_Spawn {
 			'message' => sprintf(
 				/* translators: %s: Error output */
 				__( 'Failed to start OpenClaw gateway: %s', 'spawn' ),
-				$result['error'] ?: $result['output']
+				$result['error'] ? $result['error'] : $result['output']
 			),
 		);
 	}
@@ -510,7 +510,7 @@ class Self_Spawn {
 				'message' => sprintf(
 					/* translators: %s: Error message */
 					__( 'Failed to uninstall OpenClaw: %s', 'spawn' ),
-					$result['error'] ?: $result['output']
+					$result['error'] ? $result['error'] : $result['output']
 				),
 			);
 		}

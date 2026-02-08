@@ -27,7 +27,7 @@ class Cleanup {
 	 */
 	public static function init(): void {
 		// Register cron hook.
-		add_action( 'spawn_process_deletions', [ __CLASS__, 'process_pending_deletions' ] );
+		add_action( 'spawn_process_deletions', array( __CLASS__, 'process_pending_deletions' ) );
 
 		// Schedule cron if not already scheduled.
 		if ( ! wp_next_scheduled( 'spawn_process_deletions' ) ) {
@@ -62,7 +62,7 @@ class Cleanup {
 
 		// Step 1: Delete VPS.
 		if ( ! empty( $customer['hetzner_server_id'] ) || ! empty( $customer['server_id'] ) ) {
-			$server_id  = $customer['hetzner_server_id'] ?: $customer['server_id'];
+			$server_id  = $customer['hetzner_server_id'] ? $customer['hetzner_server_id'] : $customer['server_id'];
 			$vps_result = self::delete_vps( $server_id );
 			if ( ! $vps_result ) {
 				error_log( sprintf( '[Spawn Cleanup] Failed to delete VPS %s for customer #%d', $server_id, $customer_id ) );
@@ -120,13 +120,13 @@ class Cleanup {
 
 		$response = wp_remote_request(
 			"https://api.hetzner.cloud/v1/servers/{$server_id}",
-			[
+			array(
 				'method'  => 'DELETE',
-				'headers' => [
+				'headers' => array(
 					'Authorization' => "Bearer {$hetzner_token}",
-				],
+				),
 				'timeout' => 30,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -137,7 +137,7 @@ class Cleanup {
 		$code = wp_remote_retrieve_response_code( $response );
 
 		// 200 = deleted, 404 = already gone (both are success).
-		return in_array( $code, [ 200, 204, 404 ], true );
+		return in_array( $code, array( 200, 204, 404 ), true );
 	}
 
 	/**
@@ -164,14 +164,14 @@ class Cleanup {
 
 		$response = wp_remote_request(
 			"https://api.cloudflare.com/client/v4/zones/{$cf_zone_id}/dns_records/{$record_id}",
-			[
+			array(
 				'method'  => 'DELETE',
-				'headers' => [
+				'headers' => array(
 					'Authorization' => "Bearer {$cf_token}",
 					'Content-Type'  => 'application/json',
-				],
+				),
 				'timeout' => 30,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -208,16 +208,16 @@ class Cleanup {
 
 		// First, find the record.
 		$response = wp_remote_get(
-			"https://api.cloudflare.com/client/v4/zones/{$cf_zone_id}/dns_records?" . http_build_query( [
+			"https://api.cloudflare.com/client/v4/zones/{$cf_zone_id}/dns_records?" . http_build_query( array(
 				'name' => $domain,
 				'type' => 'A',
-			] ),
-			[
-				'headers' => [
+			) ),
+			array(
+				'headers' => array(
 					'Authorization' => "Bearer {$cf_token}",
-				],
+				),
 				'timeout' => 30,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -250,7 +250,7 @@ class Cleanup {
 			"Your VPS and all associated data have been permanently removed.\n\n" .
 			"If you exported your site before deletion, you can import it to any WordPress host.\n\n" .
 			"Thank you for using Spawn. We hope to see you again!\n\n" .
-			"- The Spawn Team",
+			'- The Spawn Team',
 			$domain
 		);
 
@@ -279,9 +279,9 @@ class Cleanup {
 			"2. Ask your AI: \"Export my site for download\"\n" .
 			"3. Download the backup file\n\n" .
 			"You can also access your files directly via SFTP - ask your AI for credentials.\n\n" .
-			"Changed your mind? You can reactivate your subscription before the deletion date " .
+			'Changed your mind? You can reactivate your subscription before the deletion date ' .
 			"by visiting your account page or contacting support.\n\n" .
-			"- The Spawn Team",
+			'- The Spawn Team',
 			$domain,
 			$formatted_date
 		);
@@ -313,7 +313,7 @@ class Cleanup {
 			"3. Download the backup file\n\n" .
 			"After deletion, your data cannot be recovered.\n\n" .
 			"To keep your site, reactivate your subscription before the deletion date.\n\n" .
-			"- The Spawn Team",
+			'- The Spawn Team',
 			$domain,
 			$days_remaining,
 			$formatted_date

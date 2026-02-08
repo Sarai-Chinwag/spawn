@@ -34,7 +34,7 @@ class Ability_Get_Provisioning_Status {
 			return new WP_Error( 'not_found', __( 'Customer not found', 'spawn' ) );
 		}
 
-		$result = [
+		$result = array(
 			'customer_id'       => $customer_id,
 			'status'            => $customer['status'],
 			'domain'            => $customer['domain'],
@@ -47,7 +47,7 @@ class Ability_Get_Provisioning_Status {
 			'created_at'        => $customer['created_at'],
 			'last_error'        => null,
 			'job_status'        => null,
-		];
+		);
 
 		// If there's a job ID in server_id, try to get job status.
 		$server_id = $customer['server_id'];
@@ -58,11 +58,11 @@ class Ability_Get_Provisioning_Status {
 			if ( is_wp_error( $job_status ) ) {
 				$result['last_error'] = $job_status->get_error_message();
 			} else {
-				$result['job_status'] = [
+				$result['job_status'] = array(
 					'job_id' => $job_id,
 					'status' => $job_status['status'] ?? 'unknown',
 					'error'  => $job_status['error'] ?? null,
-				];
+				);
 
 				// Extract error if job failed.
 				if ( isset( $job_status['error'] ) ) {

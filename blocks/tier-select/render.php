@@ -9,10 +9,10 @@
  * @package Spawn
  */
 
-$wrapper_attributes = get_block_wrapper_attributes( [
+$wrapper_attributes = get_block_wrapper_attributes( array(
 	'data-highlighted-tier' => esc_attr( $attributes['highlightedTier'] ?? 'pro' ),
 	'data-show-features'    => esc_attr( $attributes['showFeatures'] ?? true ? 'true' : 'false' ),
-] );
+) );
 ?>
 <div <?php echo $wrapper_attributes; ?>>
 	<div class="wp-block-spawn-tier-select__loading">Loading pricing...</div>

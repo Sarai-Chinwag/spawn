@@ -29,17 +29,17 @@ class Ability_Self_Spawn {
 	 * @return array Environment check results.
 	 */
 	public static function check_environment( array $input ): array {
-		$env = Environment_Detector::check();
+		$env         = Environment_Detector::check();
 		$credentials = WP_AI_Client_Bridge::get_provider_status();
 
-		return [
-			'environment'       => $env,
-			'credentials'       => $credentials,
-			'has_credentials'   => WP_AI_Client_Bridge::has_any_credentials(),
-			'can_install'       => $env['can_install'],
-			'blockers'          => $env['blockers'],
-			'credentials_url'   => WP_AI_Client_Bridge::get_credentials_page_url(),
-		];
+		return array(
+			'environment'     => $env,
+			'credentials'     => $credentials,
+			'has_credentials' => WP_AI_Client_Bridge::has_any_credentials(),
+			'can_install'     => $env['can_install'],
+			'blockers'        => $env['blockers'],
+			'credentials_url' => WP_AI_Client_Bridge::get_credentials_page_url(),
+		);
 	}
 
 	/**
@@ -61,11 +61,11 @@ class Ability_Self_Spawn {
 	public static function install( array $input ): array {
 		// Check environment first.
 		if ( ! Environment_Detector::can_install() ) {
-			return [
+			return array(
 				'success'  => false,
 				'message'  => __( 'Environment check failed. Cannot install OpenClaw.', 'spawn' ),
 				'blockers' => Environment_Detector::get_blockers(),
-			];
+			);
 		}
 
 		// Run installation.
@@ -76,24 +76,24 @@ class Ability_Self_Spawn {
 		}
 
 		// Configure with credentials from wp-ai-client.
-		$env = WP_AI_Client_Bridge::get_openclaw_env();
+		$env           = WP_AI_Client_Bridge::get_openclaw_env();
 		$config_result = Self_Spawn::configure( $env );
 
 		if ( ! $config_result['success'] ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw installed but configuration failed.', 'spawn' ),
 				'install' => $result,
 				'config'  => $config_result,
-			];
+			);
 		}
 
-		return [
+		return array(
 			'success' => true,
 			'message' => __( 'OpenClaw installed and configured successfully.', 'spawn' ),
 			'install' => $result,
 			'config'  => $config_result,
-		];
+		);
 	}
 
 	/**
@@ -104,20 +104,20 @@ class Ability_Self_Spawn {
 	 */
 	public static function configure( array $input ): array {
 		if ( ! Self_Spawn::is_openclaw_installed() ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw is not installed. Please install first.', 'spawn' ),
-			];
+			);
 		}
 
 		$env = WP_AI_Client_Bridge::get_openclaw_env();
 
 		if ( empty( $env ) ) {
-			return [
-				'success' => false,
-				'message' => __( 'No AI credentials configured. Please configure credentials in Settings > AI Credentials.', 'spawn' ),
+			return array(
+				'success'         => false,
+				'message'         => __( 'No AI credentials configured. Please configure credentials in Settings > AI Credentials.', 'spawn' ),
 				'credentials_url' => WP_AI_Client_Bridge::get_credentials_page_url(),
-			];
+			);
 		}
 
 		return Self_Spawn::configure( $env );
@@ -131,10 +131,10 @@ class Ability_Self_Spawn {
 	 */
 	public static function start( array $input ): array {
 		if ( ! Self_Spawn::is_openclaw_installed() ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw is not installed.', 'spawn' ),
-			];
+			);
 		}
 
 		return Self_Spawn::start_service();
@@ -148,10 +148,10 @@ class Ability_Self_Spawn {
 	 */
 	public static function stop( array $input ): array {
 		if ( ! Self_Spawn::is_openclaw_installed() ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw is not installed.', 'spawn' ),
-			];
+			);
 		}
 
 		return Self_Spawn::stop_service();
@@ -165,10 +165,10 @@ class Ability_Self_Spawn {
 	 */
 	public static function restart( array $input ): array {
 		if ( ! Self_Spawn::is_openclaw_installed() ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw is not installed.', 'spawn' ),
-			];
+			);
 		}
 
 		return Self_Spawn::restart_service();
@@ -184,18 +184,18 @@ class Ability_Self_Spawn {
 		$confirm = $input['confirm'] ?? false;
 
 		if ( ! $confirm ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'Please confirm uninstallation by setting confirm=true.', 'spawn' ),
 				'warning' => __( 'This will remove OpenClaw and all its data. This action cannot be undone.', 'spawn' ),
-			];
+			);
 		}
 
 		if ( ! Self_Spawn::is_openclaw_installed() ) {
-			return [
+			return array(
 				'success' => false,
 				'message' => __( 'OpenClaw is not installed.', 'spawn' ),
-			];
+			);
 		}
 
 		return Self_Spawn::uninstall();

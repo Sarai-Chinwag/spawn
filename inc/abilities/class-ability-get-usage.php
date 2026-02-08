@@ -40,30 +40,30 @@ class Ability_Get_Usage {
 		}
 
 		// Get AI usage from usage table (server_id = customer_id as proxy).
-		$usage = Database::get_server_usage( (int) $customer['id'], 1 );
+		$usage         = Database::get_server_usage( (int) $customer['id'], 1 );
 		$current_usage = $usage[0] ?? null;
 
 		// Get tier info for included credits.
-		$tier           = $customer['tier'] ?? 'starter';
-		$tier_config    = \Spawn\Config::get_tier( $tier );
+		$tier             = $customer['tier'] ?? 'starter';
+		$tier_config      = \Spawn\Config::get_tier( $tier );
 		$included_credits = $tier_config['included_credits'] ?? 5.0;
 
-		return [
+		return array(
 			'customer_id'      => (int) $customer['id'],
 			'tier'             => $tier,
 			'credit_balance'   => (float) $customer['credit_balance'],
 			'included_credits' => $included_credits,
 			'auto_refill'      => (bool) $customer['auto_refill_enabled'],
-			'ai_usage'         => [
+			'ai_usage'         => array(
 				'credits_used'   => (float) ( $current_usage['credits_used'] ?? 0 ),
 				'requests_count' => (int) ( $current_usage['requests_count'] ?? 0 ),
 				'tokens_input'   => (int) ( $current_usage['tokens_input'] ?? 0 ),
 				'tokens_output'  => (int) ( $current_usage['tokens_output'] ?? 0 ),
-			],
+			),
 			'period_start'     => $period_start,
 			'period_end'       => $period_end,
 			'period'           => $period,
-		];
+		);
 	}
 
 	/**

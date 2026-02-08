@@ -40,7 +40,7 @@ class Ability_Cancel {
 
 		if ( 'cancelling' === $customer['status'] ) {
 			$deletion_date = wp_date( 'F j, Y \a\t g:i A', strtotime( $customer['scheduled_deletion_at'] ) );
-			return [
+			return array(
 				'status'              => 'already_cancelling',
 				'scheduled_deletion'  => $customer['scheduled_deletion_at'],
 				'message'             => sprintf(
@@ -49,12 +49,12 @@ class Ability_Cancel {
 				),
 				'export_instructions' => self::get_export_instructions(),
 				'can_reactivate'      => true,
-			];
+			);
 		}
 
 		// If not confirmed, return warning with export instructions.
 		if ( ! $confirm ) {
-			return [
+			return array(
 				'status'              => 'confirmation_required',
 				'grace_period_days'   => Cleanup::GRACE_PERIOD_DAYS,
 				'message'             => sprintf(
@@ -63,7 +63,7 @@ class Ability_Cancel {
 				),
 				'export_instructions' => self::get_export_instructions(),
 				'confirm_prompt'      => __( 'To proceed, call this ability again with confirm: true', 'spawn' ),
-			];
+			);
 		}
 
 		// Cancel Stripe subscription via shared stripe-integration plugin.
@@ -90,7 +90,7 @@ class Ability_Cancel {
 
 		$deletion_date = wp_date( 'F j, Y \a\t g:i A', strtotime( $customer['scheduled_deletion_at'] ) );
 
-		return [
+		return array(
 			'success'             => true,
 			'status'              => 'cancellation_scheduled',
 			'cancelled_at'        => $customer['cancelled_at'],
@@ -103,7 +103,7 @@ class Ability_Cancel {
 			'export_instructions' => self::get_export_instructions(),
 			'can_reactivate'      => true,
 			'reactivate_prompt'   => __( 'Changed your mind? You can reactivate before the deletion date.', 'spawn' ),
-		];
+		);
 	}
 
 	/**
@@ -112,29 +112,29 @@ class Ability_Cancel {
 	 * @return array Export instructions.
 	 */
 	private static function get_export_instructions(): array {
-		return [
-			'methods' => [
-				[
+		return array(
+			'methods'   => array(
+				array(
 					'name'        => 'Full Site Backup',
 					'description' => __( 'Download a complete backup of your WordPress site', 'spawn' ),
 					'command'     => 'export-site',
 					'details'     => __( 'Creates a downloadable ZIP with your database and files', 'spawn' ),
-				],
-				[
+				),
+				array(
 					'name'        => 'WordPress Export (XML)',
 					'description' => __( 'Export posts, pages, and media as WordPress XML', 'spawn' ),
 					'command'     => 'wp export',
 					'details'     => __( 'Standard WordPress export format, importable anywhere', 'spawn' ),
-				],
-				[
+				),
+				array(
 					'name'        => 'Direct File Access (SFTP)',
 					'description' => __( 'Connect via SFTP to download files directly', 'spawn' ),
 					'command'     => 'get-sftp-credentials',
 					'details'     => __( 'Full access to wp-content, themes, plugins, uploads', 'spawn' ),
-				],
-			],
+				),
+			),
 			'important' => __( 'After deletion, your data CANNOT be recovered. Export everything you need!', 'spawn' ),
-		];
+		);
 	}
 
 	/**

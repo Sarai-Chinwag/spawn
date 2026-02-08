@@ -48,7 +48,7 @@ class Ability_Configure_BYOD {
 				$server_ip = $server['server_ip'];
 			}
 		}
-		
+
 		// Fall back to customer's main server IP.
 		if ( ! $server_ip && ! empty( $customer['server_ip'] ) ) {
 			$server_ip = $customer['server_ip'];
@@ -65,26 +65,26 @@ class Ability_Configure_BYOD {
 		$instructions = self::get_dns_instructions( $domain, $server_ip );
 
 		// Store the pending BYOD configuration.
-		$byod_data = [
+		$byod_data = array(
 			'domain'      => $domain,
 			'server_id'   => $server_id,
 			'server_ip'   => $server_ip,
 			'customer_id' => $customer['id'],
 			'status'      => 'pending_dns',
 			'created_at'  => current_time( 'mysql' ),
-		];
+		);
 
 		// Save to domains table as pending.
-		$domain_id = Database::add_domain( [
+		$domain_id = Database::create_domain( array(
 			'user_id'        => $customer['user_id'],
 			'server_id'      => $server_id,
 			'domain'         => $domain,
 			'registrar'      => 'byod',
 			'dns_configured' => false,
 			'ssl_configured' => false,
-		] );
+		) );
 
-		return [
+		return array(
 			'success'      => true,
 			'domain'       => $domain,
 			'server_ip'    => $server_ip,
@@ -95,19 +95,19 @@ class Ability_Configure_BYOD {
 				__( 'To connect %s, update your DNS settings as shown below.', 'spawn' ),
 				$domain
 			),
-			'next_steps'   => [
+			'next_steps'   => array(
 				__( '1. Log into your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)', 'spawn' ),
 				__( '2. Find DNS settings or DNS management', 'spawn' ),
 				__( '3. Add the DNS records shown above', 'spawn' ),
 				__( '4. Wait for DNS propagation (usually 5-30 minutes, can take up to 48 hours)', 'spawn' ),
 				__( '5. SSL certificate will be automatically provisioned once DNS is verified', 'spawn' ),
-			],
-			'verification' => [
+			),
+			'verification' => array(
 				'check_command' => sprintf( 'dig +short %s', $domain ),
 				'expected'      => $server_ip,
 				'note'          => __( 'Once this returns your server IP, DNS is ready.', 'spawn' ),
-			],
-		];
+			),
+		);
 	}
 
 	/**
@@ -118,38 +118,38 @@ class Ability_Configure_BYOD {
 	 * @return array DNS instructions.
 	 */
 	private static function get_dns_instructions( string $domain, string $server_ip ): array {
-		return [
-			'summary' => sprintf(
+		return array(
+			'summary'  => sprintf(
 				/* translators: 1: domain, 2: IP address */
 				__( 'Point %1$s to %2$s', 'spawn' ),
 				$domain,
 				$server_ip
 			),
-			'records' => [
-				[
+			'records'  => array(
+				array(
 					'type'  => 'A',
 					'name'  => '@',
 					'value' => $server_ip,
 					'ttl'   => 300,
 					'note'  => __( 'Points the root domain to your server', 'spawn' ),
-				],
-				[
+				),
+				array(
 					'type'  => 'A',
 					'name'  => 'www',
 					'value' => $server_ip,
 					'ttl'   => 300,
 					'note'  => __( 'Points www subdomain to your server', 'spawn' ),
-				],
-			],
-			'optional' => [
-				[
+				),
+			),
+			'optional' => array(
+				array(
 					'type'  => 'CAA',
 					'name'  => '@',
 					'value' => '0 issue "letsencrypt.org"',
 					'note'  => __( 'Allows Let\'s Encrypt to issue SSL certificates', 'spawn' ),
-				],
-			],
-		];
+				),
+			),
+		);
 	}
 
 	/**

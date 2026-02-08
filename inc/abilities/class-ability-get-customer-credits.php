@@ -57,11 +57,11 @@ class Ability_Get_Customer_Credits {
 		$current_balance = (float) $customer['credit_balance'];
 		$total_purchased = $current_balance + (float) $total_used;
 
-		return [
+		return array(
 			'customer_id'     => $customer_id,
 			'current_credits' => $current_balance,
 			'total_purchased' => $total_purchased,
 			'total_used'      => (float) $total_used,
-		];
+		);
 	}
 }

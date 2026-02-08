@@ -42,7 +42,7 @@ class Ability_Search_Domain {
 
 		// Apply markup to prices.
 		$markup = (float) get_option( 'spawn_domain_markup', 1.5 );
-		
+
 		if ( ! empty( $result['price'] ) ) {
 			$result['price'] = round( $result['price'] * $markup, 2 );
 		}
@@ -52,7 +52,7 @@ class Ability_Search_Domain {
 
 		// Add helpful context.
 		$result['markup_applied'] = true;
-		
+
 		if ( $result['available'] ) {
 			$result['message'] = sprintf(
 				/* translators: 1: domain name, 2: price */

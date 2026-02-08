@@ -118,7 +118,7 @@ class Ability_Get_Metrics {
 			ARRAY_A
 		);
 
-		$by_status = [];
+		$by_status = array();
 		foreach ( $status_breakdown as $row ) {
 			$by_status[ $row['status'] ] = (int) $row['count'];
 		}
@@ -133,22 +133,22 @@ class Ability_Get_Metrics {
 			ARRAY_A
 		);
 
-		$by_tier = [];
+		$by_tier = array();
 		foreach ( $tier_breakdown as $row ) {
 			$by_tier[ $row['tier'] ] = (int) $row['count'];
 		}
 
-		return [
-			'period_days'              => $days,
-			'total_customers'          => $total_customers,
-			'active_customers'         => $active_customers,
-			'new_customers_period'     => $new_customers_period,
-			'total_credits_balance'    => $total_credits_balance,
-			'domain_revenue_period'    => $domain_revenue,
+		return array(
+			'period_days'               => $days,
+			'total_customers'           => $total_customers,
+			'active_customers'          => $active_customers,
+			'new_customers_period'      => $new_customers_period,
+			'total_credits_balance'     => $total_credits_balance,
+			'domain_revenue_period'     => $domain_revenue,
 			'provisioning_success_rate' => $provisioning_success_rate,
-			'domains_registered'       => $domains_registered,
-			'by_status'                => $by_status,
-			'by_tier'                  => $by_tier,
-		];
+			'domains_registered'        => $domains_registered,
+			'by_status'                 => $by_status,
+			'by_tier'                   => $by_tier,
+		);
 	}
 }

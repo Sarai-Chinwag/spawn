@@ -66,13 +66,13 @@ class Google_OAuth {
 		$redirect_uri = home_url( '/wp-json/spawn/v1/auth/google/callback' );
 
 		return add_query_arg(
-			[
+			array(
 				'client_id'     => self::get_client_id(),
 				'redirect_uri'  => $redirect_uri,
 				'response_type' => 'code',
 				'scope'         => 'openid email profile',
 				'state'         => wp_create_nonce( 'spawn_google_oauth' ),
-			],
+			),
 			self::GOOGLE_AUTH_URL
 		);
 	}
@@ -92,26 +92,26 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_not_configured',
 				__( 'Google OAuth is not configured.', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		$response = wp_remote_post( self::GOOGLE_TOKEN_URL, [
+		$response = wp_remote_post( self::GOOGLE_TOKEN_URL, array(
 			'timeout' => 30,
-			'body'    => [
+			'body'    => array(
 				'client_id'     => $client_id,
 				'client_secret' => $client_secret,
 				'code'          => $code,
 				'redirect_uri'  => $redirect_uri,
 				'grant_type'    => 'authorization_code',
-			],
-		] );
+			),
+		) );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$body        = json_decode( wp_remote_retrieve_body( $response ), true );
 		$status_code = wp_remote_retrieve_response_code( $response );
 
 		if ( $status_code >= 400 ) {
@@ -119,7 +119,7 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_token_error',
 				$message,
-				[ 'status' => $status_code ]
+				array( 'status' => $status_code )
 			);
 		}
 
@@ -128,13 +128,13 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_missing_token',
 				__( 'No access token returned from Google.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
-		return [
+		return array(
 			'access_token' => $access_token,
-		];
+		);
 	}
 
 	/**
@@ -144,18 +144,18 @@ class Google_OAuth {
 	 * @return array|WP_Error User info or error.
 	 */
 	public static function get_user_info( string $access_token ): array|WP_Error {
-		$response = wp_remote_get( self::GOOGLE_USERINFO_URL, [
+		$response = wp_remote_get( self::GOOGLE_USERINFO_URL, array(
 			'timeout' => 30,
-			'headers' => [
+			'headers' => array(
 				'Authorization' => 'Bearer ' . $access_token,
-			],
-		] );
+			),
+		) );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$body        = json_decode( wp_remote_retrieve_body( $response ), true );
 		$status_code = wp_remote_retrieve_response_code( $response );
 
 		if ( $status_code >= 400 ) {
@@ -163,7 +163,7 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_userinfo_error',
 				$message,
-				[ 'status' => $status_code ]
+				array( 'status' => $status_code )
 			);
 		}
 
@@ -172,11 +172,11 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_missing_email',
 				__( 'Google account did not return an email address.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
-		return $body ?? [];
+		return $body ?? array();
 	}
 
 	/**
@@ -193,7 +193,7 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_missing_email',
 				__( 'Google account did not return an email address.', 'spawn' ),
-				[ 'status' => 400 ]
+				array( 'status' => 400 )
 			);
 		}
 
@@ -206,13 +206,13 @@ class Google_OAuth {
 			return new WP_Error(
 				'google_oauth_role_conflict',
 				__( 'An account with this email already exists with a different role.', 'spawn' ),
-				[ 'status' => 403 ]
+				array( 'status' => 403 )
 			);
 		}
 
 		$password   = wp_generate_password( 20, true, true );
 		$user_id    = wp_create_user( $email, $password, $email );
-		$final_name = $name ?: $email;
+		$final_name = $name ? $name : $email;
 
 		if ( is_wp_error( $user_id ) ) {
 			return $user_id;
@@ -221,10 +221,10 @@ class Google_OAuth {
 		$user = get_user_by( 'ID', $user_id );
 		if ( $user ) {
 			$user->set_role( 'spawn_customer' );
-			wp_update_user( [
+			wp_update_user( array(
 				'ID'           => $user_id,
 				'display_name' => $final_name,
-			] );
+			) );
 		}
 
 		return (int) $user_id;

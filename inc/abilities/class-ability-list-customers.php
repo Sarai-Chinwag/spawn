@@ -33,10 +33,10 @@ class Ability_List_Customers {
 
 		$table = Database::get_table_name();
 		$where = '';
-		$args  = [];
+		$args  = array();
 
 		if ( $status ) {
-			$where = 'WHERE status = %s';
+			$where  = 'WHERE status = %s';
 			$args[] = $status;
 		}
 
@@ -83,7 +83,7 @@ class Ability_List_Customers {
 		// Format output.
 		$formatted = array_map(
 			function ( $customer ) {
-				return [
+				return array(
 					'id'             => (int) $customer['id'],
 					'email'          => $customer['email'],
 					'domain'         => $customer['domain'],
@@ -92,16 +92,16 @@ class Ability_List_Customers {
 					'credit_balance' => (float) $customer['credit_balance'],
 					'created_at'     => $customer['created_at'],
 					'server_ip'      => $customer['server_ip'],
-				];
+				);
 			},
 			$customers
 		);
 
-		return [
+		return array(
 			'customers' => $formatted,
 			'total'     => (int) $total,
 			'limit'     => $limit,
 			'offset'    => $offset,
-		];
+		);
 	}
 }

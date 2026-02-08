@@ -20,10 +20,10 @@ class Provisioner {
 	 * @return array{url: string, token: string} Configuration.
 	 */
 	private static function get_config(): array {
-		return [
+		return array(
 			'url'   => get_option( 'spawn_sweatpants_url', 'http://127.0.0.1:8420' ),
 			'token' => get_option( 'spawn_sweatpants_token', '' ),
-		];
+		);
 	}
 
 	/**
@@ -40,18 +40,18 @@ class Provisioner {
 			return new WP_Error(
 				'sweatpants_not_configured',
 				__( 'Sweatpants is not configured', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
 		// Determine if domain registration should be skipped.
 		// Skip for subdomains or BYOD (bring your own domain).
-		$is_subdomain              = $params['subdomain'] ?? false;
-		$domain_type               = $params['domain_type'] ?? ( $is_subdomain ? 'subdomain' : 'register' );
-		$skip_domain_registration  = $is_subdomain || 'byod' === $domain_type;
+		$is_subdomain             = $params['subdomain'] ?? false;
+		$domain_type              = $params['domain_type'] ?? ( $is_subdomain ? 'subdomain' : 'register' );
+		$skip_domain_registration = $is_subdomain || 'byod' === $domain_type;
 
 		// Check if Stripe is in test mode - use dry_run for provisioner.
-		$stripe_settings = get_option( 'stripe_integration_settings', [] );
+		$stripe_settings = get_option( 'stripe_integration_settings', array() );
 		$is_test_mode    = ! empty( $stripe_settings['test_mode'] );
 
 		// Get server config based on tier and website preference.
@@ -66,9 +66,9 @@ class Provisioner {
 		}
 
 		// Build the job request.
-		$job_data = [
+		$job_data = array(
 			'module_id' => 'vps-provisioner',
-			'inputs'    => [
+			'inputs'    => array(
 				'customer_email'           => $params['customer_email'],
 				'domain'                   => $params['domain'] ?? '',
 				'subdomain'                => $is_subdomain,
@@ -79,8 +79,8 @@ class Provisioner {
 				'site_title'               => $params['site_title'] ?? '',
 				'skip_domain_registration' => $skip_domain_registration,
 				'dry_run'                  => $is_test_mode,
-			],
-		];
+			),
+		);
 
 		if ( $is_test_mode ) {
 			error_log( '[Spawn Provisioner] Test mode active - using dry_run' );
@@ -96,14 +96,14 @@ class Provisioner {
 		) );
 
 		// Make request to Sweatpants API.
-		$args = [
+		$args = array(
 			'method'  => 'POST',
-			'headers' => [
+			'headers' => array(
 				'Content-Type' => 'application/json',
-			],
+			),
 			'body'    => wp_json_encode( $job_data ),
 			'timeout' => 30,
-		];
+		);
 
 		// Add auth token if configured.
 		if ( ! empty( $config['token'] ) ) {
@@ -126,7 +126,7 @@ class Provisioner {
 			return new WP_Error(
 				'provisioning_failed',
 				$message,
-				[ 'status' => $code ]
+				array( 'status' => $code )
 			);
 		}
 
@@ -134,16 +134,16 @@ class Provisioner {
 
 		// Store job ID with customer record.
 		if ( ! empty( $params['customer_id'] ) && ! empty( $job_id ) ) {
-			Database::update_customer( $params['customer_id'], [
+			Database::update_customer( $params['customer_id'], array(
 				'server_id' => 'job:' . $job_id,
-			] );
+			) );
 			error_log( sprintf( '[Spawn Provisioner] Job %s linked to customer #%d', $job_id, $params['customer_id'] ) );
 		}
 
-		return [
+		return array(
 			'job_id' => $job_id,
 			'status' => $body['status'] ?? 'queued',
-		];
+		);
 	}
 
 	/**
@@ -159,15 +159,15 @@ class Provisioner {
 			return new WP_Error(
 				'sweatpants_not_configured',
 				__( 'Sweatpants is not configured', 'spawn' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
-		$args = [
+		$args = array(
 			'method'  => 'GET',
-			'headers' => [],
+			'headers' => array(),
 			'timeout' => 30,
-		];
+		);
 
 		if ( ! empty( $config['token'] ) ) {
 			$args['headers']['Authorization'] = 'Bearer ' . $config['token'];
@@ -187,7 +187,7 @@ class Provisioner {
 			return new WP_Error(
 				'status_check_failed',
 				$message,
-				[ 'status' => $code ]
+				array( 'status' => $code )
 			);
 		}
 
@@ -201,13 +201,13 @@ class Provisioner {
 	 * @return bool Success.
 	 */
 	public static function handle_completion( array $data ): bool {
-		$domain              = $data['domain'] ?? '';
-		$server_ip           = $data['server_ip'] ?? $data['vps_ip'] ?? '';
-		$server_id           = $data['server_id'] ?? '';
-		$openclaw_token      = $data['openclaw_token'] ?? '';
+		$domain               = $data['domain'] ?? '';
+		$server_ip            = $data['server_ip'] ?? $data['vps_ip'] ?? '';
+		$server_id            = $data['server_id'] ?? '';
+		$openclaw_token       = $data['openclaw_token'] ?? '';
 		$cloudflare_record_id = $data['cloudflare_record_id'] ?? '';
-		$wp_admin_password   = $data['wp_admin_password'] ?? '';
-		$success             = $data['success'] ?? false;
+		$wp_admin_password    = $data['wp_admin_password'] ?? '';
+		$success              = $data['success'] ?? false;
 
 		if ( empty( $domain ) ) {
 			error_log( '[Spawn Provisioner] Completion webhook missing domain' );
@@ -228,16 +228,16 @@ class Provisioner {
 		) );
 
 		if ( $success ) {
-			$update_data = [
+			$update_data = array(
 				'status' => 'active',
-			];
+			);
 
 			if ( ! empty( $server_ip ) ) {
 				$update_data['server_ip'] = $server_ip;
 			}
 
 			if ( ! empty( $server_id ) ) {
-				$update_data['server_id'] = $server_id;
+				$update_data['server_id']         = $server_id;
 				$update_data['hetzner_server_id'] = $server_id;
 			}
 
@@ -268,9 +268,9 @@ class Provisioner {
 		} else {
 			$error_message = $data['error'] ?? 'Unknown error';
 
-			Database::update_customer( (int) $customer['id'], [
+			Database::update_customer( (int) $customer['id'], array(
 				'status' => 'failed',
-			] );
+			) );
 
 			error_log( sprintf(
 				'[Spawn Provisioner] Customer #%d provisioning failed: %s',
@@ -332,7 +332,7 @@ class Provisioner {
 				"You own your website and all your data. You can export everything\n" .
 				"and move to any host at any time - no lock-in.\n\n" .
 				"Welcome aboard!\n" .
-				"- Sarai @ Spawn",
+				'- Sarai @ Spawn',
 				'spawn'
 			),
 			$domain,
@@ -366,7 +366,7 @@ class Provisioner {
 				"Domain: %1\$s\n" .
 				"Customer: %2\$s\n" .
 				"Error: %3\$s\n\n" .
-				"Please investigate and contact the customer.",
+				'Please investigate and contact the customer.',
 				'spawn'
 			),
 			$domain,
@@ -402,7 +402,7 @@ class Provisioner {
 				"Tier: %3\$s\n" .
 				"Server IP: %4\$s\n" .
 				"Customer ID: %5\$d\n\n" .
-				"The customer has received their welcome email with login credentials.",
+				'The customer has received their welcome email with login credentials.',
 				'spawn'
 			),
 			$domain,

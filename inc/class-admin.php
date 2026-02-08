@@ -18,18 +18,18 @@ class Admin {
 	 * Initialize admin.
 	 */
 	public static function init(): void {
-		add_action( 'admin_menu', [ __CLASS__, 'add_menu' ] );
-		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
+		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 
 		// Self-Spawn action handlers.
-		add_action( 'admin_post_spawn_self_install', [ __CLASS__, 'handle_self_install' ] );
-		add_action( 'admin_post_spawn_self_start', [ __CLASS__, 'handle_self_start' ] );
-		add_action( 'admin_post_spawn_self_stop', [ __CLASS__, 'handle_self_stop' ] );
-		add_action( 'admin_post_spawn_self_restart', [ __CLASS__, 'handle_self_restart' ] );
-		add_action( 'admin_post_spawn_self_uninstall', [ __CLASS__, 'handle_self_uninstall' ] );
+		add_action( 'admin_post_spawn_self_install', array( __CLASS__, 'handle_self_install' ) );
+		add_action( 'admin_post_spawn_self_start', array( __CLASS__, 'handle_self_start' ) );
+		add_action( 'admin_post_spawn_self_stop', array( __CLASS__, 'handle_self_stop' ) );
+		add_action( 'admin_post_spawn_self_restart', array( __CLASS__, 'handle_self_restart' ) );
+		add_action( 'admin_post_spawn_self_uninstall', array( __CLASS__, 'handle_self_uninstall' ) );
 
 		// Admin notices for Self-Spawn actions.
-		add_action( 'admin_notices', [ __CLASS__, 'show_self_spawn_notices' ] );
+		add_action( 'admin_notices', array( __CLASS__, 'show_self_spawn_notices' ) );
 	}
 
 	/**
@@ -42,7 +42,7 @@ class Admin {
 			__( 'Spawn', 'spawn' ),
 			'manage_options',
 			'spawn',
-			[ __CLASS__, 'render_customers_page' ],
+			array( __CLASS__, 'render_customers_page' ),
 			'dashicons-cloud',
 			30
 		);
@@ -54,7 +54,7 @@ class Admin {
 			__( 'Customers', 'spawn' ),
 			'manage_options',
 			'spawn',
-			[ __CLASS__, 'render_customers_page' ]
+			array( __CLASS__, 'render_customers_page' )
 		);
 
 		// Settings submenu.
@@ -64,7 +64,7 @@ class Admin {
 			__( 'Settings', 'spawn' ),
 			'manage_options',
 			'spawn-settings',
-			[ __CLASS__, 'render_settings_page' ]
+			array( __CLASS__, 'render_settings_page' )
 		);
 	}
 
@@ -96,22 +96,22 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_api_base_url' );
 
 		// Google OAuth settings.
-		register_setting( 'spawn_settings', 'spawn_google_client_id', [
+		register_setting( 'spawn_settings', 'spawn_google_client_id', array(
 			'sanitize_callback' => function( $value ) {
 				return sanitize_text_field( wp_unslash( $value ) );
 			},
-		] );
-		register_setting( 'spawn_settings', 'spawn_google_client_secret', [
+		) );
+		register_setting( 'spawn_settings', 'spawn_google_client_secret', array(
 			'sanitize_callback' => function( $value ) {
 				return sanitize_text_field( wp_unslash( $value ) );
 			},
-		] );
+		) );
 
 		// Stripe section - now links to stripe-integration settings.
 		add_settings_section(
 			'spawn_stripe_section',
 			__( 'Stripe Configuration', 'spawn' ),
-			[ __CLASS__, 'render_stripe_section_description' ],
+			array( __CLASS__, 'render_stripe_section_description' ),
 			'spawn-settings'
 		);
 
@@ -119,28 +119,37 @@ class Admin {
 		add_settings_field(
 			'spawn_stripe_price_starter',
 			__( 'Starter Price ID', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_starter', 'description' => __( 'Stripe Price ID for Starter tier', 'spawn' ) ]
+			array(
+				'name'        => 'spawn_stripe_price_starter',
+				'description' => __( 'Stripe Price ID for Starter tier', 'spawn' ),
+			)
 		);
 
 		add_settings_field(
 			'spawn_stripe_price_pro',
 			__( 'Pro Price ID', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_pro', 'description' => __( 'Stripe Price ID for Pro tier', 'spawn' ) ]
+			array(
+				'name'        => 'spawn_stripe_price_pro',
+				'description' => __( 'Stripe Price ID for Pro tier', 'spawn' ),
+			)
 		);
 
 		add_settings_field(
 			'spawn_stripe_price_business',
 			__( 'Business Price ID', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_stripe_section',
-			[ 'name' => 'spawn_stripe_price_business', 'description' => __( 'Stripe Price ID for Business tier', 'spawn' ) ]
+			array(
+				'name'        => 'spawn_stripe_price_business',
+				'description' => __( 'Stripe Price ID for Business tier', 'spawn' ),
+			)
 		);
 
 		// Name.com section.
@@ -156,19 +165,22 @@ class Admin {
 		add_settings_field(
 			'spawn_namecom_username',
 			__( 'Username', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_namecom_section',
-			[ 'name' => 'spawn_namecom_username' ]
+			array( 'name' => 'spawn_namecom_username' )
 		);
 
 		add_settings_field(
 			'spawn_namecom_token',
 			__( 'API Token', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_namecom_section',
-			[ 'name' => 'spawn_namecom_token', 'type' => 'password' ]
+			array(
+				'name' => 'spawn_namecom_token',
+				'type' => 'password',
+			)
 		);
 
 		// Sweatpants section.
@@ -184,19 +196,25 @@ class Admin {
 		add_settings_field(
 			'spawn_sweatpants_url',
 			__( 'API URL', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_sweatpants_section',
-			[ 'name' => 'spawn_sweatpants_url', 'placeholder' => 'http://localhost:8585' ]
+			array(
+				'name'        => 'spawn_sweatpants_url',
+				'placeholder' => 'http://localhost:8585',
+			)
 		);
 
 		add_settings_field(
 			'spawn_sweatpants_token',
 			__( 'API Token', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_sweatpants_section',
-			[ 'name' => 'spawn_sweatpants_token', 'type' => 'password' ]
+			array(
+				'name' => 'spawn_sweatpants_token',
+				'type' => 'password',
+			)
 		);
 
 		// OpenClaw section (admin chat with control plane).
@@ -212,19 +230,25 @@ class Admin {
 		add_settings_field(
 			'spawn_openclaw_gateway_url',
 			__( 'Gateway URL', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_openclaw_section',
-			[ 'name' => 'spawn_openclaw_gateway_url', 'placeholder' => 'http://127.0.0.1:18789' ]
+			array(
+				'name'        => 'spawn_openclaw_gateway_url',
+				'placeholder' => 'http://127.0.0.1:18789',
+			)
 		);
 
 		add_settings_field(
 			'spawn_openclaw_token',
 			__( 'Auth Token', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_openclaw_section',
-			[ 'name' => 'spawn_openclaw_token', 'type' => 'password' ]
+			array(
+				'name' => 'spawn_openclaw_token',
+				'type' => 'password',
+			)
 		);
 
 		// Branding section.
@@ -240,37 +264,49 @@ class Admin {
 		add_settings_field(
 			'spawn_subdomain_suffix',
 			__( 'Subdomain Suffix', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_branding_section',
-			[ 'name' => 'spawn_subdomain_suffix', 'placeholder' => 'example.com' ]
+			array(
+				'name'        => 'spawn_subdomain_suffix',
+				'placeholder' => 'example.com',
+			)
 		);
 
 		add_settings_field(
 			'spawn_brand_name',
 			__( 'Brand Name', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_branding_section',
-			[ 'name' => 'spawn_brand_name', 'placeholder' => 'Spawn' ]
+			array(
+				'name'        => 'spawn_brand_name',
+				'placeholder' => 'Spawn',
+			)
 		);
 
 		add_settings_field(
 			'spawn_brand_logo_url',
 			__( 'Brand Logo URL', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_branding_section',
-			[ 'name' => 'spawn_brand_logo_url', 'placeholder' => 'https://example.com/logo.png' ]
+			array(
+				'name'        => 'spawn_brand_logo_url',
+				'placeholder' => 'https://example.com/logo.png',
+			)
 		);
 
 		add_settings_field(
 			'spawn_api_base_url',
 			__( 'API Base URL', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_branding_section',
-			[ 'name' => 'spawn_api_base_url', 'placeholder' => 'https://api.example.com' ]
+			array(
+				'name'        => 'spawn_api_base_url',
+				'placeholder' => 'https://api.example.com',
+			)
 		);
 
 		// Google OAuth section.
@@ -286,26 +322,29 @@ class Admin {
 		add_settings_field(
 			'spawn_google_client_id',
 			__( 'Client ID', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_google_oauth_section',
-			[ 'name' => 'spawn_google_client_id' ]
+			array( 'name' => 'spawn_google_client_id' )
 		);
 
 		add_settings_field(
 			'spawn_google_client_secret',
 			__( 'Client Secret', 'spawn' ),
-			[ __CLASS__, 'render_text_field' ],
+			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
 			'spawn_google_oauth_section',
-			[ 'name' => 'spawn_google_client_secret', 'type' => 'password' ]
+			array(
+				'name' => 'spawn_google_client_secret',
+				'type' => 'password',
+			)
 		);
 
 		// Self-Spawn section.
 		add_settings_section(
 			'spawn_self_spawn_section',
 			__( 'Self-Spawn: Deploy AI Agent', 'spawn' ),
-			[ __CLASS__, 'render_self_spawn_section' ],
+			array( __CLASS__, 'render_self_spawn_section' ),
 			'spawn-settings'
 		);
 	}
@@ -870,11 +909,11 @@ class Admin {
 	 */
 	private static function redirect_with_message( string $message, string $status ): void {
 		$redirect_url = add_query_arg(
-			[
+			array(
 				'page'               => 'spawn-settings',
 				'spawn_self_message' => rawurlencode( $message ),
 				'spawn_self_status'  => $status,
-			],
+			),
 			admin_url( 'admin.php' )
 		);
 

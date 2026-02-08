@@ -45,10 +45,10 @@ class Ability_Manage_Billing {
 			return $portal;
 		}
 
-		return [
+		return array(
 			'success'    => true,
 			'portal_url' => $portal['url'] ?? '',
-		];
+		);
 	}
 
 	/**
