@@ -2828,10 +2828,15 @@ class REST_API {
 		}
 
 		// Balance depleted and no auto-refill.
+		// Get customer's domain for the dashboard link.
+		$domain      = $customer['domain'] ?? '';
+		$dashboard   = $domain ? "https://{$domain}/spawn/dashboard/" : 'https://saraichinwag.com/spawn/dashboard/';
+
 		return new WP_REST_Response( [
 			'allow'   => false,
-			'message' => 'Your AI credits have been depleted. Please add more credits or enable auto-refill to continue.',
+			'message' => "Your AI credits have been depleted. Add credits or enable auto-refill at: {$dashboard}",
 			'balance' => $balance,
+			'dashboard_url' => $dashboard,
 		] );
 	}
 
