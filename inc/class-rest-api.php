@@ -2828,8 +2828,8 @@ class REST_API {
 		}
 
 		// Balance depleted and no auto-refill.
-		// Dashboard is always on saraichinwag.com (control plane), not customer's site.
-		$dashboard = 'https://saraichinwag.com/spawn/dashboard/';
+		// Dashboard is on the control plane (wherever Spawn is installed).
+		$dashboard = home_url( '/spawn/dashboard/' );
 
 		return new WP_REST_Response( [
 			'allow'   => false,
