@@ -115,10 +115,10 @@ For technical users who want to install OpenClaw on their own VPS via WordPress 
 
 **Known limitations:**
 - Node.js must be pre-installed (can't be installed securely from WordPress)
-- If you need SSH to install Node.js, you might as well use [wp-openclaw](https://github.com/openclaw/wp-openclaw) directly
+- If you need SSH to install Node.js, you might as well use [wp-openclaw](https://github.com/Sarai-Chinwag/wp-openclaw) directly
 - Does not work on shared hosting
 
-**For most users:** SaaS mode or [wp-openclaw](https://github.com/openclaw/wp-openclaw) setup script are better options.
+**For most users:** SaaS mode or [wp-openclaw](https://github.com/Sarai-Chinwag/wp-openclaw) setup script are better options.
 
 **Setup:**
 1. Ensure Node.js v18+ is installed on your VPS
