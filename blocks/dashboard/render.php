@@ -279,10 +279,13 @@ foreach ( $servers as $server ) {
 						<p class="spawn-dashboard__muted"><?php printf( esc_html__( 'Across %d active customers', 'spawn' ), $customer_count ); ?></p>
 					<?php endif; ?>
 				</div>
+				<?php
+				$model_info = \Spawn\Config::get_ai_model_info();
+				?>
 				<div class="spawn-dashboard__card">
 					<h3><?php echo esc_html__( 'Model', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__balance">Claude<span>Opus 4</span></p>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI assistant runs on the most capable Claude model.', 'spawn' ); ?></p>
+					<p class="spawn-dashboard__balance"><?php echo esc_html( $model_info['name'] ); ?><span><?php echo esc_html( $model_info['tier'] . ' ' . $model_info['version'] ); ?></span></p>
+					<p class="spawn-dashboard__muted"><?php echo esc_html( sprintf( __( 'Powered by %s.', 'spawn' ), $model_info['provider'] ) ); ?></p>
 				</div>
 				<div class="spawn-dashboard__card">
 					<h3><?php echo esc_html__( 'Need More?', 'spawn' ); ?></h3>

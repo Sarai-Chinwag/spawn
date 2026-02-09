@@ -22,6 +22,47 @@ class Config {
 	public const DEFAULT_STARTER_CREDITS = 5.00;
 
 	/**
+	 * Default AI model for customer instances.
+	 * Update this when changing the model in LiteLLM config.
+	 */
+	public const DEFAULT_AI_MODEL = 'anthropic/claude-opus-4-6';
+
+	/**
+	 * Get AI model display info for dashboards.
+	 *
+	 * @return array Model info with 'provider', 'name', 'version', 'display'.
+	 */
+	public static function get_ai_model_info(): array {
+		$model = self::DEFAULT_AI_MODEL;
+
+		// Parse common model string formats.
+		// e.g. "anthropic/claude-opus-4-6" => provider=anthropic, name=Claude, version=Opus 4.6
+		if ( preg_match( '/anthropic\/claude-(\w+)-(\d+)-?(\d+)?/', $model, $matches ) ) {
+			$tier    = ucfirst( $matches[1] ); // opus, sonnet, haiku
+			$major   = $matches[2];
+			$minor   = $matches[3] ?? '';
+			$version = $minor ? "{$major}.{$minor}" : $major;
+
+			return array(
+				'provider' => 'Anthropic',
+				'name'     => 'Claude',
+				'tier'     => $tier,
+				'version'  => $version,
+				'display'  => "Claude {$tier} {$version}",
+			);
+		}
+
+		// Fallback for unknown formats.
+		return array(
+			'provider' => 'Unknown',
+			'name'     => $model,
+			'tier'     => '',
+			'version'  => '',
+			'display'  => $model,
+		);
+	}
+
+	/**
 	 * Get all tier configurations.
 	 *
 	 * This is THE source of truth for tier data. All other code reads from here.
