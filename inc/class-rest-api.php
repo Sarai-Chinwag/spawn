@@ -506,6 +506,47 @@ class REST_API {
 			)
 		);
 
+		// Agent: Update billing mode (called from customer's agent).
+		register_rest_route(
+			self::NAMESPACE,
+			'/agent/billing-mode',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'agent_set_billing_mode' ),
+				'permission_callback' => '__return_true', // Auth by server IP lookup.
+				'args'                => array(
+					'ip'           => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'billing_mode' => array(
+						'required' => true,
+						'type'     => 'string',
+						'enum'     => array( 'managed', 'byok' ),
+					),
+				),
+			)
+		);
+
+		// Agent: Get customer status (called from customer's agent).
+		register_rest_route(
+			self::NAMESPACE,
+			'/agent/status',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'agent_get_status' ),
+				'permission_callback' => '__return_true', // Auth by server IP lookup.
+				'args'                => array(
+					'ip' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
 		// Chat: Send message to customer's AI.
 		register_rest_route(
 			self::NAMESPACE,
@@ -2893,6 +2934,96 @@ class REST_API {
 			'message'       => "Your AI credits have been depleted. Add credits or enable auto-refill at: {$dashboard}",
 			'balance'       => $balance,
 			'dashboard_url' => $dashboard,
+		) );
+	}
+
+	/**
+	 * Set billing mode from customer's agent.
+	 *
+	 * Called by the Spawn skill on customer instances to update billing mode.
+	 * Auth is by server IP - only the customer's VPS has that IP.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public static function agent_set_billing_mode( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$ip           = $request->get_param( 'ip' );
+		$billing_mode = $request->get_param( 'billing_mode' );
+
+		// Find customer by IP.
+		$customer = Database::get_customer_by_server_ip( $ip );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'customer_not_found',
+				__( 'No customer found for this server IP.', 'spawn' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Update billing mode.
+		$success = Database::update_customer( (int) $customer['id'], array( 'billing_mode' => $billing_mode ) );
+
+		if ( ! $success ) {
+			return new WP_Error(
+				'update_failed',
+				__( 'Failed to update billing mode.', 'spawn' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return new WP_REST_Response( array(
+			'success'      => true,
+			'billing_mode' => $billing_mode,
+			'message'      => 'byok' === $billing_mode
+				? __( 'Switched to Bring Your Own Key mode. You will be billed directly by your AI provider.', 'spawn' )
+				: __( 'Switched to managed credits. Usage will be deducted from your Spawn credit balance.', 'spawn' ),
+		) );
+	}
+
+	/**
+	 * Get customer status from customer's agent.
+	 *
+	 * Returns billing mode, credit balance, and usage info for the Spawn skill.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error Response.
+	 */
+	public static function agent_get_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$ip = $request->get_param( 'ip' );
+
+		// Find customer by IP.
+		$customer = Database::get_customer_by_server_ip( $ip );
+
+		if ( ! $customer ) {
+			return new WP_Error(
+				'customer_not_found',
+				__( 'No customer found for this server IP.', 'spawn' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$tier_config = Config::get_tier( $customer['tier'] ?? 'starter' );
+		$model_info  = Config::get_ai_model_info();
+
+		// Get current month usage.
+		$usage_data   = Database::get_server_usage( (int) $customer['id'], 1 );
+		$current_usage = $usage_data[0] ?? null;
+
+		return new WP_REST_Response( array(
+			'customer_id'      => (int) $customer['id'],
+			'tier'             => $customer['tier'] ?? 'starter',
+			'billing_mode'     => $customer['billing_mode'] ?? 'managed',
+			'credit_balance'   => (float) ( $customer['credit_balance'] ?? 0 ),
+			'included_credits' => $tier_config['included_credits'] ?? 5.0,
+			'model'            => $model_info,
+			'usage'            => array(
+				'credits_used'   => (float) ( $current_usage['credits_used'] ?? 0 ),
+				'requests_count' => (int) ( $current_usage['requests_count'] ?? 0 ),
+				'tokens_input'   => (int) ( $current_usage['tokens_input'] ?? 0 ),
+				'tokens_output'  => (int) ( $current_usage['tokens_output'] ?? 0 ),
+			),
+			'dashboard_url'    => home_url( '/spawn/dashboard/' ),
 		) );
 	}
 
