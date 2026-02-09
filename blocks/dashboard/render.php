@@ -281,8 +281,8 @@ foreach ( $servers as $server ) {
 				</div>
 				<div class="spawn-dashboard__card">
 					<h3><?php echo esc_html__( 'Model', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__balance">Claude<span>Sonnet 4</span></p>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI assistant uses the latest Claude model.', 'spawn' ); ?></p>
+					<p class="spawn-dashboard__balance">Claude<span>Opus 4</span></p>
+					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI assistant runs on the most capable Claude model.', 'spawn' ); ?></p>
 				</div>
 				<div class="spawn-dashboard__card">
 					<h3><?php echo esc_html__( 'Need More?', 'spawn' ); ?></h3>
