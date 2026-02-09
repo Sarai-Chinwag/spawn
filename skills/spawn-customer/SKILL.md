@@ -1,187 +1,122 @@
----
-name: spawn-customer
-description: Manage your Spawn account — check credits, add funds, view usage, install WordPress, and more. Use when your user asks about billing, credits, account status, or wants to build a website.
----
+# Spawn Customer Skill
 
-# Spawn Customer
+This skill enables interaction with the Spawn control plane from customer instances.
 
-You are running on [Spawn](https://github.com/Sarai-Chinwag/spawn) — an open source platform that provisions personal AI assistants on dedicated servers.
+## Overview
 
-Your server, your data, fully portable. This skill helps you manage your Spawn account.
+Spawn customers run their own AI agent on a dedicated VPS. This skill allows the agent to:
+- Check account status (credits, usage, billing mode)
+- Switch between managed credits and BYOK (Bring Your Own Key)
+- Get current model information
 
-## Source Code
+## Control Plane
 
-This skill and the entire Spawn platform are open source:
-- **Plugin**: https://github.com/Sarai-Chinwag/spawn
-- **License**: GPL-2.0-or-later
+The Spawn control plane is at: `https://saraichinwag.com`
 
-You can review the code to understand exactly how the system works.
+All API calls authenticate by server IP - the control plane looks up which customer owns the VPS making the request.
 
-## Authentication
+## Getting Your Server IP
 
-Your requests to the Spawn API are authenticated automatically using your configured token. No additional setup required.
-
-**API Base**: Configurable in Spawn Settings (Branding section).
-
-## Available Abilities
-
-### Account Management
-
-#### Check Status
-Get your current account status, tier, credits, and subscription info.
-```
-GET /spawn/v1/customer/status
-```
-Returns: tier, credit_balance, subscription_status, server_ip, domain (if any)
-
-#### View Usage
-See your AI usage history and costs.
-```
-GET /spawn/v1/customer/usage
-```
-Returns: recent requests, tokens used, costs, daily/monthly totals
-
-#### Add Credits
-Create a checkout session to purchase additional credits.
-```
-POST /spawn/v1/customer/credits
-Body: { "amount": 10 }
-```
-Returns: Stripe checkout URL — provide this to your user
-
-#### Manage Billing
-Get a link to the Stripe customer portal for subscription management.
-```
-POST /spawn/v1/customer/billing-portal
-```
-Returns: Stripe portal URL — provide this to your user
-
-#### Set Auto-Refill
-Configure automatic credit top-ups when balance gets low.
-```
-POST /spawn/v1/customer/auto-refill
-Body: { "enabled": true, "threshold": 2.00, "amount": 10 }
+```bash
+# Get public IP
+curl -s https://api.ipify.org
 ```
 
-### Server Management
+## Abilities
 
-#### Scale VPS
-Upgrade or downgrade your server tier.
-```
-POST /spawn/v1/customer/scale
-Body: { "tier": "pro" }
-```
-Available tiers: starter, pro, business
+### Check Account Status
 
-#### Export Site
-Export all your data for backup or migration.
-```
-POST /spawn/v1/customer/export
-```
-Returns: download URL for complete backup (database, files, config)
+Get current billing mode, credit balance, usage, and model info.
 
-#### Cancel Subscription
-Cancel your Spawn subscription. Server will be terminated at end of billing period.
-```
-POST /spawn/v1/customer/cancel
+```bash
+SERVER_IP=$(curl -s https://api.ipify.org)
+curl -s "https://saraichinwag.com/wp-json/spawn/v1/agent/status?ip=${SERVER_IP}"
 ```
 
-### Website (Optional)
-
-#### Install WordPress
-If your user wants a website, install WordPress on the server. **This can only be run once.**
-```
-POST /spawn/v1/customer/install-wordpress
-```
-Returns: success or error if already installed
-
-After installation, you'll have full WordPress capabilities. Use your WordPress skills to build and manage the site.
-
-### Domain Management
-
-#### Search Domain
-Check if a domain is available and get pricing.
-```
-Ability: spawn_search_domain
-Input: { "domain": "example.com" }
-```
-Returns: available, price, renewal price, message
-
-#### Register Domain (Buy from us)
-Purchase a domain through Spawn (marked up from registrar cost).
-```
-Ability: spawn_register_domain
-Input: { "domain": "example.com", "server_id": 123 }
-```
-Returns: Stripe checkout URL to complete purchase
-
-#### Connect Your Own Domain (BYOD)
-Get DNS instructions to point your existing domain to your server.
-```
-Ability: spawn_configure_byod
-Input: { "domain": "example.com", "server_id": 123 }
-```
-Returns: DNS records to configure, verification steps
-
-#### Domain Info
-If a domain is registered, check renewal status.
-```
-GET /spawn/v1/customer/domain
-```
-Returns: domain, expires_at, auto_renew status
-
-#### Renew Domain
-Initiate domain renewal checkout.
-```
-POST /spawn/v1/customer/domain/renew
-```
-Returns: Stripe checkout URL for renewal
-
-## Common Patterns
-
-### User asks about credits/billing
-1. Call status endpoint to check current balance
-2. Report balance to user
-3. If low, offer to add credits
-
-### User wants to build a website
-1. Call install-wordpress endpoint
-2. If success: proceed with WordPress site building
-3. If already installed: just start building (WordPress is ready)
-
-### User asks about their plan
-1. Call status endpoint
-2. Explain their current tier and what's included
-3. If they want to upgrade, use the scale endpoint
-
-### User wants a custom domain
-1. Ask if they want to buy one or connect their own
-2. **Buy from us:** Use spawn_search_domain to check availability, then spawn_register_domain
-3. **Connect their own:** Use spawn_configure_byod to get DNS instructions
-4. Guide them through the setup process
-
-## Error Handling
-
-API errors return standard format:
+Response:
 ```json
 {
-  "code": "error_code",
-  "message": "Human readable message",
-  "status": 400
+  "customer_id": 123,
+  "tier": "starter",
+  "billing_mode": "managed",
+  "credit_balance": 4.50,
+  "included_credits": 5.0,
+  "model": {
+    "provider": "Anthropic",
+    "name": "Claude",
+    "tier": "Opus",
+    "version": "4.6",
+    "display": "Claude Opus 4.6"
+  },
+  "usage": {
+    "credits_used": 0.50,
+    "requests_count": 15,
+    "tokens_input": 25000,
+    "tokens_output": 8000
+  },
+  "dashboard_url": "https://saraichinwag.com/spawn/dashboard/"
 }
 ```
 
-Common errors:
-- `insufficient_credits` — user needs to add credits
-- `already_installed` — WordPress already exists (not an error, just proceed)
-- `invalid_tier` — requested tier doesn't exist
-- `subscription_cancelled` — account is being terminated
+### Switch Billing Mode
 
-## What You Cannot Do
+Switch between managed credits (billed through Spawn) and BYOK (use your own API key).
 
-These are enforced by the API, not suggestions:
-- Access other customers' data
-- Modify your own pricing or credits directly
-- Access the parent Spawn system internals
+**Switch to BYOK:**
+```bash
+SERVER_IP=$(curl -s https://api.ipify.org)
+curl -s -X POST "https://saraichinwag.com/wp-json/spawn/v1/agent/billing-mode" \
+  -H "Content-Type: application/json" \
+  -d "{\"ip\": \"${SERVER_IP}\", \"billing_mode\": \"byok\"}"
+```
 
-You manage your user's account. That's your scope.
+**Switch to Managed:**
+```bash
+SERVER_IP=$(curl -s https://api.ipify.org)
+curl -s -X POST "https://saraichinwag.com/wp-json/spawn/v1/agent/billing-mode" \
+  -H "Content-Type: application/json" \
+  -d "{\"ip\": \"${SERVER_IP}\", \"billing_mode\": \"managed\"}"
+```
+
+Response:
+```json
+{
+  "success": true,
+  "billing_mode": "byok",
+  "message": "Switched to Bring Your Own Key mode. You will be billed directly by your AI provider."
+}
+```
+
+## When to Use
+
+**User asks about billing/credits:**
+- "How many credits do I have?" → Check status
+- "What's my usage this month?" → Check status
+- "What model am I using?" → Check status
+
+**User wants to use their own API key:**
+- "I want to use my own Anthropic key" → Switch to BYOK
+- "Use my API key instead" → Switch to BYOK
+
+**User wants managed billing:**
+- "Switch back to Spawn credits" → Switch to managed
+- "I don't want to manage my own key" → Switch to managed
+
+## After Switching to BYOK
+
+When switching to BYOK, help the user configure their API key in OpenClaw:
+
+1. Get their Anthropic API key from https://console.anthropic.com/
+2. Update OpenClaw config:
+   ```bash
+   # Edit ~/.openclaw/config.yaml
+   # Set anthropicApiKey: sk-ant-...
+   ```
+3. Restart OpenClaw gateway
+
+## Notes
+
+- Managed mode: Usage is tracked and deducted from credit balance
+- BYOK mode: Usage is billed directly by Anthropic, not tracked by Spawn
+- The control plane always knows the current billing mode
+- Model info reflects what managed customers use (BYOK customers configure their own)
