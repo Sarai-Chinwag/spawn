@@ -2,7 +2,7 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
-## Unreleased
+## [0.6.15] - 2026-02-10
 
 ### Changed
 - Rename sweatpants options to generic provisioner options
