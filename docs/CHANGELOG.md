@@ -4,9 +4,15 @@ All notable changes to the Spawn plugin will be documented in this file.
 
 ## Unreleased
 
+### Changed
+- Rename sweatpants options to generic provisioner options
+
 - fix(chat): Extract nested response from OpenClaw tools/invoke - non-admin customers can now load chat history on refresh
 - Add spawn/send-message, spawn/grant-support-access, and spawn/revoke-support-access abilities for customer-agent communication
 - Add domain_registration webhook handler for existing customer domain purchases
+
+### Removed
+- Remove shield_router_ip from plugin (handled by provisioner)
 
 ## 0.6.10 - 2026-02-06
 
