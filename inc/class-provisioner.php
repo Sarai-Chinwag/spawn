@@ -65,6 +65,9 @@ class Provisioner {
 			$server_config = Config::get_server_config( $tier, $wants_website );
 		}
 
+		// Get Plasma Shield router IP (for network lockdown).
+		$shield_router_ip = get_option( 'spawn_shield_router_ip', '5.161.238.72' );
+
 		// Build the job request.
 		$job_data = array(
 			'module_id' => 'vps-provisioner',
@@ -79,6 +82,7 @@ class Provisioner {
 				'site_title'               => $params['site_title'] ?? '',
 				'skip_domain_registration' => $skip_domain_registration,
 				'dry_run'                  => $is_test_mode,
+				'shield_router_ip'         => $shield_router_ip,
 			),
 		);
 
