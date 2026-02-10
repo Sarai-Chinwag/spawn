@@ -81,9 +81,9 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_namecom_username' );
 		register_setting( 'spawn_settings', 'spawn_namecom_token' );
 
-		// Sweatpants settings.
-		register_setting( 'spawn_settings', 'spawn_sweatpants_url' );
-		register_setting( 'spawn_settings', 'spawn_sweatpants_token' );
+		// Provisioner settings (can be Sweatpants, Lambda, or any HTTP endpoint).
+		register_setting( 'spawn_settings', 'spawn_provisioner_url' );
+		register_setting( 'spawn_settings', 'spawn_provisioner_token' );
 
 		// OpenClaw settings (for admin chat with control plane).
 		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
@@ -183,36 +183,36 @@ class Admin {
 			)
 		);
 
-		// Sweatpants section.
+		// Provisioner section.
 		add_settings_section(
-			'spawn_sweatpants_section',
-			__( 'Sweatpants Configuration', 'spawn' ),
+			'spawn_provisioner_section',
+			__( 'Provisioner Configuration', 'spawn' ),
 			function() {
-				echo '<p>' . esc_html__( 'Configure Sweatpants for VPS provisioning.', 'spawn' ) . '</p>';
+				echo '<p>' . esc_html__( 'Configure the provisioning service for VPS creation. This can be Sweatpants, AWS Lambda, or any HTTP endpoint that accepts job requests.', 'spawn' ) . '</p>';
 			},
 			'spawn-settings'
 		);
 
 		add_settings_field(
-			'spawn_sweatpants_url',
+			'spawn_provisioner_url',
 			__( 'API URL', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_sweatpants_section',
+			'spawn_provisioner_section',
 			array(
-				'name'        => 'spawn_sweatpants_url',
-				'placeholder' => 'http://localhost:8585',
+				'name'        => 'spawn_provisioner_url',
+				'placeholder' => 'http://localhost:8420',
 			)
 		);
 
 		add_settings_field(
-			'spawn_sweatpants_token',
+			'spawn_provisioner_token',
 			__( 'API Token', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_sweatpants_section',
+			'spawn_provisioner_section',
 			array(
-				'name' => 'spawn_sweatpants_token',
+				'name' => 'spawn_provisioner_token',
 				'type' => 'password',
 			)
 		);

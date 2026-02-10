@@ -60,18 +60,18 @@ class Webhook {
 		$api_key      = $request->get_header( 'X-Spawn-Internal-Key' );
 		$expected_key = get_option( 'spawn_internal_api_key', '' );
 
-		$sweatpants_token  = $request->get_header( 'Authorization' );
-		$expected_sp_token = get_option( 'spawn_sweatpants_token', '' );
+		$provisioner_token     = $request->get_header( 'Authorization' );
+		$expected_prov_token   = get_option( 'spawn_provisioner_token', '' );
 
 		if ( ! empty( $expected_key ) && hash_equals( $expected_key, $api_key ?? '' ) ) {
 			return true;
 		}
 
-		if ( ! empty( $expected_sp_token ) && 'Bearer ' . $expected_sp_token === $sweatpants_token ) {
+		if ( ! empty( $expected_prov_token ) && 'Bearer ' . $expected_prov_token === $provisioner_token ) {
 			return true;
 		}
 
-		if ( empty( $expected_key ) && empty( $expected_sp_token ) ) {
+		if ( empty( $expected_key ) && empty( $expected_prov_token ) ) {
 			return true;
 		}
 

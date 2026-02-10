@@ -1,6 +1,10 @@
 <?php
 /**
- * VPS Provisioning via Sweatpants.
+ * VPS Provisioning.
+ *
+ * Triggers provisioning jobs via an external HTTP API.
+ * The provisioner endpoint can be Sweatpants, AWS Lambda, or any HTTP service
+ * that accepts job requests and sends completion webhooks.
  *
  * @package Spawn
  */
@@ -10,19 +14,19 @@ namespace Spawn;
 use WP_Error;
 
 /**
- * Handles VPS provisioning by triggering Sweatpants jobs.
+ * Handles VPS provisioning by triggering external jobs.
  */
 class Provisioner {
 
 	/**
-	 * Get Sweatpants configuration.
+	 * Get provisioner configuration.
 	 *
 	 * @return array{url: string, token: string} Configuration.
 	 */
 	private static function get_config(): array {
 		return array(
-			'url'   => get_option( 'spawn_sweatpants_url', 'http://127.0.0.1:8420' ),
-			'token' => get_option( 'spawn_sweatpants_token', '' ),
+			'url'   => get_option( 'spawn_provisioner_url', 'http://127.0.0.1:8420' ),
+			'token' => get_option( 'spawn_provisioner_token', '' ),
 		);
 	}
 
@@ -36,10 +40,10 @@ class Provisioner {
 		$config = self::get_config();
 
 		if ( empty( $config['url'] ) ) {
-			error_log( '[Spawn Provisioner] Sweatpants URL not configured' );
+			error_log( '[Spawn Provisioner] Provisioner URL not configured' );
 			return new WP_Error(
-				'sweatpants_not_configured',
-				__( 'Sweatpants is not configured', 'spawn' ),
+				'provisioner_not_configured',
+				__( 'Provisioner is not configured', 'spawn' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -161,8 +165,8 @@ class Provisioner {
 
 		if ( empty( $config['url'] ) ) {
 			return new WP_Error(
-				'sweatpants_not_configured',
-				__( 'Sweatpants is not configured', 'spawn' ),
+				'provisioner_not_configured',
+				__( 'Provisioner is not configured', 'spawn' ),
 				array( 'status' => 500 )
 			);
 		}
