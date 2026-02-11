@@ -1,44 +1,28 @@
 # Spawn
 
-Deploy your own AI agent. Help others deploy theirs.
+Storefront and billing layer for AI agent services on WordPress.
 
 ## What It Does
 
-Spawn turns WordPress into an AI assistant service platform:
-
-- **SaaS mode** — Provision and bill AI agents for your customers
-- **Auto-scaling** — Each customer gets their own VPS and OpenClaw instance
-- **Billing** — Stripe subscriptions with credits system
-- **Optional websites** — Customers can get AI-managed WordPress sites
+Spawn handles the customer-facing side of an AI agent platform: signup flows, Stripe billing, credit management, and customer dashboards. Infrastructure provisioning is delegated to **Fleet Command** — Spawn focuses purely on the commerce layer.
 
 ## How It Works
 
 ```
 ┌─────────────────────────────────────────┐
-│  YOUR SITE (Control Plane)              │
+│  YOUR SITE (Spawn)                      │
 │  ├── Signup flow (Gutenberg blocks)     │
-│  ├── Stripe billing                     │
-│  └── Provisioning triggers              │
-└───────────────┬─────────────────────────┘
-                │
-                ▼ vps-provisioner module
-┌─────────────────────────────────────────┐
-│  CUSTOMER VPS (Auto-provisioned)        │
-│  ├── OpenClaw agent                     │
-│  ├── WordPress (optional)               │
-│  └── Their AI, their keys               │
+│  ├── Stripe billing & credits           │
+│  ├── Customer dashboard                 │
+│  └── Provisioning triggers ─────────────┼──→ Fleet Command
 └─────────────────────────────────────────┘
 ```
 
-Customer signs up → Stripe payment → VPS spins up → Agent ready in minutes.
+Customer signs up → Stripe payment → Fleet Command provisions → Agent ready.
 
-## Pricing Tiers
+## Pricing
 
-| Tier | Monthly | Credits | Server |
-|------|---------|---------|--------|
-| Starter | $20 | $5 | 4GB RAM |
-| Pro | $50 | $20 | 8GB RAM |
-| Business | $100 | $40 | 16GB RAM |
+Spawn supports configurable tiers with per-tier credit allocations and server specs. Pricing is managed in **Settings → Spawn**.
 
 ## Gutenberg Blocks
 
@@ -60,6 +44,22 @@ Customer signs up → Stripe payment → VPS spins up → Agent ready in minutes
 | `spawn_search_domain` | Check domain availability |
 | `spawn_register_domain` | Register a domain |
 
+## Hooks
+
+### Actions
+
+| Hook | Description |
+|------|-------------|
+| `spawn_before_page_content` | Fires before Spawn page content renders |
+| `spawn_credits_purchased` | After credits are purchased (`$customer_id`, `$credits`, `$session`) |
+| `spawn_auto_refill_success` | After successful auto-refill (`$customer_id`, `$credits`, `$result`) |
+| `spawn_auto_refill_failed` | After failed auto-refill (`$customer_id`, `$result`) |
+| `spawn_provisioning_complete` | After VPS provisioning succeeds (`$customer_id`, `$domain`, `$server_ip`) |
+| `spawn_provisioning_failed` | After VPS provisioning fails (`$customer_id`, `$domain`, `$error_message`) |
+| `spawn_domain_renewed` | After domain renewal (`$customer_id`, `$domain`, `$result`) |
+| `spawn_domain_auto_renewed` | After automatic domain renewal (`$customer_id`, `$domain`, `$price`, `$result`) |
+| `spawn_credits_auto_refill_needed` | When credits drop below auto-refill threshold (`$customer_id`, `$auto_refill`) |
+
 ## The Fractal Model
 
 ```
@@ -72,11 +72,12 @@ You install Spawn
 
 ## Requirements
 
-| Service | Purpose |
-|---------|---------|
-| WordPress on VPS | Control plane |
-| Hetzner API | Customer VPS provisioning |
-| Stripe | Billing |
+| Dependency | Purpose |
+|------------|---------|
+| WordPress 6.9+ | Host platform |
+| PHP 8.1+ | Runtime |
+| [Stripe Integration](https://github.com/Sarai-Chinwag/stripe-integration) | Billing |
+| Hetzner API | VPS provisioning (via Fleet Command) |
 | Cloudflare | Subdomain DNS |
 | Name.com | Domain registration (optional) |
 
@@ -97,12 +98,6 @@ cd spawn && npm install && npm run build
 npm run build   # Build blocks
 npm run start   # Watch mode
 ```
-
-## Self-Spawn (Experimental)
-
-> ⚠️ For technical users only. Requires Node.js pre-installed.
-
-For most users: Use SaaS mode or [wp-openclaw](https://github.com/Sarai-Chinwag/wp-openclaw) setup script instead.
 
 ## Documentation
 
