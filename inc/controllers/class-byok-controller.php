@@ -10,6 +10,7 @@
 
 namespace Spawn\Controllers;
 
+use Spawn\Abilities\Ability_Send_Message;
 use Spawn\Crypto;
 use Spawn\Database;
 use WP_REST_Request;
@@ -138,15 +139,27 @@ class BYOK_Controller {
 			);
 		}
 
-		// TODO: Push key to customer's VPS via SSH (same mechanism as provisioner).
-		// The OpenClaw gateway binds to loopback so we can't reach it remotely via HTTP.
-		// For now, the key is saved in our DB and will be used during re-provisioning.
-		// Follow-up: SSH to VPS, update OpenClaw config, restart gateway.
+		// Push the key to the customer's VPS via their agent.
+		$push_result = self::push_config_to_agent( $customer, 'byok', $api_key );
+
+		$vps_updated = ! is_wp_error( $push_result );
+
+		if ( ! $vps_updated ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf(
+				'[Spawn BYOK] Key saved for customer #%d but agent push failed: %s',
+				$customer['id'],
+				$push_result->get_error_message()
+			) );
+		}
 
 		return new WP_REST_Response( array(
-			'success'    => true,
-			'masked_key' => Crypto::mask_key( $api_key ),
-			'message'    => __( 'API key validated and saved. You are now using your own Anthropic key.', 'spawn' ),
+			'success'     => true,
+			'masked_key'  => Crypto::mask_key( $api_key ),
+			'vps_updated' => $vps_updated,
+			'message'     => $vps_updated
+				? __( 'API key validated, saved, and applied to your server. You are now using your own Anthropic key.', 'spawn' )
+				: __( 'API key validated and saved. Your server will be updated on next restart.', 'spawn' ),
 		) );
 	}
 
@@ -175,12 +188,26 @@ class BYOK_Controller {
 			);
 		}
 
-		// TODO: Push config change to VPS via SSH (revert to LiteLLM proxy).
-		// Same constraint as save_key — gateway is loopback, needs SSH.
+		// Push config change to VPS — revert to LiteLLM proxy.
+		$push_result = self::push_config_to_agent( $customer, 'managed' );
+
+		$vps_updated = ! is_wp_error( $push_result );
+
+		if ( ! $vps_updated ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf(
+				'[Spawn BYOK] Key removed for customer #%d but agent revert failed: %s',
+				$customer['id'],
+				$push_result->get_error_message()
+			) );
+		}
 
 		return new WP_REST_Response( array(
-			'success' => true,
-			'message' => __( 'API key removed. Reverted to managed billing.', 'spawn' ),
+			'success'     => true,
+			'vps_updated' => $vps_updated,
+			'message'     => $vps_updated
+				? __( 'API key removed and server reverted to managed billing.', 'spawn' )
+				: __( 'API key removed. Your server will be updated on next restart.', 'spawn' ),
 		) );
 	}
 
@@ -224,6 +251,71 @@ class BYOK_Controller {
 		$code = wp_remote_retrieve_response_code( $response );
 
 		return $code >= 200 && $code < 300;
+	}
+
+	/**
+	 * Push BYOK config change to customer's agent.
+	 *
+	 * Uses the same agent messaging pattern as support access — sends a system
+	 * message to the customer's OpenClaw agent instructing it to update its config.
+	 *
+	 * @param array       $customer Customer data.
+	 * @param string      $mode     'byok' or 'managed'.
+	 * @param string|null $api_key  Plaintext API key (only for byok mode).
+	 * @return array|WP_Error Agent response or error.
+	 */
+	private static function push_config_to_agent( array $customer, string $mode, ?string $api_key = null ): array|WP_Error {
+		if ( empty( $customer['server_ip'] ) || 'active' !== $customer['status'] ) {
+			return new WP_Error( 'server_not_active', 'Customer server is not active.' );
+		}
+
+		if ( 'byok' === $mode && ! empty( $api_key ) ) {
+			$message = sprintf(
+				"SYSTEM REQUEST: Update API Configuration (BYOK)\n\n" .
+				"The customer has provided their own Anthropic API key. " .
+				"Please update the OpenClaw gateway configuration to use this key directly " .
+				"instead of the LiteLLM proxy.\n\n" .
+				"Run the following commands:\n\n" .
+				"1. Update the gateway config to use the customer's API key:\n" .
+				"```bash\n" .
+				"openclaw config set auth.mode token\n" .
+				"openclaw config set auth.profiles.anthropic:default.apiKey '%s'\n" .
+				"```\n\n" .
+				"2. Restart the gateway:\n" .
+				"```bash\n" .
+				"openclaw gateway restart\n" .
+				"```\n\n" .
+				'Confirm when complete.',
+				$api_key
+			);
+		} else {
+			// Get LiteLLM proxy URL for revert.
+			$litellm_proxy = get_option( 'spawn_litellm_proxy_url', 'http://api.spawn.saraichinwag.com:4000' );
+
+			$message = sprintf(
+				"SYSTEM REQUEST: Revert to Managed Billing\n\n" .
+				"The customer has removed their API key and switched back to managed billing. " .
+				"Please update the OpenClaw gateway configuration to route through the LiteLLM proxy.\n\n" .
+				"Run the following commands:\n\n" .
+				"1. Update the gateway config to use the LiteLLM proxy:\n" .
+				"```bash\n" .
+				"openclaw config set auth.mode token\n" .
+				"openclaw config set auth.profiles.anthropic:default.baseURL '%s'\n" .
+				"```\n\n" .
+				"2. Restart the gateway:\n" .
+				"```bash\n" .
+				"openclaw gateway restart\n" .
+				"```\n\n" .
+				'Confirm when complete.',
+				$litellm_proxy
+			);
+		}
+
+		return Ability_Send_Message::execute( array(
+			'message'     => $message,
+			'customer_id' => (int) $customer['id'],
+			'system_note' => 'byok' === $mode ? 'BYOK key push' : 'Revert to managed billing',
+		) );
 	}
 
 	/**
