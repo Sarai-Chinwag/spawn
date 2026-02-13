@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## [0.8.1] - 2026-02-13
+
+- feat: VPS config push for BYOK via agent messaging — customer's agent updates its own OpenClaw config on key save/remove
+
 ## [0.8.0] - 2026-02-13
 
 - feat: BYOK (Bring Your Own Key) support — customers can provide their own Anthropic API key to bypass LiteLLM proxy

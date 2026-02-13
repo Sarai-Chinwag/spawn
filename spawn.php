@@ -3,7 +3,7 @@
  * Plugin Name: Spawn
  * Plugin URI: https://github.com/Sarai-Chinwag/spawn
  * Description: AI Website Service by Sarai Chinwag - spawn AI-powered WordPress sites
- * Version: 0.8.0
+ * Version: 0.8.1
  * Author: Sarai Chinwag
  * Author URI: https://saraichinwag.com
  * License: GPL-2.0-or-later
