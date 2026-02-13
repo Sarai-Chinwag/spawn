@@ -58,6 +58,7 @@ function init(): void {
 		Controllers\Domain_Controller::register_routes();
 		Controllers\LiteLLM_Controller::register_routes();
 		Controllers\Usage_Controller::register_routes();
+		Controllers\BYOK_Controller::register_routes();
 	} );
 
 	// Only init Stripe webhook handlers if stripe-integration plugin is active.
@@ -115,6 +116,7 @@ function activate(): void {
 
 	// Run column migrations for existing installations.
 	Database::migrate_column_names();
+	Database::migrate_byok_column();
 
 	// Register user role.
 	User_Role::register_role();
