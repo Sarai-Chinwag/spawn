@@ -19,7 +19,7 @@ export interface Customer {
 	server_ip?: string;
 	status?: string;
 	created_at?: string;
-	vps_tier?: string;
+	hetzner_type?: string;
 }
 
 export interface CustomerResponse {

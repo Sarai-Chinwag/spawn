@@ -60,7 +60,7 @@ class Abilities {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'vps_tier'       => array( 'type' => 'string' ),
+					'hetzner_type'   => array( 'type' => 'string' ),
 					'status'         => array( 'type' => 'string' ),
 					'domain'         => array( 'type' => 'string' ),
 					'server_ip'      => array( 'type' => 'string' ),
