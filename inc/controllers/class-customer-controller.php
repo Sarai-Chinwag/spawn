@@ -11,7 +11,6 @@ use Spawn\Abilities\Ability_Cancel;
 use Spawn\Abilities\Ability_Get_Status;
 use Spawn\Abilities\Ability_Manage_Billing;
 use Spawn\Abilities\Ability_Scale_VPS;
-use Spawn\Crypto;
 use Spawn\Database;
 use Spawn\Payment_Helpers;
 use StripeIntegration\StripeClient;
@@ -126,8 +125,6 @@ class Customer_Controller {
 				'subdomain'      => (bool) $customer['subdomain'],
 				'tier'           => $customer['tier'] ?? 'starter',
 				'billing_mode'   => $customer['billing_mode'] ?? 'managed',
-				'has_api_key'    => ! empty( $customer['api_key_encrypted'] ),
-				'masked_api_key' => ! empty( $customer['api_key_encrypted'] ) ? Crypto::mask_key( Crypto::decrypt( $customer['api_key_encrypted'] ) ?: '' ) : null,
 				'wants_website'  => (bool) ( $customer['wants_website'] ?? true ),
 				'server_type'    => $customer['server_type'] ?? 'cpx21',
 				'credit_balance' => (float) $customer['credit_balance'],
