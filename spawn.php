@@ -60,7 +60,7 @@ function init(): void {
 	Cron::init();
 	Templates::init();
 	Cleanup::init();
-	Self_Spawn::init();
+	// Self-spawn removed — OpenClaw is installed externally via provisioner, not from wp-admin.
 
 	// Admin settings.
 	if ( is_admin() ) {

@@ -115,7 +115,7 @@ class Chat_Controller {
 		$context     = $request->get_param( 'context' );
 
 		// Self-spawn mode: local OpenClaw installation (highest priority).
-		if ( \Spawn\Self_Spawn::is_openclaw_running() ) {
+		if ( \Spawn\Local_OpenClaw::is_running() ) {
 			return self::chat_with_local_openclaw( $message, $session_key );
 		}
 
@@ -242,7 +242,7 @@ class Chat_Controller {
 	 * @return WP_REST_Response Response.
 	 */
 	private static function chat_with_local_openclaw( string $message, string $session_key = '' ): WP_REST_Response {
-		$gateway_url = \Spawn\Self_Spawn::get_gateway_url() . '/v1/chat/completions';
+		$gateway_url = \Spawn\Local_OpenClaw::get_gateway_url() . '/v1/chat/completions';
 
 		// Self-spawn mode uses credentials configured directly in OpenClaw.
 		// No separate token needed - OpenClaw handles auth internally.
@@ -256,7 +256,7 @@ class Chat_Controller {
 			"Site: %s (%s)\n" .
 			"User: %s <%s>\n" .
 			"Interface: Web chat block\n\n" .
-			'This is a self-spawned OpenClaw installation running on the same server as WordPress.',
+			'This is a local OpenClaw installation running on this server.',
 			$site_name,
 			$site_url,
 			$current_user->display_name ?: $current_user->user_login,
@@ -435,9 +435,9 @@ class Chat_Controller {
 		$user_id = get_current_user_id();
 
 		// Self-spawn mode: local OpenClaw.
-		if ( \Spawn\Self_Spawn::is_openclaw_running() ) {
+		if ( \Spawn\Local_OpenClaw::is_running() ) {
 			return self::invoke_openclaw_tool(
-				\Spawn\Self_Spawn::get_gateway_url(),
+				\Spawn\Local_OpenClaw::get_gateway_url(),
 				'', // No token needed for local.
 				'sessions_list',
 				array()
@@ -482,9 +482,9 @@ class Chat_Controller {
 		$limit       = (int) $request->get_param( 'limit' );
 
 		// Self-spawn mode: local OpenClaw.
-		if ( \Spawn\Self_Spawn::is_openclaw_running() ) {
+		if ( \Spawn\Local_OpenClaw::is_running() ) {
 			return self::invoke_openclaw_tool(
-				\Spawn\Self_Spawn::get_gateway_url(),
+				\Spawn\Local_OpenClaw::get_gateway_url(),
 				'', // No token needed for local.
 				'sessions_history',
 				array(
