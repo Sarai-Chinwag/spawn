@@ -123,23 +123,25 @@ class ConfigTest extends TestCase {
 	 *
 	 * Credits in dollars: $5 / $10 / $40
 	 */
-	public function test_included_credits(): void {
+	public function test_included_credits_are_zero(): void {
 		$tiers = Config::get_tiers();
 
-		$this->assertEquals( 5.00, $tiers['starter']['included_credits'] );
-		$this->assertEquals( 10.00, $tiers['pro']['included_credits'] );
-		$this->assertEquals( 40.00, $tiers['business']['included_credits'] );
+		// All tiers have 0 included credits — AI is pay-as-you-go.
+		$this->assertEquals( 0, $tiers['starter']['included_credits'] );
+		$this->assertEquals( 0, $tiers['pro']['included_credits'] );
+		$this->assertEquals( 0, $tiers['business']['included_credits'] );
 	}
 
 	/**
 	 * Test get_included_credits helper method.
 	 */
 	public function test_get_included_credits_helper(): void {
-		$this->assertEquals( 5.00, Config::get_included_credits( 'starter' ) );
-		$this->assertEquals( 10.00, Config::get_included_credits( 'pro' ) );
-		$this->assertEquals( 40.00, Config::get_included_credits( 'business' ) );
+		// All tiers return 0 — credits are pay-as-you-go.
+		$this->assertEquals( 0, Config::get_included_credits( 'starter' ) );
+		$this->assertEquals( 0, Config::get_included_credits( 'pro' ) );
+		$this->assertEquals( 0, Config::get_included_credits( 'business' ) );
 
-		// Invalid tier returns default starter credits.
+		// Invalid tier returns default (still used as fallback).
 		$this->assertEquals( 5.00, Config::get_included_credits( 'invalid' ) );
 	}
 

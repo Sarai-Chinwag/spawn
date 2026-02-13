@@ -72,15 +72,13 @@ class WebhookTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test checkout with correct tier sets correct credits.
-	 *
-	 * Credits are now in dollars: $5 / $10 / $40
+	 * Test checkout creates customers with zero credits (pay-as-you-go).
 	 */
-	public function test_checkout_sets_correct_credits(): void {
+	public function test_checkout_starts_with_zero_credits(): void {
 		$test_cases = [
-			'starter'  => 5.00,
-			'pro'      => 10.00,
-			'business' => 40.00,
+			'starter'  => 0,
+			'pro'      => 0,
+			'business' => 0,
 		];
 
 		foreach ( $test_cases as $tier => $expected_credits ) {

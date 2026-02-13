@@ -19,7 +19,6 @@ export interface Customer {
 	server_ip?: string;
 	status?: string;
 	created_at?: string;
-	server_type?: string;
 }
 
 export interface CustomerResponse {
@@ -30,7 +29,6 @@ export interface CustomerResponse {
 export interface TierInfo {
 	name: string;
 	price: number;
-	included_credits: number;
 }
 
 export interface TiersMap {

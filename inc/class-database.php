@@ -88,7 +88,7 @@ class Database {
 			scheduled_deletion_at datetime DEFAULT NULL,
 			cloudflare_record_id varchar(255) DEFAULT NULL,
 			provider_server_id varchar(255) DEFAULT NULL,
-			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
+			credit_balance decimal(10,2) NOT NULL DEFAULT 0.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
 			auto_refill_amount decimal(10,2) NOT NULL DEFAULT 10.00,
@@ -791,10 +791,10 @@ class Database {
 	}
 
 	/**
-	 * Store Hetzner server ID for a customer.
+	 * Store provider server ID for a customer.
 	 *
 	 * @param int    $id        Customer ID.
-	 * @param string $server_id Hetzner server ID.
+	 * @param string $server_id Provider server ID.
 	 * @return bool Success.
 	 */
 	public static function set_provider_server_id( int $id, string $server_id ): bool {
