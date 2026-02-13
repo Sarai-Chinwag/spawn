@@ -390,7 +390,7 @@ class Provisioner {
 	 */
 	private static function send_admin_purchase_notification( array $customer, string $domain, string $server_ip ): void {
 		$admin_email = get_option( 'admin_email' );
-		$tier        = $customer['hetzner_type'] ?? 'unknown';
+		$tier        = $customer['vps_tier'] ?? 'unknown';
 
 		$subject = sprintf(
 			/* translators: %s: domain name */
