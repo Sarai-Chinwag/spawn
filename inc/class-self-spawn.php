@@ -60,31 +60,7 @@ class Self_Spawn {
 			return;
 		}
 
-		// Check for environment blockers and add notices.
-		if ( self::is_openclaw_installed() && ! WP_AI_Client_Bridge::has_any_credentials() ) {
-			add_action(
-				'admin_notices',
-				function () {
-					$url = WP_AI_Client_Bridge::get_credentials_page_url();
-					?>
-					<div class="notice notice-warning">
-						<p>
-							<?php
-							esc_html_e( 'OpenClaw is installed but no AI credentials are configured.', 'spawn' );
-							if ( '' !== $url ) {
-								printf(
-									' <a href="%s">%s</a>',
-									esc_url( $url ),
-									esc_html__( 'Configure AI Credentials', 'spawn' )
-								);
-							}
-							?>
-						</p>
-					</div>
-					<?php
-				}
-			);
-		}
+		// Credential checks removed — wp-ai-client dependency eliminated.
 	}
 
 	/**
@@ -257,16 +233,13 @@ class Self_Spawn {
 	 * @return array{success: bool, message: string} Configuration result.
 	 */
 	public static function configure( array $env = array() ): array {
-		// Get credentials from wp-ai-client.
-		$openclaw_env = WP_AI_Client_Bridge::get_openclaw_env();
-
-		// Merge with any additional env vars.
-		$all_env = array_merge( $openclaw_env, $env );
+		// Use provided env vars directly (credentials come from caller, not wp-ai-client).
+		$all_env = $env;
 
 		if ( empty( $all_env ) ) {
 			return array(
 				'success' => false,
-				'message' => __( 'No AI credentials configured. Please configure credentials in WP AI Client first.', 'spawn' ),
+				'message' => __( 'No AI credentials provided. Pass API keys via the env parameter.', 'spawn' ),
 			);
 		}
 

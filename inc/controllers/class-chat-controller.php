@@ -244,7 +244,7 @@ class Chat_Controller {
 	private static function chat_with_local_openclaw( string $message, string $session_key = '' ): WP_REST_Response {
 		$gateway_url = \Spawn\Self_Spawn::get_gateway_url() . '/v1/chat/completions';
 
-		// Self-spawn mode typically uses wp-ai-client credentials configured in OpenClaw.
+		// Self-spawn mode uses credentials configured directly in OpenClaw.
 		// No separate token needed - OpenClaw handles auth internally.
 		$current_user = wp_get_current_user();
 		$site_name    = get_bloginfo( 'name' );

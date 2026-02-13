@@ -529,9 +529,7 @@ class Admin {
 	 */
 	public static function render_self_spawn_section(): void {
 		$env_check       = Environment_Detector::check();
-		$provider_status = WP_AI_Client_Bridge::get_provider_status();
 		$openclaw_status = Self_Spawn::get_status();
-		$credentials_url = WP_AI_Client_Bridge::get_credentials_page_url();
 		?>
 		<div class="spawn-self-spawn-section">
 			<p class="description" style="font-size: 14px; margin-bottom: 20px;">
@@ -635,47 +633,6 @@ class Admin {
 					</tr>
 				</tbody>
 			</table>
-
-			<h4><?php esc_html_e( 'AI Credentials', 'spawn' ); ?></h4>
-			<p class="description">
-				<?php
-				esc_html_e(
-					'OpenClaw needs API keys to communicate with AI providers. ' .
-					'At least one provider must be configured.',
-					'spawn'
-				);
-				?>
-			</p>
-			<table class="form-table spawn-credential-checks">
-				<tbody>
-					<?php foreach ( $provider_status as $provider_id => $status ) : ?>
-						<tr>
-							<th scope="row"><?php echo esc_html( ucfirst( $provider_id ) ); ?></th>
-							<td>
-								<?php if ( $status['configured'] ) : ?>
-									<span style="color: green;">✅</span>
-									<?php esc_html_e( 'API key configured', 'spawn' ); ?>
-								<?php else : ?>
-									<span style="color: orange;">⚠️</span>
-									<?php esc_html_e( 'API key not configured', 'spawn' ); ?>
-								<?php endif; ?>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				</tbody>
-			</table>
-
-			<?php if ( '' !== $credentials_url ) : ?>
-				<p>
-					<a href="<?php echo esc_url( $credentials_url ); ?>" class="button">
-						<?php esc_html_e( 'Configure AI Credentials', 'spawn' ); ?>
-					</a>
-				</p>
-			<?php elseif ( ! WP_AI_Client_Bridge::is_wp_ai_client_active() ) : ?>
-				<p class="description">
-					<?php esc_html_e( 'Install the WP AI Client plugin to manage AI credentials.', 'spawn' ); ?>
-				</p>
-			<?php endif; ?>
 
 			<hr />
 

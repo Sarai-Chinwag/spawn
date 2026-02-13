@@ -11,7 +11,6 @@ namespace Spawn\Abilities;
 
 use Spawn\Environment_Detector;
 use Spawn\Self_Spawn;
-use Spawn\WP_AI_Client_Bridge;
 
 /**
  * Class Ability_Self_Spawn
@@ -29,16 +28,12 @@ class Ability_Self_Spawn {
 	 * @return array Environment check results.
 	 */
 	public static function check_environment( array $input ): array {
-		$env         = Environment_Detector::check();
-		$credentials = WP_AI_Client_Bridge::get_provider_status();
+		$env = Environment_Detector::check();
 
 		return array(
-			'environment'     => $env,
-			'credentials'     => $credentials,
-			'has_credentials' => WP_AI_Client_Bridge::has_any_credentials(),
-			'can_install'     => $env['can_install'],
-			'blockers'        => $env['blockers'],
-			'credentials_url' => WP_AI_Client_Bridge::get_credentials_page_url(),
+			'environment' => $env,
+			'can_install' => $env['can_install'],
+			'blockers'    => $env['blockers'],
 		);
 	}
 
@@ -55,7 +50,7 @@ class Ability_Self_Spawn {
 	/**
 	 * Installs OpenClaw locally.
 	 *
-	 * @param array $input Input parameters (none required).
+	 * @param array $input Input parameters. Optional 'env' array of API key env vars.
 	 * @return array Installation result.
 	 */
 	public static function install( array $input ): array {
@@ -75,8 +70,8 @@ class Ability_Self_Spawn {
 			return $result;
 		}
 
-		// Configure with credentials from wp-ai-client.
-		$env           = WP_AI_Client_Bridge::get_openclaw_env();
+		// Configure with provided env vars.
+		$env           = $input['env'] ?? array();
 		$config_result = Self_Spawn::configure( $env );
 
 		if ( ! $config_result['success'] ) {
@@ -97,9 +92,9 @@ class Ability_Self_Spawn {
 	}
 
 	/**
-	 * Configures OpenClaw with current wp-ai-client credentials.
+	 * Configures OpenClaw with provided credentials.
 	 *
-	 * @param array $input Input parameters (none required).
+	 * @param array $input Input parameters. Required 'env' array of API key env vars.
 	 * @return array Configuration result.
 	 */
 	public static function configure( array $input ): array {
@@ -110,13 +105,12 @@ class Ability_Self_Spawn {
 			);
 		}
 
-		$env = WP_AI_Client_Bridge::get_openclaw_env();
+		$env = $input['env'] ?? array();
 
 		if ( empty( $env ) ) {
 			return array(
-				'success'         => false,
-				'message'         => __( 'No AI credentials configured. Please configure credentials in Settings > AI Credentials.', 'spawn' ),
-				'credentials_url' => WP_AI_Client_Bridge::get_credentials_page_url(),
+				'success' => false,
+				'message' => __( 'No AI credentials provided. Pass API keys in the env parameter (e.g. ANTHROPIC_API_KEY).', 'spawn' ),
 			);
 		}
 
