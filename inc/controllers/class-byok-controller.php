@@ -138,19 +138,10 @@ class BYOK_Controller {
 			);
 		}
 
-		// Push the key to the customer's VPS if active.
-		if ( 'active' === $customer['status'] && ! empty( $customer['server_ip'] ) ) {
-			$push_result = self::push_key_to_vps( $customer, $api_key );
-			if ( is_wp_error( $push_result ) ) {
-				// Key saved but push failed — log it, don't fail the request.
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( sprintf(
-					'[Spawn BYOK] Key saved for customer #%d but VPS push failed: %s',
-					$customer['id'],
-					$push_result->get_error_message()
-				) );
-			}
-		}
+		// TODO: Push key to customer's VPS via SSH (same mechanism as provisioner).
+		// The OpenClaw gateway binds to loopback so we can't reach it remotely via HTTP.
+		// For now, the key is saved in our DB and will be used during re-provisioning.
+		// Follow-up: SSH to VPS, update OpenClaw config, restart gateway.
 
 		return new WP_REST_Response( array(
 			'success'    => true,
@@ -184,7 +175,8 @@ class BYOK_Controller {
 			);
 		}
 
-		// TODO: Push config change to VPS (revert to LiteLLM proxy).
+		// TODO: Push config change to VPS via SSH (revert to LiteLLM proxy).
+		// Same constraint as save_key — gateway is loopback, needs SSH.
 
 		return new WP_REST_Response( array(
 			'success' => true,
@@ -232,64 +224,6 @@ class BYOK_Controller {
 		$code = wp_remote_retrieve_response_code( $response );
 
 		return $code >= 200 && $code < 300;
-	}
-
-	/**
-	 * Push API key configuration to the customer's VPS.
-	 *
-	 * Updates the OpenClaw config to use the customer's own key
-	 * instead of the LiteLLM proxy.
-	 *
-	 * @param array  $customer Customer data.
-	 * @param string $api_key  Plaintext API key to push.
-	 * @return true|WP_Error True on success, error on failure.
-	 */
-	private static function push_key_to_vps( array $customer, string $api_key ): true|WP_Error {
-		$server_ip      = $customer['server_ip'];
-		$openclaw_token = $customer['openclaw_token'] ?? '';
-
-		if ( empty( $openclaw_token ) ) {
-			return new WP_Error( 'no_token', 'No OpenClaw token for this customer.' );
-		}
-
-		// Use OpenClaw's config.patch API to update the auth profile.
-		$response = wp_remote_request(
-			sprintf( 'https://%s:3578/api/config/patch', $server_ip ),
-			array(
-				'method'  => 'PATCH',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $openclaw_token,
-					'Content-Type'  => 'application/json',
-				),
-				'body'    => wp_json_encode( array(
-					'auth' => array(
-						'mode'     => 'token',
-						'profiles' => array(
-							'anthropic:default' => array(
-								'apiKey' => $api_key,
-							),
-						),
-					),
-				) ),
-				'timeout' => 15,
-				'sslverify' => false, // Customer VPS may use self-signed certs.
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-
-		if ( $code >= 400 ) {
-			return new WP_Error(
-				'vps_push_failed',
-				sprintf( 'VPS config update returned HTTP %d', $code )
-			);
-		}
-
-		return true;
 	}
 
 	/**
