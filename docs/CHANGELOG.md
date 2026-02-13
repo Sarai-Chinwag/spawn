@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## [0.9.0] - 2026-02-13
+
+- security: BYOK rewrite — customer API keys never stored on our server, billing mode toggle only
+
 ## [0.8.1] - 2026-02-13
 
 - feat: VPS config push for BYOK via agent messaging — customer's agent updates its own OpenClaw config on key save/remove
