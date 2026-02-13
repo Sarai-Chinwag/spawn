@@ -412,7 +412,7 @@ class Webhook {
 	/**
 	 * Handle successful invoice payment (subscription renewal).
 	 *
-	 * Adds monthly credits based on tier.
+	 * Renews the subscription. Credits are pay-as-you-go (not included in tiers).
 	 *
 	 * @param object|array $invoice Invoice data.
 	 * @param object       $event   Full Stripe event.
@@ -430,25 +430,17 @@ class Webhook {
 			return;
 		}
 
-		// Get monthly credits for this tier.
-		$tier            = $customer['tier'] ?? 'starter';
-		$monthly_credits = Config::get_included_credits( $tier );
-		$current_balance = (float) ( $customer['credit_balance'] ?? 0 );
-		$new_balance     = $current_balance + $monthly_credits;
-
+		// Mark subscription as active and update renewal date.
+		// No monthly credits — AI credits are pay-as-you-go.
 		Database::update_customer( $customer['id'], array(
-			'status'         => 'active',
-			'renewed_at'     => current_time( 'mysql' ),
-			'credit_balance' => $new_balance,
+			'status'     => 'active',
+			'renewed_at' => current_time( 'mysql' ),
 		) );
 
 		self::log( sprintf(
-			'Added $%.2f monthly credits to customer %d (tier: %s). Balance: $%.2f -> $%.2f',
-			$monthly_credits,
+			'Subscription renewed for customer %d (tier: %s).',
 			$customer['id'],
-			$tier,
-			$current_balance,
-			$new_balance
+			$customer['tier'] ?? 'starter'
 		) );
 	}
 

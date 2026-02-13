@@ -101,9 +101,9 @@ class Config {
 				'vcpu_shared'      => true,
 				'ram_gb'           => 4,
 				'disk_gb'          => 80,
-				'included_credits' => self::DEFAULT_STARTER_CREDITS,
+				'included_credits' => 0,
 				'features'         => array(
-					__( '$5 AI credits/month', 'spawn' ),
+					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 				),
@@ -119,9 +119,9 @@ class Config {
 				'vcpu_shared'      => true,
 				'ram_gb'           => 8,
 				'disk_gb'          => 160,
-				'included_credits' => 20.00,
+				'included_credits' => 0,
 				'features'         => array(
-					__( '$20 AI credits/month', 'spawn' ),
+					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
@@ -138,9 +138,9 @@ class Config {
 				'vcpu_shared'      => true,
 				'ram_gb'           => 16,
 				'disk_gb'          => 240, // cpx41=240, cpx42=320
-				'included_credits' => self::DEFAULT_STARTER_CREDITS * 8,
+				'included_credits' => 0,
 				'features'         => array(
-					__( '$40 AI credits/month', 'spawn' ),
+					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
 					__( 'Priority support', 'spawn' ),

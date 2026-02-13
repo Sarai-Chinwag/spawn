@@ -20,7 +20,6 @@ interface AccountTier {
 	name: string;
 	price: number;
 	vps: string;
-	aiLimit: number;
 }
 
 interface Customer {
@@ -48,9 +47,9 @@ interface BillingPortalResponse {
 
 // Tier configuration
 const TIERS: Record< string, AccountTier > = {
-	starter: { name: 'Starter', price: 29, vps: 'cx22', aiLimit: 1000 },
-	pro: { name: 'Pro', price: 79, vps: 'cx32', aiLimit: 5000 },
-	business: { name: 'Business', price: 199, vps: 'cx42', aiLimit: 20000 },
+	starter: { name: 'Starter', price: 20, vps: 'cpx21' },
+	pro: { name: 'Pro', price: 50, vps: 'cpx31' },
+	business: { name: 'Business', price: 100, vps: 'cpx41' },
 };
 
 // API endpoints
@@ -149,7 +148,7 @@ function renderAccount( block: HTMLElement, customer: Customer ): void {
 					<span class="plan-name">${ currentTier.name }</span>
 					<span class="plan-price">$${ currentTier.price }/mo</span>
 				</div>
-				<p class="plan-details">${ currentTier.aiLimit.toLocaleString() } AI calls/month</p>
+				<p class="plan-details">Pay-as-you-go AI credits</p>
 			</div>
 
 			${ isByok ? renderByokSection() : renderCreditsSection() }
@@ -253,7 +252,7 @@ function renderTierOptions( currentTier: AccountTier & { key: string } ): string
 					<span class="tier-price">$${ tier.price }/mo</span>
 				</div>
 				<ul class="tier-features">
-					<li>${ tier.aiLimit.toLocaleString() } AI calls/month</li>
+					<li>Pay-as-you-go AI credits</li>
 				</ul>
 				${ action }
 			</div>

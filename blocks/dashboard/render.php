@@ -247,19 +247,8 @@ foreach ( $servers as $server ) {
 					<div class="spawn-dashboard__usage-stats">
 						<div class="spawn-dashboard__usage-main">
 							<span class="spawn-dashboard__usage-value">$<?php echo esc_html( number_format( $credits_used, 2 ) ); ?></span>
-							<?php if ( ! $is_admin_mode ) : ?>
-								<span class="spawn-dashboard__usage-of"><?php echo esc_html__( 'of', 'spawn' ); ?></span>
-								<span class="spawn-dashboard__usage-total">$<?php echo esc_html( number_format( $included_credits, 2 ) ); ?></span>
-								<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'included', 'spawn' ); ?></span>
-							<?php else : ?>
-								<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'Anthropic cost', 'spawn' ); ?></span>
-							<?php endif; ?>
+							<span class="spawn-dashboard__usage-label"><?php echo esc_html__( 'used this month', 'spawn' ); ?></span>
 						</div>
-						<?php if ( ! $is_admin_mode ) : ?>
-							<div class="spawn-dashboard__usage-bar">
-								<div class="spawn-dashboard__usage-bar-fill" style="width: <?php echo esc_attr( $usage_percent ); ?>%;"></div>
-							</div>
-						<?php endif; ?>
 						<div class="spawn-dashboard__usage-details">
 							<span title="<?php echo esc_attr__( 'API Requests', 'spawn' ); ?>">
 								<strong><?php echo esc_html( number_format_i18n( $requests_count ) ); ?></strong> <?php echo esc_html__( 'requests', 'spawn' ); ?>
@@ -272,9 +261,7 @@ foreach ( $servers as $server ) {
 							</span>
 						</div>
 					</div>
-					<?php if ( ! $is_admin_mode && $credits_used >= $included_credits ) : ?>
-						<p class="spawn-dashboard__usage-warning"><?php echo esc_html__( 'You\'ve used your included credits. Additional usage draws from your balance.', 'spawn' ); ?></p>
-					<?php endif; ?>
+					<!-- Credits are pay-as-you-go, drawn from balance -->
 					<?php if ( $is_admin_mode && isset( $customer_count ) ) : ?>
 						<p class="spawn-dashboard__muted"><?php printf( esc_html__( 'Across %d active customers', 'spawn' ), $customer_count ); ?></p>
 					<?php endif; ?>
