@@ -462,7 +462,7 @@ class Admin {
 										<?php echo esc_html( $full_domain ); ?>
 									<?php endif; ?>
 								</td>
-								<td><?php echo esc_html( $customer['vps_tier'] ); ?></td>
+								<td><?php echo esc_html( $customer['server_type'] ); ?></td>
 								<td>
 									<span class="spawn-status spawn-status--<?php echo esc_attr( $status_class ); ?>">
 										<?php echo esc_html( ucfirst( $customer['status'] ) ); ?>

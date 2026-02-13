@@ -37,7 +37,7 @@ class Ability_Scale_VPS {
 		}
 
 		// Check if already on this tier.
-		if ( $customer['vps_tier'] === $new_tier ) {
+		if ( $customer['server_type'] === $new_tier ) {
 			return new WP_Error( 'same_tier', __( 'Already on this tier', 'spawn' ) );
 		}
 
@@ -53,7 +53,7 @@ class Ability_Scale_VPS {
 		}
 
 		// Update database.
-		$success = Database::update_vps_tier( (int) $customer['id'], $new_tier );
+		$success = Database::update_customer( (int) $customer['id'], array( 'server_type' => $new_tier ) );
 
 		if ( ! $success ) {
 			return new WP_Error( 'update_failed', __( 'Failed to update tier in database', 'spawn' ) );

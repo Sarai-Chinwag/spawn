@@ -14,12 +14,12 @@ export interface Customer {
 	tier?: string;
 	billing_mode?: 'managed' | 'byok';
 	wants_website?: boolean;
-	hetzner_type?: string;
+	server_type?: string;
 	credit_balance?: number;
 	server_ip?: string;
 	status?: string;
 	created_at?: string;
-	vps_tier?: string;
+	server_type?: string;
 }
 
 export interface CustomerResponse {

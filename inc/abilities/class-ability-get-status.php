@@ -32,7 +32,7 @@ class Ability_Get_Status {
 			'customer_id'    => (int) $customer['id'],
 			'email'          => $customer['email'],
 			'domain'         => $customer['domain'],
-			'vps_tier'       => $customer['vps_tier'],
+			'server_type'       => $customer['server_type'],
 			'status'         => $customer['status'],
 			'server_ip'      => $customer['server_ip'],
 			'credit_balance' => (float) $customer['credit_balance'],

@@ -60,7 +60,7 @@ class Abilities {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'vps_tier'       => array( 'type' => 'string' ),
+					'server_type'       => array( 'type' => 'string' ),
 					'status'         => array( 'type' => 'string' ),
 					'domain'         => array( 'type' => 'string' ),
 					'server_ip'      => array( 'type' => 'string' ),
@@ -850,11 +850,11 @@ class Abilities {
 					'status'             => array( 'type' => 'string' ),
 					'domain'             => array( 'type' => 'string' ),
 					'server_ip'          => array( 'type' => 'string' ),
-					'hetzner_server_id'  => array( 'type' => 'string' ),
+					'provider_server_id'  => array( 'type' => 'string' ),
 					'tier'               => array( 'type' => 'string' ),
 					'wants_website'      => array( 'type' => 'boolean' ),
-					'hetzner_type'       => array( 'type' => 'string' ),
-					'hetzner_location'   => array( 'type' => 'string' ),
+					'server_type'       => array( 'type' => 'string' ),
+					'server_location'   => array( 'type' => 'string' ),
 					'created_at'         => array( 'type' => 'string' ),
 					'last_error'         => array( 'type' => 'string' ),
 					'job_status'         => array( 'type' => 'object' ),

@@ -73,8 +73,8 @@ class Database {
 			tier varchar(50) NOT NULL DEFAULT 'starter',
 			billing_mode varchar(20) NOT NULL DEFAULT 'managed',
 			wants_website tinyint(1) NOT NULL DEFAULT 1,
-			hetzner_type varchar(50) NOT NULL DEFAULT 'cpx21',
-			hetzner_location varchar(50) NOT NULL DEFAULT 'ash',
+			server_type varchar(50) NOT NULL DEFAULT 'cpx21',
+			server_location varchar(50) NOT NULL DEFAULT 'ash',
 			stripe_customer varchar(255) DEFAULT NULL,
 			stripe_subscription varchar(255) DEFAULT NULL,
 			stripe_payment_method varchar(255) DEFAULT NULL,
@@ -87,7 +87,7 @@ class Database {
 			cancelled_at datetime DEFAULT NULL,
 			scheduled_deletion_at datetime DEFAULT NULL,
 			cloudflare_record_id varchar(255) DEFAULT NULL,
-			hetzner_server_id varchar(255) DEFAULT NULL,
+			provider_server_id varchar(255) DEFAULT NULL,
 			credit_balance decimal(10,2) NOT NULL DEFAULT 10.00,
 			auto_refill_enabled tinyint(1) NOT NULL DEFAULT 0,
 			auto_refill_threshold decimal(10,2) NOT NULL DEFAULT 5.00,
@@ -123,8 +123,8 @@ class Database {
 			user_id bigint(20) unsigned NOT NULL,
 			name varchar(255) DEFAULT '',
 			tier varchar(50) NOT NULL DEFAULT 'starter',
-			hetzner_server_id varchar(100) DEFAULT NULL,
-			hetzner_type varchar(50) DEFAULT NULL,
+			provider_server_id varchar(100) DEFAULT NULL,
+			server_type varchar(50) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
 			server_location varchar(10) DEFAULT 'ash',
 			openclaw_token varchar(255) DEFAULT NULL,
@@ -170,6 +170,40 @@ class Database {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+	}
+
+	/**
+	 * Migrate old column names to provider-agnostic names.
+	 *
+	 * Renames hetzner_type → server_type, hetzner_server_id → provider_server_id,
+	 * hetzner_location → server_location for existing installations.
+	 */
+	public static function migrate_column_names(): void {
+		global $wpdb;
+
+		$customers_table = self::get_table_name();
+		$servers_table   = self::get_servers_table_name();
+
+		// Customers table migrations.
+		$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$customers_table}" );
+		if ( in_array( 'hetzner_type', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `hetzner_type` `server_type` varchar(50) NOT NULL DEFAULT 'cpx21'" );
+		}
+		if ( in_array( 'hetzner_server_id', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `hetzner_server_id` `provider_server_id` varchar(255) DEFAULT NULL" );
+		}
+		if ( in_array( 'hetzner_location', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `hetzner_location` `server_location` varchar(50) NOT NULL DEFAULT 'ash'" );
+		}
+
+		// Servers table migrations.
+		$server_columns = $wpdb->get_col( "SHOW COLUMNS FROM {$servers_table}" );
+		if ( in_array( 'hetzner_type', $server_columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `hetzner_type` `server_type` varchar(50) DEFAULT NULL" );
+		}
+		if ( in_array( 'hetzner_server_id', $server_columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `hetzner_server_id` `provider_server_id` varchar(255) DEFAULT NULL" );
+		}
 	}
 
 	/**
@@ -250,8 +284,8 @@ class Database {
 				'domain_expires_at'   => $domain_expires,
 				'tier'                => $tier,
 				'wants_website'       => $wants_website ? 1 : 0,
-				'hetzner_type'        => $server_config['hetzner_type'],
-				'hetzner_location'    => $server_config['location'],
+				'server_type'        => $server_config['server_type'],
+				'server_location'    => $server_config['location'],
 				'stripe_customer'     => $data['stripe_customer'] ?? null,
 				'stripe_subscription' => $data['stripe_subscription'] ?? null,
 				'status'              => $data['status'] ?? 'pending',
@@ -763,9 +797,9 @@ class Database {
 	 * @param string $server_id Hetzner server ID.
 	 * @return bool Success.
 	 */
-	public static function set_hetzner_server_id( int $id, string $server_id ): bool {
+	public static function set_provider_server_id( int $id, string $server_id ): bool {
 		return self::update_customer( $id, array(
-			'hetzner_server_id' => $server_id,
+			'provider_server_id' => $server_id,
 		) );
 	}
 
@@ -788,8 +822,8 @@ class Database {
 				'user_id'           => $data['user_id'],
 				'name'              => $data['name'] ?? '',
 				'tier'              => $data['tier'] ?? 'starter',
-				'hetzner_server_id' => $data['hetzner_server_id'] ?? null,
-				'hetzner_type'      => $data['hetzner_type'] ?? null,
+				'provider_server_id' => $data['provider_server_id'] ?? null,
+				'server_type'      => $data['server_type'] ?? null,
 				'server_ip'         => $data['server_ip'] ?? null,
 				'server_location'   => $data['server_location'] ?? 'ash',
 				'openclaw_token'    => $data['openclaw_token'] ?? null,

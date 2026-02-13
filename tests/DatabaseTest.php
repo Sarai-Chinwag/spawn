@@ -276,9 +276,9 @@ class DatabaseTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test tier and hetzner_type are set correctly from Config.
+	 * Test tier and server_type are set correctly from Config.
 	 */
-	public function test_tier_sets_hetzner_type(): void {
+	public function test_tier_sets_server_type(): void {
 		// US customer with website = US server type.
 		$us_id = Database::create_customer( [
 			'email'           => 'us@example.com',
@@ -291,7 +291,7 @@ class DatabaseTest extends WP_UnitTestCase {
 
 		$us_customer = Database::get_customer( $us_id );
 		$this->assertEquals( 'starter', $us_customer['tier'] );
-		$this->assertEquals( 'cpx21', $us_customer['hetzner_type'] );
+		$this->assertEquals( 'cpx21', $us_customer['server_type'] );
 
 		// EU customer = EU server type.
 		$eu_id = Database::create_customer( [
@@ -304,7 +304,7 @@ class DatabaseTest extends WP_UnitTestCase {
 		] );
 
 		$eu_customer = Database::get_customer( $eu_id );
-		$this->assertEquals( 'cpx22', $eu_customer['hetzner_type'] );
+		$this->assertEquals( 'cpx22', $eu_customer['server_type'] );
 	}
 
 	/**

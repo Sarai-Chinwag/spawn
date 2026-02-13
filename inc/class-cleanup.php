@@ -61,8 +61,8 @@ class Cleanup {
 		error_log( sprintf( '[Spawn Cleanup] Processing deletion for customer #%d (%s)', $customer_id, $customer['domain'] ) );
 
 		// Step 1: Delete VPS.
-		if ( ! empty( $customer['hetzner_server_id'] ) || ! empty( $customer['server_id'] ) ) {
-			$server_id  = $customer['hetzner_server_id'] ? $customer['hetzner_server_id'] : $customer['server_id'];
+		if ( ! empty( $customer['provider_server_id'] ) || ! empty( $customer['server_id'] ) ) {
+			$server_id  = $customer['provider_server_id'] ? $customer['provider_server_id'] : $customer['server_id'];
 			$vps_result = self::delete_vps( $server_id );
 			if ( ! $vps_result ) {
 				error_log( sprintf( '[Spawn Cleanup] Failed to delete VPS %s for customer #%d', $server_id, $customer_id ) );

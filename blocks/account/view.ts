@@ -24,7 +24,7 @@ interface AccountTier {
 }
 
 interface Customer {
-	vps_tier: string;
+	server_type: string;
 	tier?: string;
 	billing_mode?: 'managed' | 'byok';
 }
@@ -136,7 +136,7 @@ function getTierByVps( vpsTier: string ): AccountTier & { key: string } {
  * Render the full account UI.
  */
 function renderAccount( block: HTMLElement, customer: Customer ): void {
-	const currentTier = getTierByVps( customer.vps_tier );
+	const currentTier = getTierByVps( customer.server_type );
 	const isByok = customer.billing_mode === 'byok';
 
 	block.innerHTML = `

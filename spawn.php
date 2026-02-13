@@ -102,6 +102,9 @@ function activate(): void {
 	// Create database tables if needed.
 	Database::create_tables();
 
+	// Run column migrations for existing installations.
+	Database::migrate_column_names();
+
 	// Register user role.
 	User_Role::register_role();
 

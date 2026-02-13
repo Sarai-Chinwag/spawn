@@ -205,7 +205,7 @@ class WebhookTest extends WP_UnitTestCase {
 		$this->assertNotNull( $customer );
 		$this->assertEquals( 'eu', $customer['customer_region'] );
 		// EU customers get EU server types (cpx22 instead of cpx21).
-		$this->assertEquals( 'cpx22', $customer['hetzner_type'] );
+		$this->assertEquals( 'cpx22', $customer['server_type'] );
 	}
 
 	/**

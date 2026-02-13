@@ -37,8 +37,8 @@ class ConfigTest extends TestCase {
 			'name',
 			'price',
 			'description',
-			'hetzner_type_us',
-			'hetzner_type_eu',
+			'server_type_us',
+			'server_type_eu',
 			'vcpu',
 			'ram_gb',
 			'disk_gb',
@@ -97,12 +97,12 @@ class ConfigTest extends TestCase {
 	 *
 	 * US types: cpx21 / cpx31 / cpx41
 	 */
-	public function test_hetzner_types_us(): void {
+	public function test_server_types_us(): void {
 		$tiers = Config::get_tiers();
 
-		$this->assertEquals( 'cpx21', $tiers['starter']['hetzner_type_us'] );
-		$this->assertEquals( 'cpx31', $tiers['pro']['hetzner_type_us'] );
-		$this->assertEquals( 'cpx41', $tiers['business']['hetzner_type_us'] );
+		$this->assertEquals( 'cpx21', $tiers['starter']['server_type_us'] );
+		$this->assertEquals( 'cpx31', $tiers['pro']['server_type_us'] );
+		$this->assertEquals( 'cpx41', $tiers['business']['server_type_us'] );
 	}
 
 	/**
@@ -110,12 +110,12 @@ class ConfigTest extends TestCase {
 	 *
 	 * EU types: cpx22 / cpx32 / cpx42
 	 */
-	public function test_hetzner_types_eu(): void {
+	public function test_server_types_eu(): void {
 		$tiers = Config::get_tiers();
 
-		$this->assertEquals( 'cpx22', $tiers['starter']['hetzner_type_eu'] );
-		$this->assertEquals( 'cpx32', $tiers['pro']['hetzner_type_eu'] );
-		$this->assertEquals( 'cpx42', $tiers['business']['hetzner_type_eu'] );
+		$this->assertEquals( 'cpx22', $tiers['starter']['server_type_eu'] );
+		$this->assertEquals( 'cpx32', $tiers['pro']['server_type_eu'] );
+		$this->assertEquals( 'cpx42', $tiers['business']['server_type_eu'] );
 	}
 
 	/**
@@ -170,19 +170,19 @@ class ConfigTest extends TestCase {
 	}
 
 	/**
-	 * Test get_hetzner_type returns correct type based on wants_website.
+	 * Test get_server_type returns correct type based on wants_website.
 	 */
-	public function test_get_hetzner_type_by_location(): void {
+	public function test_get_server_type_by_location(): void {
 		// US customer with website = US type.
-		$type = Config::get_hetzner_type( 'starter', true, 'us' );
+		$type = Config::get_server_type( 'starter', true, 'us' );
 		$this->assertEquals( 'cpx21', $type );
 
 		// US customer without website = EU type.
-		$type = Config::get_hetzner_type( 'starter', false, 'us' );
+		$type = Config::get_server_type( 'starter', false, 'us' );
 		$this->assertEquals( 'cpx22', $type );
 
 		// EU customer always gets EU type.
-		$type = Config::get_hetzner_type( 'pro', true, 'eu' );
+		$type = Config::get_server_type( 'pro', true, 'eu' );
 		$this->assertEquals( 'cpx32', $type );
 	}
 
@@ -194,7 +194,7 @@ class ConfigTest extends TestCase {
 
 		$this->assertIsArray( $config );
 		$this->assertEquals( 'starter', $config['tier'] );
-		$this->assertEquals( 'cpx21', $config['hetzner_type'] );
+		$this->assertEquals( 'cpx21', $config['server_type'] );
 		$this->assertEquals( 'ash', $config['location'] );
 		$this->assertEquals( 'us', $config['customer_region'] );
 		$this->assertEquals( 4, $config['ram_gb'] );
@@ -207,7 +207,7 @@ class ConfigTest extends TestCase {
 		$config = Config::get_server_config( 'pro', false, 'us' );
 
 		$this->assertEquals( 'pro', $config['tier'] );
-		$this->assertEquals( 'cpx32', $config['hetzner_type'] ); // EU type.
+		$this->assertEquals( 'cpx32', $config['server_type'] ); // EU type.
 		$this->assertEquals( 'fsn1', $config['location'] ); // EU location.
 	}
 
@@ -234,8 +234,8 @@ class ConfigTest extends TestCase {
 
 			// Should NOT have internal fields.
 			$this->assertArrayNotHasKey( 'stripe_price_id', $tier );
-			$this->assertArrayNotHasKey( 'hetzner_type_us', $tier );
-			$this->assertArrayNotHasKey( 'hetzner_type_eu', $tier );
+			$this->assertArrayNotHasKey( 'server_type_us', $tier );
+			$this->assertArrayNotHasKey( 'server_type_eu', $tier );
 		}
 	}
 

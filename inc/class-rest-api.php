@@ -1183,7 +1183,7 @@ class REST_API {
 	 * @return array Progress data.
 	 */
 	private static function get_provisioning_progress( string $status, array $customer ): array {
-		$has_server_id = ! empty( $customer['hetzner_server_id'] ) || ! empty( $customer['server_id'] );
+		$has_server_id = ! empty( $customer['provider_server_id'] ) || ! empty( $customer['server_id'] );
 		$has_server_ip = ! empty( $customer['server_ip'] );
 		$has_wordpress = ! empty( $customer['openclaw_token'] );
 		$is_active     = in_array( $status, array( 'active', 'ready' ), true );
@@ -1560,7 +1560,7 @@ class REST_API {
 				'tier'           => $customer['tier'] ?? 'starter',
 				'billing_mode'   => $customer['billing_mode'] ?? 'managed',
 				'wants_website'  => (bool) ( $customer['wants_website'] ?? true ),
-				'hetzner_type'   => $customer['hetzner_type'] ?? 'cpx21',
+				'server_type'   => $customer['server_type'] ?? 'cpx21',
 				'credit_balance' => (float) $customer['credit_balance'],
 				'server_ip'      => $customer['server_ip'],
 				'status'         => $customer['status'],

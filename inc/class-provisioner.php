@@ -78,8 +78,8 @@ class Provisioner {
 				'subdomain'                => $is_subdomain,
 				'tier'                     => $tier,
 				'wants_website'            => $wants_website,
-				'hetzner_type'             => $server_config['hetzner_type'],
-				'hetzner_location'         => $server_config['location'],
+				'server_type'             => $server_config['server_type'],
+				'server_location'         => $server_config['location'],
 				'site_title'               => $params['site_title'] ?? '',
 				'skip_domain_registration' => $skip_domain_registration,
 				'dry_run'                  => $is_test_mode,
@@ -95,7 +95,7 @@ class Provisioner {
 			$params['domain'] ?? 'no-domain',
 			$tier,
 			$wants_website ? 'yes' : 'no',
-			$server_config['hetzner_type'],
+			$server_config['server_type'],
 			$server_config['location']
 		) );
 
@@ -242,7 +242,7 @@ class Provisioner {
 
 			if ( ! empty( $server_id ) ) {
 				$update_data['server_id']         = $server_id;
-				$update_data['hetzner_server_id'] = $server_id;
+				$update_data['provider_server_id'] = $server_id;
 			}
 
 			if ( ! empty( $openclaw_token ) ) {
@@ -390,7 +390,7 @@ class Provisioner {
 	 */
 	private static function send_admin_purchase_notification( array $customer, string $domain, string $server_ip ): void {
 		$admin_email = get_option( 'admin_email' );
-		$tier        = $customer['vps_tier'] ?? 'unknown';
+		$tier        = $customer['server_type'] ?? 'unknown';
 
 		$subject = sprintf(
 			/* translators: %s: domain name */

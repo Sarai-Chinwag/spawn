@@ -95,8 +95,8 @@ class Config {
 				'price'            => 20,
 				'description'      => __( 'Perfect for personal use', 'spawn' ),
 				'stripe_price_id'  => $prices['vps_starter'] ?? '',
-				'hetzner_type_us'  => 'cpx21',
-				'hetzner_type_eu'  => 'cpx22',
+				'server_type_us'  => 'cpx21',
+				'server_type_eu'  => 'cpx22',
 				'vcpu'             => 3, // cpx21 has 3, cpx22 has 2
 				'vcpu_shared'      => true,
 				'ram_gb'           => 4,
@@ -113,8 +113,8 @@ class Config {
 				'price'            => 50,
 				'description'      => __( 'More power for bigger projects', 'spawn' ),
 				'stripe_price_id'  => $prices['vps_pro'] ?? '',
-				'hetzner_type_us'  => 'cpx31',
-				'hetzner_type_eu'  => 'cpx32',
+				'server_type_us'  => 'cpx31',
+				'server_type_eu'  => 'cpx32',
 				'vcpu'             => 4,
 				'vcpu_shared'      => true,
 				'ram_gb'           => 8,
@@ -132,8 +132,8 @@ class Config {
 				'price'            => 100,
 				'description'      => __( 'Maximum power for teams', 'spawn' ),
 				'stripe_price_id'  => $prices['vps_business'] ?? '',
-				'hetzner_type_us'  => 'cpx41',
-				'hetzner_type_eu'  => 'cpx42',
+				'server_type_us'  => 'cpx41',
+				'server_type_eu'  => 'cpx42',
 				'vcpu'             => 8,
 				'vcpu_shared'      => true,
 				'ram_gb'           => 16,
@@ -178,7 +178,7 @@ class Config {
 	 * @param string $customer_region Customer region ('us' or 'eu').
 	 * @return string|null Hetzner type or null if tier not found.
 	 */
-	public static function get_hetzner_type( string $tier_id, bool $wants_website = true, string $customer_region = 'us' ): ?string {
+	public static function get_server_type( string $tier_id, bool $wants_website = true, string $customer_region = 'us' ): ?string {
 		$tier = self::get_tier( $tier_id );
 		if ( ! $tier ) {
 			return null;
@@ -186,7 +186,7 @@ class Config {
 
 		// Location determines type: EU location uses _eu types, US uses _us types.
 		$location = self::get_server_location( $wants_website, $customer_region );
-		return 'fsn1' === $location ? $tier['hetzner_type_eu'] : $tier['hetzner_type_us'];
+		return 'fsn1' === $location ? $tier['server_type_eu'] : $tier['server_type_us'];
 	}
 
 	/**
@@ -224,11 +224,11 @@ class Config {
 		}
 
 		$location     = self::get_server_location( $wants_website, $customer_region );
-		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website, $customer_region );
+		$server_type = self::get_server_type( $tier_id, $wants_website, $customer_region );
 
 		return array(
 			'tier'            => $tier_id,
-			'hetzner_type'    => $hetzner_type,
+			'server_type'    => $server_type,
 			'location'        => $location,
 			'customer_region' => $customer_region,
 			'vcpu'            => $tier['vcpu'],
@@ -312,8 +312,8 @@ class Config {
 			'cpx42' => 21.99,
 		);
 
-		$hetzner_type = self::get_hetzner_type( $tier_id, $wants_website );
-		$server_cost  = $server_costs[ $hetzner_type ] ?? 9.99;
+		$server_type = self::get_server_type( $tier_id, $wants_website );
+		$server_cost  = $server_costs[ $server_type ] ?? 9.99;
 		$credits_cost = $tier['included_credits']; // $1 = $1 (pass-through).
 		$stripe_fee   = ( $tier['price'] * 0.029 ) + 0.30;
 		$net_received = $tier['price'] - $stripe_fee;
