@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## [0.8.0] - 2026-02-13
+
+- feat: BYOK (Bring Your Own Key) support — customers can provide their own Anthropic API key to bypass LiteLLM proxy
+
 ## [0.7.0] - 2026-02-13
 
 - Refactor REST API monolith into domain controllers delegating to abilities as primitives
