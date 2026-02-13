@@ -47,7 +47,18 @@ add_action( 'plugins_loaded', __NAMESPACE__ . '\\init' );
 function init(): void {
 	// Load components.
 	Blocks::init();
-	REST_API::init();
+	// Register all REST controllers via rest_api_init hook.
+	add_action( 'rest_api_init', static function () {
+		Controllers\Auth_Controller::register_routes();
+		Controllers\Chat_Controller::register_routes();
+		Controllers\Customer_Controller::register_routes();
+		Controllers\Credits_Controller::register_routes();
+		Controllers\Checkout_Controller::register_routes();
+		Controllers\Server_Controller::register_routes();
+		Controllers\Domain_Controller::register_routes();
+		Controllers\LiteLLM_Controller::register_routes();
+		Controllers\Usage_Controller::register_routes();
+	} );
 
 	// Only init Stripe webhook handlers if stripe-integration plugin is active.
 	if ( class_exists( '\\StripeIntegration\\Plugin' ) || function_exists( 'stripe_integration_init' ) ) {

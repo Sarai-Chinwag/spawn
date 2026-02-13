@@ -158,7 +158,7 @@ class Webhook {
 			$domain      = $metadata['domain'] ?? '';
 
 			if ( $customer_id && $domain ) {
-				$result = REST_API::process_domain_renewal_payment( $customer_id, $domain );
+				$result = Controllers\Domain_Controller::process_domain_renewal_payment( $customer_id, $domain );
 				if ( is_wp_error( $result ) ) {
 					error_log( sprintf( '[Spawn] Domain renewal processing failed: %s', $result->get_error_message() ) );
 				}
