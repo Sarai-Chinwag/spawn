@@ -2,6 +2,10 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## [0.7.0] - 2026-02-13
+
+- Refactor REST API monolith into domain controllers delegating to abilities as primitives
+
 ## [0.6.15] - 2026-02-10
 
 ### Changed
