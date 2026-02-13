@@ -72,6 +72,7 @@ class Database {
 			domain_expires_at datetime DEFAULT NULL,
 			tier varchar(50) NOT NULL DEFAULT 'starter',
 			billing_mode varchar(20) NOT NULL DEFAULT 'managed',
+			api_key_encrypted text DEFAULT NULL,
 			wants_website tinyint(1) NOT NULL DEFAULT 1,
 			server_type varchar(50) NOT NULL DEFAULT 'cpx21',
 			server_location varchar(50) NOT NULL DEFAULT 'ash',
@@ -203,6 +204,19 @@ class Database {
 		}
 		if ( in_array( 'hetzner_server_id', $server_columns, true ) ) {
 			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `hetzner_server_id` `provider_server_id` varchar(255) DEFAULT NULL" );
+		}
+	}
+
+	/**
+	 * Add BYOK column to existing installations.
+	 */
+	public static function migrate_byok_column(): void {
+		global $wpdb;
+
+		$table   = self::get_table_name();
+		$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( ! in_array( 'api_key_encrypted', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN api_key_encrypted text DEFAULT NULL AFTER billing_mode" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		}
 	}
 

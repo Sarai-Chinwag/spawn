@@ -179,6 +179,15 @@ class LiteLLM_Controller {
 			) );
 		}
 
+		// Skip billing for BYOK customers — they pay Anthropic directly.
+		$byok_customer = Database::get_customer( $spawn_customer_id );
+		if ( $byok_customer && 'byok' === ( $byok_customer['billing_mode'] ?? 'managed' ) ) {
+			return new WP_REST_Response( array(
+				'status'  => 'skipped',
+				'message' => 'Customer is BYOK — no credits deducted.',
+			) );
+		}
+
 		if ( 0 === $prompt_tokens && 0 === $completion_tokens ) {
 			return new WP_REST_Response( array(
 				'status'  => 'skipped',
