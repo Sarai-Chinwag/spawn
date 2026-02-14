@@ -21,7 +21,7 @@
 	margin: 0 0 1.5rem;
 	text-align: center;
 	font-size: 1.75rem;
-	font-family: var(--font-heading, 'Gluten', sans-serif);
+	font-family: var(--font-heading);
 	color: var(--color-text, #1f2933);
 }
 

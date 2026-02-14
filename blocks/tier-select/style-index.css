@@ -60,7 +60,7 @@
 }
 
 .wp-block-spawn-tier-select .tier-card h4 {
-	font-family: var(--font-heading, 'Gluten', sans-serif);
+	font-family: var(--font-heading);
 	font-size: var(--font-size-h2, 1.38em);
 	margin: 0 0 var(--space-sm, 10px);
 	text-transform: uppercase;

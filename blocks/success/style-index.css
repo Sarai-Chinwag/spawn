@@ -160,7 +160,7 @@
 .spawn-success__title {
 	margin: 0 0 var(--space-sm, 10px);
 	font-size: 1.5rem;
-	font-family: var(--font-heading, 'Gluten', sans-serif);
+	font-family: var(--font-heading);
 	color: var(--color-text, #1f2933);
 }
 
