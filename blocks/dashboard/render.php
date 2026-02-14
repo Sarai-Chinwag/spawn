@@ -116,8 +116,6 @@ if ( ! $customer && ! $is_admin ) {
 }
 
 $credit_balance = $customer ? (float) ( $customer['credit_balance'] ?? 0 ) : 0.0;
-$billing_mode   = $customer ? ( $customer['billing_mode'] ?? 'managed' ) : 'managed';
-$is_byok        = 'byok' === $billing_mode;
 $server_count   = count( $servers );
 $domain_count   = count( $domains );
 $active_tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
@@ -203,7 +201,6 @@ foreach ( $servers as $server ) {
 					<?php echo esc_html__( 'Open Chat', 'spawn' ); ?>
 				</a>
 			</div>
-			<?php if ( ! $is_byok ) : ?>
 				<div class="spawn-dashboard__card spawn-dashboard__card--balance">
 					<h3><?php echo esc_html__( 'Credit Balance', 'spawn' ); ?></h3>
 					<p class="spawn-dashboard__balance">
@@ -213,7 +210,6 @@ foreach ( $servers as $server ) {
 						<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
 					</a>
 				</div>
-			<?php endif; ?>
 			<div class="spawn-dashboard__card">
 				<h3><?php echo esc_html__( 'Account', 'spawn' ); ?></h3>
 				<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Manage billing, credits, and settings.', 'spawn' ); ?></p>
@@ -226,22 +222,6 @@ foreach ( $servers as $server ) {
 
 	<section class="spawn-dashboard__panel<?php echo $ai_is_active ? ' is-active' : ''; ?>" data-panel="ai">
 		<div class="spawn-dashboard__grid">
-			<?php if ( $is_byok ) : ?>
-				<!-- BYOK Mode: User manages their own API keys -->
-				<div class="spawn-dashboard__card spawn-dashboard__card--featured">
-					<h3><?php echo esc_html__( 'Bring Your Own Key', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'You\'re using your own API key. Usage is billed directly by your AI provider.', 'spawn' ); ?></p>
-				</div>
-				<div class="spawn-dashboard__card">
-					<h3><?php echo esc_html__( 'Provider', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Your AI is configured to use your own API credentials. Ask your AI to help you switch providers or update your key.', 'spawn' ); ?></p>
-				</div>
-				<div class="spawn-dashboard__card">
-					<h3><?php echo esc_html__( 'Switch to Managed', 'spawn' ); ?></h3>
-					<p class="spawn-dashboard__muted"><?php echo esc_html__( 'Want us to handle billing? Ask your AI to switch to managed credits.', 'spawn' ); ?></p>
-				</div>
-			<?php else : ?>
-				<!-- Managed Mode: We track usage and bill through credits -->
 				<div class="spawn-dashboard__card spawn-dashboard__card--usage spawn-dashboard__card--featured">
 					<h3><?php echo $is_admin_mode ? esc_html__( 'Total AI Usage This Month', 'spawn' ) : esc_html__( 'AI Usage This Month', 'spawn' ); ?></h3>
 					<div class="spawn-dashboard__usage-stats">
@@ -281,7 +261,6 @@ foreach ( $servers as $server ) {
 						<?php echo esc_html__( 'Add Credits', 'spawn' ); ?>
 					</a>
 				</div>
-			<?php endif; ?>
 		</div>
 	</section>
 

@@ -58,7 +58,6 @@ function init(): void {
 		Controllers\Domain_Controller::register_routes();
 		Controllers\LiteLLM_Controller::register_routes();
 		Controllers\Usage_Controller::register_routes();
-		Controllers\BYOK_Controller::register_routes();
 		Controllers\Admin_Controller::register_routes();
 	} );
 
