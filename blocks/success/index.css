@@ -40,7 +40,7 @@
 }
 
 .spawn-success-editor__state {
-	background: #1fc5e2;
+	background: var(--color-primary);
 	color: #fff;
 	padding: 6px 12px;
 	border-radius: 20px;

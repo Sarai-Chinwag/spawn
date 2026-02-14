@@ -344,7 +344,7 @@
 
 .spawn-dashboard__usage-bar-fill {
 	height: 100%;
-	background: linear-gradient(90deg, var(--color-primary) 0%, #6c63ff 100%);
+	background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	border-radius: 4px;
 	transition: width 0.3s ease;
 }
@@ -373,7 +373,7 @@
 
 /* Usage card when featured (AI tab) */
 .spawn-dashboard__card--usage.spawn-dashboard__card--featured {
-	background: linear-gradient(135deg, #6c63ff 0%, var(--color-primary) 100%);
+	background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
 }
 
 .spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-value,

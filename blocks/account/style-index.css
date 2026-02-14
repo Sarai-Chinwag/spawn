@@ -363,7 +363,7 @@
 
 .credits-input:focus {
 	outline: none;
-	border-color: #1fc5e2;
+	border-color: var(--color-primary);
 }
 
 .credits-hint {
@@ -374,7 +374,7 @@
 }
 
 .btn-purchase {
-	background: linear-gradient(135deg, #1fc5e2 0%, #6c63ff 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	color: #fff;
 }
 
@@ -406,7 +406,7 @@
 .auto-refill-toggle input {
 	width: 18px;
 	height: 18px;
-	accent-color: #1fc5e2;
+	accent-color: var(--color-primary);
 }
 
 .auto-refill-settings {
@@ -447,12 +447,12 @@
 
 .auto-refill-input-wrap input:focus {
 	outline: none;
-	border-color: #1fc5e2;
+	border-color: var(--color-primary);
 }
 
 .btn-save-auto-refill {
 	width: 100%;
-	background: #1fc5e2;
+	background: var(--color-primary);
 	color: #fff;
 }
 
