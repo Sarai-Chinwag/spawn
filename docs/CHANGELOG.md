@@ -2,7 +2,7 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
-## Unreleased
+## [0.9.1] - 2026-02-14
 
 ### Fixed
 - Replace all hardcoded color hex values with CSS variables
