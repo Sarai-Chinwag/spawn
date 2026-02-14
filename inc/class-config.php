@@ -106,6 +106,7 @@ class Config {
 					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
+					__( 'Automated daily backups', 'spawn' ),
 				),
 			),
 			'pro'      => array(
@@ -124,6 +125,7 @@ class Config {
 					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
+					__( 'Automated daily backups', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
 				),
 			),
@@ -143,6 +145,7 @@ class Config {
 					__( 'Pay-as-you-go AI credits', 'spawn' ),
 					__( 'Free website (optional)', 'spawn' ),
 					__( 'Add custom domain anytime', 'spawn' ),
+					__( 'Automated daily backups', 'spawn' ),
 					__( 'Priority support', 'spawn' ),
 					__( 'Best for heavy work', 'spawn' ),
 				),
