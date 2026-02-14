@@ -21,7 +21,7 @@
 }
 
 .spawn-topnav__logo:hover {
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 .spawn-topnav__logo img {
@@ -54,7 +54,7 @@
 .spawn-topnav__links a:hover,
 .spawn-topnav__links a.is-active {
 	opacity: 1;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 /* Mobile topnav */
@@ -127,8 +127,8 @@
 
 .spawn-dashboard__tab.is-active,
 .spawn-dashboard__tab:hover {
-	background: var(--color-primary, #1fc5e2);
-	border-color: var(--color-primary, #1fc5e2);
+	background: var(--color-primary);
+	border-color: var(--color-primary);
 	color: var(--color-background, #fff);
 }
 
@@ -170,7 +170,7 @@
 
 .spawn-dashboard__card--featured {
 	grid-column: 1 / -1;
-	background: linear-gradient(135deg, var(--color-primary, #1fc5e2) 0%, var(--color-secondary, #ff6eb1) 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	color: #fff;
 	border: none;
 }
@@ -185,7 +185,7 @@
 
 .spawn-dashboard__button--primary {
 	background: #fff;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 	font-weight: 600;
 }
 
@@ -233,8 +233,8 @@
 	gap: 0.35rem;
 	padding: 0.6rem 1.2rem;
 	border-radius: 6px;
-	background: var(--color-primary, #1fc5e2);
-	border: 2px solid var(--color-secondary, #ff6eb1);
+	background: var(--color-primary);
+	border: 2px solid var(--color-secondary);
 	color: var(--color-background, #fff);
 	text-decoration: none;
 	font-weight: 600;
@@ -243,7 +243,7 @@
 }
 
 .spawn-dashboard__button:hover {
-	background: var(--color-secondary, #ff6eb1);
+	background: var(--color-secondary);
 	transform: translateY(-1px);
 	box-shadow: 0 8px 18px rgba(31, 197, 226, 0.25);
 }
@@ -344,7 +344,7 @@
 
 .spawn-dashboard__usage-bar-fill {
 	height: 100%;
-	background: linear-gradient(90deg, var(--color-primary, #1fc5e2) 0%, #6c63ff 100%);
+	background: linear-gradient(90deg, var(--color-primary) 0%, #6c63ff 100%);
 	border-radius: 4px;
 	transition: width 0.3s ease;
 }
@@ -373,7 +373,7 @@
 
 /* Usage card when featured (AI tab) */
 .spawn-dashboard__card--usage.spawn-dashboard__card--featured {
-	background: linear-gradient(135deg, #6c63ff 0%, var(--color-primary, #1fc5e2) 100%);
+	background: linear-gradient(135deg, #6c63ff 0%, var(--color-primary) 100%);
 }
 
 .spawn-dashboard__card--usage.spawn-dashboard__card--featured .spawn-dashboard__usage-value,

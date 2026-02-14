@@ -22,7 +22,7 @@
 }
 
 .wp-block-spawn-success .spawn-topnav__logo:hover {
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 .wp-block-spawn-success .spawn-topnav__logo img {
@@ -47,7 +47,7 @@
 
 .wp-block-spawn-success .spawn-topnav__links a:hover {
 	opacity: 1;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 /* ===== SUCCESS BLOCK LAYOUT ===== */
@@ -116,7 +116,7 @@
 	width: 48px;
 	height: 48px;
 	border: 4px solid var(--color-border, #ddd);
-	border-top-color: var(--color-primary, #1fc5e2);
+	border-top-color: var(--color-primary);
 	border-radius: 50%;
 	animation: spawn-success-spin 1s linear infinite;
 }
@@ -196,7 +196,7 @@
 
 .spawn-success__progress-fill {
 	height: 100%;
-	background: linear-gradient(90deg, var(--color-primary, #1fc5e2), var(--color-secondary, #ff6eb1));
+	background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
 	border-radius: 4px;
 	width: 0%;
 	transition: width 0.5s ease-out;
@@ -257,7 +257,7 @@
 }
 
 .spawn-success__step--active .spawn-success__step-icon {
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 	animation: spawn-success-dots 1.5s ease-in-out infinite;
 }
 
@@ -304,7 +304,7 @@
 .spawn-success__site-url {
 	font-size: 1.125rem;
 	font-weight: 600;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 	text-decoration: none;
 	word-break: break-all;
 }
@@ -329,8 +329,8 @@
 	gap: 0.35rem;
 	padding: 0.75rem 1.5rem;
 	border-radius: 8px;
-	background: var(--color-primary, #1fc5e2);
-	border: 2px solid var(--color-secondary, #ff6eb1);
+	background: var(--color-primary);
+	border: 2px solid var(--color-secondary);
 	color: var(--color-background, #fff);
 	text-decoration: none;
 	font-weight: 600;
@@ -340,20 +340,20 @@
 }
 
 .spawn-success__button:hover {
-	background: var(--color-secondary, #ff6eb1);
+	background: var(--color-secondary);
 	transform: translateY(-2px);
 	box-shadow: 0 8px 20px rgba(31, 197, 226, 0.3);
 }
 
 .spawn-success__button--primary {
-	background: linear-gradient(135deg, var(--color-primary, #1fc5e2) 0%, var(--color-secondary, #ff6eb1) 100%);
+	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 	border-color: transparent;
 	padding: 1rem 2rem;
 	font-size: 1.125rem;
 }
 
 .spawn-success__button--primary:hover {
-	background: linear-gradient(135deg, var(--color-secondary, #ff6eb1) 0%, var(--color-primary, #1fc5e2) 100%);
+	background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
 	box-shadow: 0 12px 28px rgba(255, 110, 177, 0.35);
 }
 
@@ -365,8 +365,8 @@
 
 .spawn-success__button--ghost:hover {
 	background: var(--color-background, #fff);
-	border-color: var(--color-primary, #1fc5e2);
-	color: var(--color-primary, #1fc5e2);
+	border-color: var(--color-primary);
+	color: var(--color-primary);
 }
 
 /* ===== ERROR STATE ===== */
@@ -380,7 +380,7 @@
 
 /* ===== READY STATE ===== */
 .spawn-success__card--ready {
-	border-color: var(--color-primary, #1fc5e2);
+	border-color: var(--color-primary);
 	background: linear-gradient(180deg, rgba(31, 197, 226, 0.05) 0%, var(--color-background, #fff) 100%);
 }
 

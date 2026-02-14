@@ -31,11 +31,11 @@
 
 .wp-block-spawn-tier-select .tier-card:hover {
 	transform: translateY(-4px);
-	border-color: var(--color-primary, #1fc5e2);
+	border-color: var(--color-primary);
 }
 
 .wp-block-spawn-tier-select .tier-card.highlighted {
-	border-color: var(--color-secondary, #ff6eb1);
+	border-color: var(--color-secondary);
 	position: relative;
 }
 
@@ -45,7 +45,7 @@
 	top: 0;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	background: var(--color-secondary, #ff6eb1);
+	background: var(--color-secondary);
 	color: var(--color-background, #fff);
 	padding: 4px 12px;
 	border-radius: 12px;
@@ -55,7 +55,7 @@
 }
 
 .wp-block-spawn-tier-select .tier-card.selected {
-	border-color: var(--color-primary, #1fc5e2);
+	border-color: var(--color-primary);
 	box-shadow: 0 0 0 3px rgba(31, 197, 226, 0.2);
 }
 
@@ -69,7 +69,7 @@
 .wp-block-spawn-tier-select .tier-card .price {
 	font-size: 2.5em;
 	font-weight: 700;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 	margin: var(--space-sm, 10px) 0;
 	line-height: 1;
 }
@@ -100,13 +100,13 @@
 
 .wp-block-spawn-tier-select .tier-card li::before {
 	content: "✓ ";
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 	font-weight: bold;
 }
 
 .wp-block-spawn-tier-select .tier-card .select-btn {
-	background-color: var(--color-primary, #1fc5e2);
-	border: 2px solid var(--color-secondary, #ff6eb1);
+	background-color: var(--color-primary);
+	border: 2px solid var(--color-secondary);
 	border-radius: 5px;
 	color: var(--color-background, #fff);
 	padding: var(--space-sm, 10px) var(--space-lg, 20px);
@@ -119,11 +119,11 @@
 }
 
 .wp-block-spawn-tier-select .tier-card .select-btn:hover {
-	background-color: var(--color-secondary, #ff6eb1);
+	background-color: var(--color-secondary);
 }
 
 .wp-block-spawn-tier-select .tier-card.selected .select-btn {
-	background-color: var(--color-secondary, #ff6eb1);
+	background-color: var(--color-secondary);
 }
 
 /* Loading state */

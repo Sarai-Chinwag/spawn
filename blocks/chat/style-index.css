@@ -191,7 +191,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 }
 
 .wp-block-spawn-chat__logo:hover {
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 .wp-block-spawn-chat__logo img {
@@ -222,7 +222,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 
 .wp-block-spawn-chat__nav a:hover {
 	opacity: 1;
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 /* Non-fullpage: hide topnav and sidebar (theme has its own header) */
@@ -255,7 +255,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 
 .chat-message--user {
 	align-self: flex-end;
-	background: var(--color-primary, #1fc5e2);
+	background: var(--color-primary);
 	color: var(--color-background, #fff);
 	border-bottom-right-radius: 4px;
 }
@@ -297,11 +297,11 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 
 .wp-block-spawn-chat__input:focus {
 	outline: none;
-	border-color: var(--color-primary, #1fc5e2);
+	border-color: var(--color-primary);
 }
 
 .wp-block-spawn-chat__send {
-	background: var(--color-primary, #1fc5e2);
+	background: var(--color-primary);
 	border: none;
 	border-radius: 8px;
 	color: var(--color-background, #fff);
@@ -314,7 +314,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 }
 
 .wp-block-spawn-chat__send:hover {
-	background: var(--color-secondary, #ff6eb1);
+	background: var(--color-secondary);
 }
 
 .wp-block-spawn-chat__send:disabled {
@@ -357,7 +357,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 .typing-dot {
 	width: 6px;
 	height: 6px;
-	background: var(--color-primary, #1fc5e2);
+	background: var(--color-primary);
 	border-radius: 50%;
 	animation: typingBounce 1.4s infinite ease-in-out;
 }
@@ -388,7 +388,7 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 
 .wp-block-spawn-chat__login-required a,
 .wp-block-spawn-chat__no-subscription a {
-	color: var(--color-primary, #1fc5e2);
+	color: var(--color-primary);
 }
 
 /* ===== MOBILE RESPONSIVE ===== */
