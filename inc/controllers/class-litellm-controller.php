@@ -75,28 +75,6 @@ class LiteLLM_Controller {
 
 		register_rest_route(
 			'spawn/v1',
-			'/agent/billing-mode',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( __CLASS__, 'set_billing_mode' ),
-				'permission_callback' => '__return_true',
-				'args'                => array(
-					'ip'           => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'billing_mode' => array(
-						'required' => true,
-						'type'     => 'string',
-						'enum'     => array( 'managed', 'byok' ),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			'spawn/v1',
 			'/agent/status',
 			array(
 				'methods'             => 'GET',
@@ -176,15 +154,6 @@ class LiteLLM_Controller {
 			return new WP_REST_Response( array(
 				'status'  => 'skipped',
 				'message' => 'No customer ID in metadata or by IP.',
-			) );
-		}
-
-		// Skip billing for BYOK customers — they pay Anthropic directly.
-		$byok_customer = Database::get_customer( $spawn_customer_id );
-		if ( $byok_customer && 'byok' === ( $byok_customer['billing_mode'] ?? 'managed' ) ) {
-			return new WP_REST_Response( array(
-				'status'  => 'skipped',
-				'message' => 'Customer is BYOK — no credits deducted.',
 			) );
 		}
 
@@ -284,37 +253,6 @@ class LiteLLM_Controller {
 	}
 
 	/**
-	 * Set billing mode from customer's agent.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 * @return WP_REST_Response|WP_Error Response.
-	 */
-	public static function set_billing_mode( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$ip           = $request->get_param( 'ip' );
-		$billing_mode = $request->get_param( 'billing_mode' );
-
-		$customer = Database::get_customer_by_server_ip( $ip );
-
-		if ( ! $customer ) {
-			return new WP_Error( 'customer_not_found', __( 'No customer found for this server IP.', 'spawn' ), array( 'status' => 404 ) );
-		}
-
-		$success = Database::update_customer( (int) $customer['id'], array( 'billing_mode' => $billing_mode ) );
-
-		if ( ! $success ) {
-			return new WP_Error( 'update_failed', __( 'Failed to update billing mode.', 'spawn' ), array( 'status' => 500 ) );
-		}
-
-		return new WP_REST_Response( array(
-			'success'      => true,
-			'billing_mode' => $billing_mode,
-			'message'      => 'byok' === $billing_mode
-				? __( 'Switched to Bring Your Own Key mode. You will be billed directly by your AI provider.', 'spawn' )
-				: __( 'Switched to managed credits. Usage will be deducted from your Spawn credit balance.', 'spawn' ),
-		) );
-	}
-
-	/**
 	 * Get customer status from customer's agent.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -337,7 +275,6 @@ class LiteLLM_Controller {
 		return new WP_REST_Response( array(
 			'customer_id'      => (int) $customer['id'],
 			'tier'             => $customer['tier'] ?? 'starter',
-			'billing_mode'     => $customer['billing_mode'] ?? 'managed',
 			'credit_balance'   => (float) ( $customer['credit_balance'] ?? 0 ),
 			'included_credits' => $tier_config['included_credits'] ?? 5.0,
 			'model'            => $model_info,

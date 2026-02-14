@@ -124,7 +124,6 @@ class Customer_Controller {
 				'domain'         => $customer['domain'],
 				'subdomain'      => (bool) $customer['subdomain'],
 				'tier'           => $customer['tier'] ?? 'starter',
-				'billing_mode'   => $customer['billing_mode'] ?? 'managed',
 				'wants_website'  => (bool) ( $customer['wants_website'] ?? true ),
 				'server_type'    => $customer['server_type'] ?? 'cpx21',
 				'credit_balance' => (float) $customer['credit_balance'],
