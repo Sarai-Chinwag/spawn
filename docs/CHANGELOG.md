@@ -2,6 +2,12 @@
 
 All notable changes to the Spawn plugin will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- Replace all hardcoded color hex values with CSS variables
+- Remove hardcoded Gluten font fallbacks from block styles
+
 ## [0.9.0] - 2026-02-13
 
 - security: BYOK rewrite — customer API keys never stored on our server, billing mode toggle only
