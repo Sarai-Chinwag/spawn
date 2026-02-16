@@ -208,6 +208,9 @@ class Webhook {
 		if ( is_wp_error( $registration ) ) {
 			error_log( sprintf( '[Spawn] Domain registration API failed for %s (customer #%d): %s', $domain, $customer_id, $registration->get_error_message() ) );
 			self::send_domain_purchase_notification( $customer, $domain, $base_price, $registration->get_error_message() );
+
+			// Refund the customer — registration failed after payment.
+			self::refund_domain_purchase( $session, $domain, $customer_id, $registration->get_error_message() );
 			return;
 		}
 
@@ -229,6 +232,12 @@ class Webhook {
 
 		self::send_domain_registration_email( $customer, $domain, $registration['expires_at'] ?? null );
 		self::send_domain_purchase_notification( $customer, $domain, $base_price );
+
+		// Trigger domain migration — point DNS, configure SSL, update WordPress.
+		$old_domain = $customer['domain'] ?? '';
+		if ( ! empty( $customer['server_ip'] ) && $domain !== $old_domain ) {
+			self::trigger_domain_migration( $customer, $domain, $old_domain, $domain_id );
+		}
 
 		error_log( sprintf( '[Spawn] Domain registered: %s for customer #%d', $domain, $customer_id ) );
 	}
@@ -314,6 +323,129 @@ class Webhook {
 		}
 
 		wp_mail( $admin_email, $subject, $message );
+	}
+
+	/**
+	 * Refund a domain purchase after registration failure.
+	 *
+	 * @param array  $session       Stripe checkout session data.
+	 * @param string $domain        Domain that failed to register.
+	 * @param int    $customer_id   Spawn customer ID.
+	 * @param string $error_message Registration error message.
+	 */
+	private static function refund_domain_purchase( array $session, string $domain, int $customer_id, string $error_message ): void {
+		if ( ! class_exists( '\\StripeIntegration\\StripeClient' ) ) {
+			error_log( '[Spawn] Cannot refund domain purchase — Stripe Integration not available' );
+			return;
+		}
+
+		$payment_intent = $session['payment_intent'] ?? '';
+		if ( empty( $payment_intent ) ) {
+			error_log( sprintf( '[Spawn] Cannot refund domain %s — no payment_intent in session', $domain ) );
+			return;
+		}
+
+		$result = \StripeIntegration\StripeClient::create_refund(
+			$payment_intent,
+			null, // Full refund.
+			'requested_by_customer'
+		);
+
+		if ( is_wp_error( $result ) ) {
+			error_log( sprintf(
+				'[Spawn] Refund failed for domain %s (customer #%d): %s',
+				$domain,
+				$customer_id,
+				$result->get_error_message()
+			) );
+		} else {
+			error_log( sprintf(
+				'[Spawn] Refunded domain purchase for %s (customer #%d) due to registration failure: %s',
+				$domain,
+				$customer_id,
+				$error_message
+			) );
+		}
+	}
+
+	/**
+	 * Trigger domain migration via Sweatpants.
+	 *
+	 * Points DNS at the customer's VPS, configures SSL, updates nginx,
+	 * and updates WordPress siteurl for the new domain.
+	 *
+	 * @param array    $customer   Customer data.
+	 * @param string   $domain     New domain name.
+	 * @param string   $old_domain Previous domain/subdomain.
+	 * @param int|null $domain_id  Domain record ID.
+	 */
+	private static function trigger_domain_migration( array $customer, string $domain, string $old_domain, ?int $domain_id ): void {
+		$config = array(
+			'url'   => get_option( 'spawn_provisioner_url', 'http://127.0.0.1:8420' ),
+			'token' => get_option( 'spawn_provisioner_token', '' ),
+		);
+
+		if ( empty( $config['url'] ) ) {
+			error_log( '[Spawn] Cannot trigger domain migration — provisioner URL not configured' );
+			return;
+		}
+
+		$job_data = array(
+			'module_id' => 'domain-migrator',
+			'inputs'    => array(
+				'customer_id' => (int) $customer['id'],
+				'new_domain'  => $domain,
+				'old_domain'  => $old_domain,
+				'server_ip'   => $customer['server_ip'],
+				'domain_id'   => $domain_id,
+			),
+		);
+
+		$args = array(
+			'method'  => 'POST',
+			'headers' => array(
+				'Content-Type' => 'application/json',
+			),
+			'body'    => wp_json_encode( $job_data ),
+			'timeout' => 30,
+		);
+
+		if ( ! empty( $config['token'] ) ) {
+			$args['headers']['Authorization'] = 'Bearer ' . $config['token'];
+		}
+
+		$response = wp_remote_request( $config['url'] . '/jobs', $args );
+
+		if ( is_wp_error( $response ) ) {
+			error_log( sprintf(
+				'[Spawn] Domain migration trigger failed for %s (customer #%d): %s',
+				$domain,
+				(int) $customer['id'],
+				$response->get_error_message()
+			) );
+			return;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code >= 400 ) {
+			error_log( sprintf(
+				'[Spawn] Domain migration API error for %s: %s',
+				$domain,
+				$body['error'] ?? "HTTP $code"
+			) );
+			return;
+		}
+
+		$job_id = $body['job_id'] ?? $body['id'] ?? 'unknown';
+		error_log( sprintf(
+			'[Spawn] Domain migration triggered for %s → %s (customer #%d, job: %s)',
+			$old_domain,
+			$domain,
+			(int) $customer['id'],
+			$job_id
+		) );
 	}
 
 	/**
