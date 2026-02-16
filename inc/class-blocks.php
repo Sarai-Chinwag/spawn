@@ -31,6 +31,9 @@ class Blocks {
 			'account',
 			'chat',
 			'success',
+			'auth-gate',
+			'credit-balance',
+			'credit-purchase',
 		);
 
 		foreach ( $blocks as $block ) {

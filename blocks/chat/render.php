@@ -25,6 +25,27 @@ $wrapper_attributes = get_block_wrapper_attributes( array(
 $brand_name     = Branding::get_brand_name();
 $brand_logo_url = Branding::get_brand_logo_url();
 
+// Determine auth state and customer data.
+$is_authenticated = is_user_logged_in();
+$customer_id     = 0;
+$billing_mode   = 'managed';
+
+if ( $is_authenticated ) {
+	$user_id  = get_current_user_id();
+	$customer = \Spawn\Database::get_customer_by_user_id( $user_id );
+	$is_admin = current_user_can( 'manage_options' );
+
+	if ( $customer || $is_admin ) {
+		$customer_id   = $customer['id'] ?? 0;
+		$billing_mode  = $customer['billing_mode'] ?? 'managed';
+	}
+}
+
+// Set block context.
+$block->context['spawn/isAuthenticated'] = $is_authenticated;
+$block->context['spawn/customerId']     = $customer_id;
+$block->context['spawn/billingMode']    = $billing_mode;
+
 // Check if user is logged in.
 if ( ! is_user_logged_in() ) {
 	?>
@@ -123,6 +144,13 @@ if ( $is_admin && ! $customer ) {
 			<a href="<?php echo esc_url( wp_logout_url( home_url( '/spawn/' ) ) ); ?>">Log out</a>
 		</nav>
 	</div>
+
+	<!-- Inner blocks area -->
+	<?php if ( ! empty( $content ) ) : ?>
+		<div class="wp-block-spawn-chat__inner-blocks">
+			<?php echo $content; ?>
+		</div>
+	<?php endif; ?>
 
 	<div class="wp-block-spawn-chat__layout">
 		<!-- Sidebar with session list -->
