@@ -21,6 +21,16 @@
 			"default": ""
 		}
 	},
+	"providesContext": {
+		"spawn/isAuthenticated": "isAuthenticated",
+		"spawn/customerId": "customerId",
+		"spawn/billingMode": "billingMode"
+	},
+	"allowedBlocks": [
+		"spawn/auth-gate",
+		"spawn/credit-balance",
+		"spawn/credit-purchase"
+	],
 	"textdomain": "spawn",
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
