@@ -59,6 +59,7 @@ function init(): void {
 		Controllers\LiteLLM_Controller::register_routes();
 		Controllers\Usage_Controller::register_routes();
 		Controllers\BYOK_Controller::register_routes();
+		Controllers\Admin_Controller::register_routes();
 	} );
 
 	// Only init Stripe webhook handlers if stripe-integration plugin is active.
