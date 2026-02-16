@@ -55,6 +55,12 @@ class Cleanup {
 	 * @return bool Success.
 	 */
 	public static function delete_customer_resources( array $customer ): bool {
+		// Skip comped customers - they don't have subscriptions to trigger deletions.
+		if ( 'comped' === ( $customer['billing_type'] ?? 'paid' ) ) {
+			error_log( sprintf( '[Spawn Cleanup] Skipping comped customer #%d (%s) - comped customers are not auto-deleted', $customer['id'], $customer['domain'] ) );
+			return true;
+		}
+
 		$customer_id = (int) $customer['id'];
 		$success     = true;
 

@@ -71,6 +71,7 @@ class Database {
 			domain_price decimal(10,2) DEFAULT NULL,
 			domain_expires_at datetime DEFAULT NULL,
 			tier varchar(50) NOT NULL DEFAULT 'starter',
+			billing_type varchar(20) NOT NULL DEFAULT 'paid',
 			billing_mode varchar(20) NOT NULL DEFAULT 'managed',
 			wants_website tinyint(1) NOT NULL DEFAULT 1,
 			server_type varchar(50) NOT NULL DEFAULT 'cpx21',
@@ -102,7 +103,8 @@ class Database {
 			KEY stripe_subscription (stripe_subscription),
 			KEY status (status),
 			KEY domain_expires_at (domain_expires_at),
-			KEY tier (tier)
+			KEY tier (tier),
+			KEY billing_type (billing_type)
 		) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -223,6 +225,23 @@ class Database {
 	}
 
 	/**
+	 * Add billing_type column for comp system.
+	 *
+	 * Adds the billing_type column to existing installations.
+	 * Default is 'paid' for existing customers.
+	 */
+	public static function migrate_add_billing_type(): void {
+		global $wpdb;
+
+		$table   = self::get_table_name();
+		$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( ! in_array( 'billing_type', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN billing_type varchar(20) NOT NULL DEFAULT 'paid' AFTER tier" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( "ALTER TABLE {$table} ADD KEY billing_type (billing_type)" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+	}
+
+	/**
 	 * Create usage table for per-server usage tracking.
 	 */
 	public static function create_usage_table(): void {
@@ -299,6 +318,7 @@ class Database {
 				'domain_price'        => $data['domain_price'] ?? null,
 				'domain_expires_at'   => $domain_expires,
 				'tier'                => $tier,
+				'billing_type'        => $data['billing_type'] ?? 'paid',
 				'wants_website'       => $wants_website ? 1 : 0,
 				'server_type'        => $server_config['server_type'],
 				'server_location'    => $server_config['location'],
@@ -309,7 +329,7 @@ class Database {
 				'customer_region'     => $customer_region,
 				'created_at'          => current_time( 'mysql' ),
 			),
-			array( '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s' )
+			array( '%d', '%s', '%s', '%d', '%s', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s' )
 		);
 
 		return $result ? $wpdb->insert_id : false;

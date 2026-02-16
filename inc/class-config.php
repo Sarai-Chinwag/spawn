@@ -334,4 +334,28 @@ class Config {
 			'margin_pct'   => round( ( $margin / $tier['price'] ) * 100, 1 ),
 		);
 	}
+
+	/**
+	 * Get all billing types.
+	 *
+	 * @return array Billing types keyed by type ID.
+	 */
+	public static function get_billing_types(): array {
+		$types = array(
+			'paid'   => __( 'Paid', 'spawn' ),
+			'comped' => __( 'Comped', 'spawn' ),
+		);
+		return apply_filters( 'spawn_billing_types', $types );
+	}
+
+	/**
+	 * Get a single billing type label.
+	 *
+	 * @param string $billing_type Billing type ID.
+	 * @return string Billing type label or the type ID if not found.
+	 */
+	public static function get_billing_type_label( string $billing_type ): string {
+		$types = self::get_billing_types();
+		return $types[ $billing_type ] ?? $billing_type;
+	}
 }

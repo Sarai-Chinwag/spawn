@@ -430,6 +430,11 @@ class Webhook {
 			return;
 		}
 
+		// Skip for comped customers - they don't have subscriptions.
+		if ( 'comped' === ( $customer['billing_type'] ?? 'paid' ) ) {
+			return;
+		}
+
 		// Mark subscription as active and update renewal date.
 		// No monthly credits — AI credits are pay-as-you-go.
 		Database::update_customer( $customer['id'], array(
@@ -460,6 +465,11 @@ class Webhook {
 
 		$customer = Database::get_customer_by_subscription( $subscription_id );
 		if ( $customer ) {
+			// Skip for comped customers - they don't have subscriptions.
+			if ( 'comped' === ( $customer['billing_type'] ?? 'paid' ) ) {
+				return;
+			}
+
 			Database::update_customer( $customer['id'], array(
 				'status' => 'payment_failed',
 			) );
@@ -485,6 +495,11 @@ class Webhook {
 
 		$customer = Database::get_customer_by_subscription( $subscription_id );
 		if ( ! $customer ) {
+			return;
+		}
+
+		// Skip for comped customers - they don't have subscriptions to cancel.
+		if ( 'comped' === ( $customer['billing_type'] ?? 'paid' ) ) {
 			return;
 		}
 
