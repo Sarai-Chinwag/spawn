@@ -58,10 +58,20 @@ if ( $is_authenticated ) {
 	}
 }
 
-$login_url       = wp_login_url( get_permalink() );
+	$login_url       = wp_login_url( get_permalink() );
 $register_url    = wp_registration_url();
 $lost_password_url = wp_lostpassword_url( get_permalink() );
 $purchase_url    = rest_url( 'spawn/v1/credits/purchase' );
+
+$gateway_url  = '';
+$gateway_token = '';
+$chat_mode    = 'proxy';
+
+if ( ! empty( $customer['domain'] ) && 'active' === $customer['status'] ) {
+	$gateway_url  = 'https://' . $customer['domain'] . '/gateway';
+	$gateway_token = $customer['openclaw_token'] ?? '';
+	$chat_mode    = 'direct';
+}
 
 $spawn_state = array(
 	'isAuthenticated' => $is_authenticated,
@@ -79,6 +89,9 @@ $spawn_state = array(
 	'purchaseUrl'      => $purchase_url,
 	'brandName'        => $brand_name,
 	'brandLogoUrl'     => $brand_logo_url,
+	'gatewayUrl'       => $gateway_url,
+	'gatewayToken'     => $gateway_token,
+	'chatMode'         => $chat_mode,
 );
 ?>
 <div <?php echo $wrapper_attributes; ?> data-spawn-state="<?php echo esc_attr( wp_json_encode( $spawn_state ) ); ?>">

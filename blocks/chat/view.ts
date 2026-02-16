@@ -25,6 +25,9 @@ interface SpawnState {
 	purchaseUrl: string;
 	brandName: string;
 	brandLogoUrl: string;
+	gatewayUrl: string;
+	gatewayToken: string;
+	chatMode: 'direct' | 'proxy';
 }
 
 interface ChatContext {
@@ -210,6 +213,9 @@ function initBlock( block: HTMLElement ): void {
 			purchaseUrl: '',
 			brandName: 'Spawn',
 			brandLogoUrl: '',
+			gatewayUrl: '',
+			gatewayToken: '',
+			chatMode: 'proxy',
 		};
 	}
 
@@ -591,8 +597,31 @@ function initBlock( block: HTMLElement ): void {
 		const savedKey = storage.getSessionKey();
 
 		try {
-			const response = await apiFetch< SessionsResponse | Session[] >( { path: API.sessions } );
-			const allSessions = ( response as SessionsResponse ).sessions || ( response as Session[] ) || [];
+			let allSessions: Session[] = [];
+
+			if ( spawnState.chatMode === 'direct' ) {
+				const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Bearer ' + spawnState.gatewayToken,
+					},
+					body: JSON.stringify( {
+						tool: 'sessions_list',
+						args: {},
+					} ),
+				} );
+
+				if ( response.ok ) {
+					const data = await response.json();
+					// Gateway /tools/invoke returns { ok, result: { content, details } }
+					const details = data.result?.details || data;
+					allSessions = details.sessions || [];
+				}
+			} else {
+				const response = await apiFetch< SessionsResponse | Session[] >( { path: API.sessions } );
+				allSessions = ( response as SessionsResponse ).sessions || ( response as Session[] ) || [];
+			}
 
 			sessions = allSessions
 				.filter( ( s ) => ( s.sessionKey || s.key || '' ).includes( 'webchat' ) )
@@ -629,8 +658,35 @@ function initBlock( block: HTMLElement ): void {
 		messagesContainer.innerHTML = '<div class="chat-message chat-message--system">Loading conversation...</div>';
 
 		try {
-			const response = await apiFetch< HistoryResponse | ChatMessage[] >( { path: API.history( key ) } );
-			const messages = ( response as HistoryResponse ).messages || ( response as ChatMessage[] ) || [];
+			let messages: ChatMessage[] = [];
+
+			if ( spawnState.chatMode === 'direct' ) {
+				const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Bearer ' + spawnState.gatewayToken,
+					},
+					body: JSON.stringify( {
+						tool: 'sessions_history',
+						args: {
+							sessionKey: key,
+							limit: 50,
+						},
+					} ),
+				} );
+
+				if ( response.ok ) {
+					const data = await response.json();
+					// Gateway /tools/invoke returns { ok, result: { content, details } }
+					const details = data.result?.details || data;
+					messages = details.messages || [];
+				}
+			} else {
+				const response = await apiFetch< HistoryResponse | ChatMessage[] >( { path: API.history( key ) } );
+				messages = ( response as HistoryResponse ).messages || ( response as ChatMessage[] ) || [];
+			}
+
 			renderHistory( messages );
 		} catch ( error ) {
 			console.error( 'Failed to load history:', error );
@@ -732,6 +788,14 @@ function initBlock( block: HTMLElement ): void {
 		const text = input.value.trim();
 		if ( ! text || isLoading ) return;
 
+		if ( spawnState.chatMode === 'direct' ) {
+			if ( spawnState.billingMode === 'managed' && spawnState.billingType !== 'comped' && currentBalance <= 0 ) {
+				currentState = 'credits-depleted';
+				renderState();
+				return;
+			}
+		}
+
 		if ( ! currentSessionKey ) {
 			currentSessionKey = generateSessionKey();
 			storage.setSessionKey( currentSessionKey );
@@ -748,7 +812,74 @@ function initBlock( block: HTMLElement ): void {
 		setLoading( true );
 
 		try {
-			const response = await apiFetch< ChatSendResponse >( {
+			let response: ChatSendResponse;
+
+			if ( spawnState.chatMode === 'direct' ) {
+				const headers: Record< string, string > = {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + spawnState.gatewayToken,
+				};
+
+				if ( currentSessionKey ) {
+					headers[ 'x-openclaw-session-key' ] = currentSessionKey;
+				}
+
+				const chatResponse = await fetch( spawnState.gatewayUrl + '/v1/chat/completions', {
+					method: 'POST',
+					headers,
+					body: JSON.stringify( {
+						model: 'openclaw:main',
+						messages: [
+							{
+								role: 'user',
+								content: text,
+							},
+						],
+					} ),
+				} );
+
+				if ( chatResponse.status === 402 || chatResponse.status === 403 ) {
+					currentState = 'credits-depleted';
+					await fetchBalance();
+					renderState();
+					setLoading( false );
+					return;
+				}
+
+				if ( ! chatResponse.ok ) {
+					const errorData = await chatResponse.json().catch( () => ( {} ) );
+					if ( chatResponse.status === 0 ) {
+						addMessage( 'system', 'Your agent is offline. It may be restarting.' );
+					} else {
+						addMessage( 'system', `Error: ${ errorData.error?.message || 'Failed to get response' }` );
+					}
+					setLoading( false );
+					input.focus();
+					return;
+				}
+
+				const chatData = await chatResponse.json();
+				const reply = chatData.choices?.[ 0 ]?.message?.content;
+
+				if ( reply ) {
+					addMessage( 'assistant', reply );
+					await fetchBalance();
+
+					if ( currentBalance <= 0 && spawnState.billingMode === 'managed' ) {
+						currentState = 'credits-depleted';
+						renderState();
+					}
+				} else {
+					addMessage( 'system', 'No response received from agent.' );
+				}
+
+				loadSessions();
+				setLoading( false );
+				input.focus();
+				return;
+			}
+
+			response = await apiFetch< ChatSendResponse >( {
 				path: API.send,
 				method: 'POST',
 				data: { message: text, sessionKey: currentSessionKey, context },
