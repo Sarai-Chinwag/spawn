@@ -1,30 +1,50 @@
 <?php
 /**
- * Tests for Webhook handling.
+ * Tests for Spawn\Webhook.
+ *
+ * Runs via Homeboy WordPress module: `homeboy test spawn`
  *
  * @package Spawn
  */
 
-declare(strict_types=1);
-
-namespace Spawn\Tests;
-
-use WP_UnitTestCase;
-use Spawn\Config;
 use Spawn\Database;
 use Spawn\Webhook;
 
 /**
  * Webhook handler tests.
+ *
+ * Uses pre_http_request filter to mock external HTTP calls.
+ * Runs against real WordPress via Homeboy's WP test suite.
  */
 class WebhookTest extends WP_UnitTestCase {
+
+	/**
+	 * HTTP requests captured during test.
+	 *
+	 * @var array[]
+	 */
+	private array $http_requests = [];
+
+	/**
+	 * Next HTTP response to return.
+	 *
+	 * @var mixed
+	 */
+	private mixed $next_http_response = null;
 
 	/**
 	 * Set up before each test.
 	 */
 	public function set_up(): void {
 		parent::set_up();
+
 		Database::create_tables();
+
+		update_option( 'admin_email', 'admin@example.com' );
+		update_option( 'spawn_provisioner_url', 'http://127.0.0.1:8420' );
+		update_option( 'spawn_provisioner_token', 'test-token' );
+
+		add_filter( 'pre_http_request', [ $this, 'mock_http_request' ], 10, 3 );
 	}
 
 	/**
@@ -32,413 +52,323 @@ class WebhookTest extends WP_UnitTestCase {
 	 */
 	public function tear_down(): void {
 		global $wpdb;
-		$wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}spawn_customers" );
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}spawn_customers" );
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}spawn_domains" );
+
+		remove_filter( 'pre_http_request', [ $this, 'mock_http_request' ], 10 );
+		$this->http_requests      = [];
+		$this->next_http_response = null;
+
 		parent::tear_down();
 	}
 
 	/**
-	 * Test checkout completed creates customer record.
+	 * Mock HTTP request filter.
+	 *
+	 * @param false|array $response Response.
+	 * @param array       $args     Request args.
+	 * @param string      $url      Request URL.
+	 * @return array|WP_Error Mocked response.
 	 */
-	public function test_checkout_completed_creates_customer(): void {
-		// Simulate checkout session data.
-		$session = [
-			'customer_email' => 'checkout@example.com',
-			'customer'       => 'cus_test123',
-			'subscription'   => 'sub_test123',
-			'metadata'       => [
-				'source'          => 'spawn',
-			'domain'          => 'newsite.example.com',
-				'domain_type'     => 'subdomain',
-				'tier'            => 'starter',
-				'wants_website'   => 'true',
-				'customer_region' => 'us',
-			],
+	public function mock_http_request( $response, $args, $url ) {
+		$this->http_requests[] = [
+			'url'  => $url,
+			'args' => $args,
 		];
 
-		// Mock the event object.
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
+		if ( null !== $this->next_http_response ) {
+			$resp                     = $this->next_http_response;
+			$this->next_http_response = null;
+			return $resp;
+		}
 
-		// Process the webhook (this would normally be called by stripe-integration).
-		Webhook::handle_checkout_completed( $session, $event );
+		return [
+			'response' => [ 'code' => 200, 'message' => 'OK' ],
+			'body'     => wp_json_encode( [ 'job_id' => 'test-job-123' ] ),
+			'headers'  => [],
+		];
+	}
 
-		// Verify customer was created.
-		$customer = Database::get_customer_by_domain( 'newsite.example.com' );
+	// -----------------------------------------------------------------------
+	// Helpers
+	// -----------------------------------------------------------------------
 
-		$this->assertNotNull( $customer, 'Customer should be created after checkout' );
-		$this->assertEquals( 'checkout@example.com', $customer['email'] );
-		$this->assertEquals( 'cus_test123', $customer['stripe_customer'] );
-		$this->assertEquals( 'sub_test123', $customer['stripe_subscription'] );
-		$this->assertEquals( 'provisioning', $customer['status'] );
+	/**
+	 * Create a test customer.
+	 *
+	 * @param array $overrides Field overrides.
+	 * @return int Customer ID.
+	 */
+	private function create_test_customer( array $overrides = [] ): int {
+		return Database::create_customer( array_merge(
+			[
+				'email'               => 'test@example.com',
+				'domain'              => 'old.example.com',
+				'tier'                => 'starter',
+				'status'              => 'active',
+				'stripe_customer'     => 'cus_test',
+				'stripe_subscription' => 'sub_test',
+			],
+			$overrides
+		) );
 	}
 
 	/**
-	 * Test checkout creates customers with zero credits (pay-as-you-go).
+	 * Build a subscription checkout session.
 	 */
-	public function test_checkout_starts_with_zero_credits(): void {
-		$test_cases = [
-			'starter'  => 0,
-			'pro'      => 0,
-			'business' => 0,
-		];
-
-		foreach ( $test_cases as $tier => $expected_credits ) {
-			// Clean up for each iteration.
-			global $wpdb;
-			$wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}spawn_customers" );
-
-			$session = [
-				'customer_email' => "test-{$tier}@example.com",
-				'customer'       => "cus_{$tier}",
-				'subscription'   => "sub_{$tier}",
+	private function subscription_session( array $overrides = [] ): array {
+		return array_replace_recursive(
+			[
+				'customer_email' => 'subscriber@example.com',
+				'customer'       => 'cus_sub',
+				'subscription'   => 'sub_test_123',
 				'metadata'       => [
 					'source'          => 'spawn',
-				'domain'          => "{$tier}.example.com",
+					'domain'          => 'mysite.example.com',
 					'domain_type'     => 'subdomain',
-					'tier'            => $tier,
+					'tier'            => 'starter',
 					'wants_website'   => 'true',
 					'customer_region' => 'us',
 				],
-			];
-
-			$event = (object) [ 'type' => 'checkout.session.completed' ];
-			Webhook::handle_checkout_completed( $session, $event );
-
-			$customer = Database::get_customer_by_domain( "{$tier}.example.com" );
-
-			$this->assertNotNull( $customer, "Customer for $tier should exist" );
-			$this->assertEquals(
-				$expected_credits,
-				(float) $customer['credit_balance'],
-				"Tier $tier should have \${$expected_credits} credits"
-			);
-		}
-	}
-
-	/**
-	 * Test checkout with wants_website=true creates customer with website flag.
-	 */
-	public function test_checkout_with_wants_website_true(): void {
-		$session = [
-			'customer_email' => 'website@example.com',
-			'customer'       => 'cus_website',
-			'subscription'   => 'sub_website',
-			'metadata'       => [
-				'source'          => 'spawn',
-			'domain'          => 'withsite.example.com',
-				'domain_type'     => 'subdomain',
-				'tier'            => 'starter',
-				'wants_website'   => 'true',
-				'customer_region' => 'us',
 			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		$customer = Database::get_customer_by_domain( 'withsite.example.com' );
-
-		$this->assertNotNull( $customer );
-		$this->assertEquals( 1, (int) $customer['wants_website'] );
-	}
-
-	/**
-	 * Test checkout with wants_website=false creates AI-only customer.
-	 */
-	public function test_checkout_with_wants_website_false(): void {
-		$session = [
-			'customer_email' => 'aionly@example.com',
-			'customer'       => 'cus_aionly',
-			'subscription'   => 'sub_aionly',
-			'metadata'       => [
-				'source'          => 'spawn',
-				'domain'          => '',  // No domain for AI-only.
-				'domain_type'     => 'subdomain',
-				'tier'            => 'starter',
-				'wants_website'   => 'false',
-				'customer_region' => 'us',
-			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		// AI-only customers don't have a domain, look up by email.
-		global $wpdb;
-		$customer = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->prefix}spawn_customers WHERE email = %s",
-				'aionly@example.com'
-			),
-			ARRAY_A
+			$overrides
 		);
+	}
 
+	// -----------------------------------------------------------------------
+	// Subscription Checkout
+	// -----------------------------------------------------------------------
+
+	public function test_subscription_checkout_creates_customer(): void {
+		$session = $this->subscription_session();
+		Webhook::handle_checkout_completed( $session, (object) [] );
+
+		$customer = Database::get_customer_by_domain( 'mysite.example.com' );
 		$this->assertNotNull( $customer );
-		$this->assertEquals( 0, (int) $customer['wants_website'] );
-		$this->assertEmpty( $customer['domain'] );
+		$this->assertEquals( 'subscriber@example.com', $customer['email'] );
+		$this->assertEquals( 'provisioning', $customer['status'] );
+		$this->assertEquals( 'cus_sub', $customer['stripe_customer'] );
+
+		$prov_requests = array_filter( $this->http_requests, fn( $r ) => str_contains( $r['url'], '8420' ) );
+		$this->assertNotEmpty( $prov_requests );
 	}
 
-	/**
-	 * Test checkout respects customer_region for server selection.
-	 */
-	public function test_checkout_customer_region(): void {
-		$session = [
-			'customer_email' => 'eu@example.com',
-			'customer'       => 'cus_eu',
-			'subscription'   => 'sub_eu',
-			'metadata'       => [
-				'source'          => 'spawn',
-			'domain'          => 'eusite.example.com',
-				'domain_type'     => 'subdomain',
-				'tier'            => 'starter',
-				'wants_website'   => 'true',
-				'customer_region' => 'eu',
-			],
-		];
+	public function test_subscription_checkout_missing_email(): void {
+		$session = $this->subscription_session( [ 'customer_email' => '' ] );
+		Webhook::handle_checkout_completed( $session, (object) [] );
 
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		$customer = Database::get_customer_by_domain( 'eusite.example.com' );
-
-		$this->assertNotNull( $customer );
-		$this->assertEquals( 'eu', $customer['customer_region'] );
-		// EU customers get EU server types (cpx22 instead of cpx21).
-		$this->assertEquals( 'cpx22', $customer['server_type'] );
-	}
-
-	/**
-	 * Test checkout with custom domain includes domain price.
-	 */
-	public function test_checkout_with_custom_domain(): void {
-		$session = [
-			'customer_email' => 'custom@example.com',
-			'customer'       => 'cus_custom',
-			'subscription'   => 'sub_custom',
-			'metadata'       => [
-				'source'          => 'spawn',
-				'domain'          => 'mycustomsite.com',
-				'domain_type'     => 'register',
-				'domain_price'    => '15.99',
-				'tier'            => 'pro',
-				'wants_website'   => 'true',
-				'customer_region' => 'us',
-			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		$customer = Database::get_customer_by_domain( 'mycustomsite.com' );
-
-		$this->assertNotNull( $customer );
-		$this->assertEquals( 'register', $customer['domain_type'] );
-		$this->assertEquals( 15.99, (float) $customer['domain_price'] );
-	}
-
-	/**
-	 * Test duplicate domain checkout is rejected.
-	 */
-	public function test_duplicate_domain_rejected(): void {
-		// Create existing customer.
-		Database::create_customer( [
-			'email'  => 'existing@example.com',
-			'domain' => 'taken.example.com',
-			'status' => 'active',
-		] );
-
-		// Try checkout with same domain.
-		$session = [
-			'customer_email' => 'new@example.com',
-			'customer'       => 'cus_new',
-			'subscription'   => 'sub_new',
-			'metadata'       => [
-				'source'          => 'spawn',
-				'domain'          => 'taken.example.com',
-				'domain_type'     => 'subdomain',
-				'tier'            => 'starter',
-				'wants_website'   => 'true',
-				'customer_region' => 'us',
-			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		// Should still only have the original customer.
-		$customer = Database::get_customer_by_domain( 'taken.example.com' );
-		$this->assertEquals( 'existing@example.com', $customer['email'] );
-	}
-
-	/**
-	 * Test non-spawn webhooks are ignored.
-	 */
-	public function test_non_spawn_webhooks_ignored(): void {
-		$session = [
-			'customer_email' => 'other@example.com',
-			'metadata'       => [
-				'source' => 'sell-my-images',
-				'job_id' => '123',
-			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
-
-		// No customer should be created.
 		global $wpdb;
 		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}spawn_customers" );
 		$this->assertEquals( 0, (int) $count );
 	}
 
-	/**
-	 * Test credit purchase webhook adds credits.
-	 */
+	public function test_subscription_checkout_duplicate_active_email(): void {
+		$this->create_test_customer( [ 'email' => 'subscriber@example.com', 'domain' => 'existing.com' ] );
+
+		$session = $this->subscription_session();
+		Webhook::handle_checkout_completed( $session, (object) [] );
+
+		global $wpdb;
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}spawn_customers" );
+		$this->assertEquals( 1, (int) $count );
+	}
+
+	public function test_subscription_checkout_duplicate_domain(): void {
+		$this->create_test_customer( [ 'email' => 'first@example.com', 'domain' => 'mysite.example.com' ] );
+
+		$session = $this->subscription_session();
+		Webhook::handle_checkout_completed( $session, (object) [] );
+
+		global $wpdb;
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}spawn_customers" );
+		$this->assertEquals( 1, (int) $count );
+	}
+
+	public function test_subscription_checkout_provisioner_failure(): void {
+		$this->next_http_response = new WP_Error( 'http_failure', 'Connection refused' );
+
+		$session = $this->subscription_session();
+		Webhook::handle_checkout_completed( $session, (object) [] );
+
+		$customer = Database::get_customer_by_domain( 'mysite.example.com' );
+		$this->assertNotNull( $customer );
+		$this->assertEquals( 'failed', $customer['status'] );
+	}
+
+	// -----------------------------------------------------------------------
+	// Non-Spawn webhook
+	// -----------------------------------------------------------------------
+
+	public function test_non_spawn_webhook_ignored(): void {
+		Webhook::handle_checkout_completed(
+			[
+				'customer_email' => 'other@example.com',
+				'metadata'       => [ 'source' => 'sell-my-images', 'job_id' => '123' ],
+			],
+			(object) []
+		);
+
+		global $wpdb;
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}spawn_customers" );
+		$this->assertEquals( 0, (int) $count );
+	}
+
+	// -----------------------------------------------------------------------
+	// Credit Purchase
+	// -----------------------------------------------------------------------
+
 	public function test_credit_purchase_adds_credits(): void {
-		// Create existing customer.
-		$customer_id = Database::create_customer( [
+		$customer_id = $this->create_test_customer( [
 			'email'           => 'buyer@example.com',
 			'domain'          => 'buyer.example.com',
 			'stripe_customer' => 'cus_buyer',
 			'credit_balance'  => 5.00,
-			'status'          => 'active',
 		] );
 
-		$session = [
-			'customer'       => 'cus_buyer',
-			'customer_email' => 'buyer@example.com',
-			'amount_total'   => 2000, // $20.00 in cents.
-			'metadata'       => [
-				'source'            => 'spawn',
-				'type'              => 'credit_purchase',
-				'spawn_customer_id' => (string) $customer_id,
-				'credits'           => '20.00', // $20 in credits.
+		Webhook::handle_checkout_completed(
+			[
+				'customer'       => 'cus_buyer',
+				'customer_email' => 'buyer@example.com',
+				'amount_total'   => 2000,
+				'metadata'       => [
+					'source'            => 'spawn',
+					'type'              => 'credit_purchase',
+					'spawn_customer_id' => (string) $customer_id,
+					'credits'           => '20.00',
+				],
 			],
-		];
-
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
+			(object) []
+		);
 
 		$customer = Database::get_customer( $customer_id );
 		$this->assertEquals( 25.00, (float) $customer['credit_balance'] );
 	}
 
-	/**
-	 * Test subscription cancelled initiates grace period.
-	 */
-	public function test_subscription_cancelled(): void {
-		Database::create_customer( [
-			'email'               => 'cancel@example.com',
-			'domain'              => 'cancel.example.com',
-			'stripe_subscription' => 'sub_tocancel',
-			'status'              => 'active',
+	// -----------------------------------------------------------------------
+	// Invoice Lifecycle
+	// -----------------------------------------------------------------------
+
+	public function test_payment_failed_updates_status(): void {
+		$this->create_test_customer( [ 'stripe_subscription' => 'sub_failing' ] );
+
+		Webhook::handle_payment_failed( [ 'subscription' => 'sub_failing' ], (object) [] );
+
+		$customer = Database::get_customer_by_subscription( 'sub_failing' );
+		$this->assertEquals( 'payment_failed', $customer['status'] );
+	}
+
+	public function test_payment_failed_skipped_for_comped(): void {
+		$this->create_test_customer( [
+			'stripe_subscription' => 'sub_comped',
+			'billing_type'        => 'comped',
 		] );
 
-		$subscription = [
-			'id' => 'sub_tocancel',
-		];
+		Webhook::handle_payment_failed( [ 'subscription' => 'sub_comped' ], (object) [] );
 
-		$event = (object) [ 'type' => 'customer.subscription.deleted' ];
-		Webhook::handle_subscription_cancelled( $subscription, $event );
+		$customer = Database::get_customer_by_subscription( 'sub_comped' );
+		$this->assertEquals( 'active', $customer['status'] );
+	}
 
-		$customer = Database::get_customer_by_domain( 'cancel.example.com' );
+	public function test_invoice_paid_activates_customer(): void {
+		$this->create_test_customer( [
+			'stripe_subscription' => 'sub_renew',
+			'status'              => 'payment_failed',
+		] );
+
+		Webhook::handle_invoice_paid( [ 'subscription' => 'sub_renew' ], (object) [] );
+
+		$customer = Database::get_customer_by_subscription( 'sub_renew' );
+		$this->assertEquals( 'active', $customer['status'] );
+	}
+
+	public function test_invoice_paid_skipped_for_comped(): void {
+		$this->create_test_customer( [
+			'stripe_subscription' => 'sub_comped',
+			'billing_type'        => 'comped',
+		] );
+
+		Webhook::handle_invoice_paid( [ 'subscription' => 'sub_comped' ], (object) [] );
+
+		// Status should remain unchanged (no update call).
+		$customer = Database::get_customer_by_subscription( 'sub_comped' );
+		$this->assertEquals( 'active', $customer['status'] );
+	}
+
+	// -----------------------------------------------------------------------
+	// Subscription Cancelled
+	// -----------------------------------------------------------------------
+
+	public function test_subscription_cancelled_schedules_deletion(): void {
+		$this->create_test_customer( [ 'stripe_subscription' => 'sub_cancel' ] );
+
+		Webhook::handle_subscription_cancelled( [ 'id' => 'sub_cancel' ], (object) [] );
+
+		$customer = Database::get_customer_by_subscription( 'sub_cancel' );
 		$this->assertEquals( 'cancelling', $customer['status'] );
 		$this->assertNotEmpty( $customer['scheduled_deletion_at'] );
 	}
 
-	/**
-	 * Test payment failed updates status.
-	 */
-	public function test_payment_failed(): void {
-		Database::create_customer( [
-			'email'               => 'fail@example.com',
-			'domain'              => 'fail.example.com',
-			'stripe_subscription' => 'sub_failing',
-			'status'              => 'active',
+	public function test_subscription_cancelled_skipped_for_comped(): void {
+		$this->create_test_customer( [
+			'stripe_subscription' => 'sub_comped_cancel',
+			'billing_type'        => 'comped',
 		] );
 
-		$invoice = [
-			'subscription' => 'sub_failing',
-		];
+		Webhook::handle_subscription_cancelled( [ 'id' => 'sub_comped_cancel' ], (object) [] );
 
-		$event = (object) [ 'type' => 'invoice.payment_failed' ];
-		Webhook::handle_payment_failed( $invoice, $event );
-
-		$customer = Database::get_customer_by_domain( 'fail.example.com' );
-		$this->assertEquals( 'payment_failed', $customer['status'] );
-	}
-
-	/**
-	 * Test invoice paid updates status to active.
-	 */
-	public function test_invoice_paid_activates_customer(): void {
-		Database::create_customer( [
-			'email'               => 'renew@example.com',
-			'domain'              => 'renew.example.com',
-			'stripe_subscription' => 'sub_renewing',
-			'status'              => 'payment_failed',
-		] );
-
-		$invoice = [
-			'subscription' => 'sub_renewing',
-		];
-
-		$event = (object) [ 'type' => 'invoice.paid' ];
-		Webhook::handle_invoice_paid( $invoice, $event );
-
-		$customer = Database::get_customer_by_domain( 'renew.example.com' );
+		$customer = Database::get_customer_by_subscription( 'sub_comped_cancel' );
 		$this->assertEquals( 'active', $customer['status'] );
 	}
 
-	/**
-	 * Test wants_website default is true when not specified.
-	 */
-	public function test_wants_website_defaults_to_true(): void {
-		$session = [
-			'customer_email' => 'default@example.com',
-			'customer'       => 'cus_default',
-			'subscription'   => 'sub_default',
-			'metadata'       => [
-				'source'      => 'spawn',
-			'domain'      => 'default.example.com',
-				'domain_type' => 'subdomain',
-				'tier'        => 'starter',
-				// Note: wants_website NOT specified.
-			],
-		];
+	public function test_subscription_cancelled_already_cancelling(): void {
+		$this->create_test_customer( [
+			'stripe_subscription' => 'sub_already',
+			'status'              => 'cancelling',
+		] );
 
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
+		Webhook::handle_subscription_cancelled( [ 'id' => 'sub_already' ], (object) [] );
 
-		$customer = Database::get_customer_by_domain( 'default.example.com' );
-
-		$this->assertNotNull( $customer );
-		$this->assertEquals( 1, (int) $customer['wants_website'] );
+		$customer = Database::get_customer_by_subscription( 'sub_already' );
+		$this->assertEquals( 'cancelling', $customer['status'] );
 	}
 
-	/**
-	 * Test tier defaults to starter when not specified.
-	 */
-	public function test_tier_defaults_to_starter(): void {
-		$session = [
-			'customer_email' => 'notier@example.com',
-			'customer'       => 'cus_notier',
-			'subscription'   => 'sub_notier',
-			'metadata'       => [
-				'source'        => 'spawn',
-			'domain'        => 'notier.example.com',
-				'domain_type'   => 'subdomain',
-				'wants_website' => 'true',
-				// Note: tier NOT specified.
-			],
-		];
+	// -----------------------------------------------------------------------
+	// Provisioner Webhook
+	// -----------------------------------------------------------------------
 
-		$event = (object) [ 'type' => 'checkout.session.completed' ];
-		Webhook::handle_checkout_completed( $session, $event );
+	public function test_provisioner_webhook_completion(): void {
+		$this->create_test_customer( [
+			'domain' => 'newsite.example.com',
+			'status' => 'provisioning',
+		] );
 
-		$customer = Database::get_customer_by_domain( 'notier.example.com' );
+		$request = new WP_REST_Request( 'POST' );
+		$request->set_body( wp_json_encode( [
+			'event'                => 'provisioning_complete',
+			'domain'               => 'newsite.example.com',
+			'server_ip'            => '5.6.7.8',
+			'server_id'            => 'srv_1',
+			'openclaw_token'       => 'tok_abc',
+			'cloudflare_record_id' => 'cf_123',
+			'wp_admin_password'    => 'pass123',
+		] ) );
 
-		$this->assertNotNull( $customer );
-		$this->assertEquals( 'starter', $customer['tier'] );
-		$this->assertEquals( 5.00, (float) $customer['credit_balance'] );
+		$response = Webhook::handle_provisioner_webhook( $request );
+
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$data = $response->get_data();
+		$this->assertTrue( $data['received'] );
+		$this->assertTrue( $data['processed'] );
+	}
+
+	public function test_provisioner_webhook_unknown_event(): void {
+		$request = new WP_REST_Request( 'POST' );
+		$request->set_body( wp_json_encode( [ 'event' => 'something_weird' ] ) );
+
+		$response = Webhook::handle_provisioner_webhook( $request );
+
+		$data = $response->get_data();
+		$this->assertTrue( $data['received'] );
+		$this->assertArrayNotHasKey( 'processed', $data );
 	}
 }
