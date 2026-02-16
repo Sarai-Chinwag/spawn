@@ -295,7 +295,7 @@
 .spawn-success__site-label {
 	display: block;
 	font-size: 0.75rem;
-	text-transform: uppercase;
+	
 	letter-spacing: 0.08em;
 	color: var(--color-text-light, #666);
 	margin-bottom: var(--space-xs, 8px);

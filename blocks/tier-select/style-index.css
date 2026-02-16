@@ -51,7 +51,7 @@
 	border-radius: 12px;
 	font-size: 0.75em;
 	font-weight: 600;
-	text-transform: uppercase;
+	
 }
 
 .wp-block-spawn-tier-select .tier-card.selected {
@@ -63,7 +63,7 @@
 	font-family: var(--font-heading);
 	font-size: var(--font-size-h2, 1.38em);
 	margin: 0 0 var(--space-sm, 10px);
-	text-transform: uppercase;
+	
 }
 
 .wp-block-spawn-tier-select .tier-card .price {

@@ -27,7 +27,7 @@
 .wp-block-spawn-account__section h3 {
 	margin: 0 0 1rem;
 	font-size: 1rem;
-	text-transform: uppercase;
+	
 	letter-spacing: 0.05em;
 	color: #666;
 }
@@ -242,7 +242,7 @@
 .invoices-table th {
 	font-weight: 600;
 	font-size: 0.875rem;
-	text-transform: uppercase;
+	
 	color: #666;
 }
 

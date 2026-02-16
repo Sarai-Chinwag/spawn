@@ -27,7 +27,7 @@
 
 .wp-block-spawn-checkout__summary h4 {
 	font-family: var(--font-heading);
-	text-transform: uppercase;
+	
 	margin: 0 0 var(--space-sm, 10px);
 }
 
