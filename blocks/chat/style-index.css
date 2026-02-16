@@ -451,3 +451,240 @@ body.admin-bar .wp-block-spawn-chat--fullpage {
 		max-width: 100%;
 	}
 }
+
+/* ===== LOGIN STATE ===== */
+.wp-block-spawn-chat__login {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	text-align: center;
+	height: 100%;
+	min-height: 300px;
+}
+
+.wp-block-spawn-chat__login-header {
+	margin-bottom: 30px;
+}
+
+.wp-block-spawn-chat__login-logo-img {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	object-fit: cover;
+	margin-bottom: 16px;
+}
+
+.wp-block-spawn-chat__login-title {
+	font-size: 1.5em;
+	font-weight: bold;
+	margin: 0 0 8px;
+	color: var(--color-text, #212121);
+}
+
+.wp-block-spawn-chat__login-subtitle {
+	font-size: 1em;
+	color: var(--color-text-light, #666);
+	margin: 0;
+}
+
+.wp-block-spawn-chat__login-form {
+	width: 100%;
+	max-width: 320px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.wp-block-spawn-chat__login-field {
+	text-align: left;
+}
+
+.wp-block-spawn-chat__login-field label {
+	display: block;
+	font-size: 0.875em;
+	font-weight: 500;
+	margin-bottom: 6px;
+	color: var(--color-text, #333);
+}
+
+.wp-block-spawn-chat__login-field input {
+	width: 100%;
+	padding: 10px 12px;
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 8px;
+	font-size: 1em;
+	font-family: inherit;
+	transition: border-color 0.2s;
+}
+
+.wp-block-spawn-chat__login-field input:focus {
+	outline: none;
+	border-color: var(--color-primary);
+}
+
+.wp-block-spawn-chat__login-submit {
+	width: 100%;
+	padding: 12px;
+	background: var(--color-primary);
+	color: var(--color-background, #fff);
+	border: none;
+	border-radius: 8px;
+	font-size: 1em;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.wp-block-spawn-chat__login-submit:hover {
+	background: var(--color-secondary);
+}
+
+.wp-block-spawn-chat__login-links {
+	margin-top: 20px;
+	font-size: 0.875em;
+	color: var(--color-text-light, #666);
+}
+
+.wp-block-spawn-chat__login-links a {
+	color: var(--color-primary);
+	text-decoration: none;
+}
+
+.wp-block-spawn-chat__login-links a:hover {
+	text-decoration: underline;
+}
+
+.wp-block-spawn-chat__login-links-sep {
+	margin: 0 8px;
+}
+
+/* ===== CREDIT BALANCE INDICATOR ===== */
+.wp-block-spawn-chat__balance {
+	display: inline-block;
+	padding: 4px 10px;
+	background: rgba(255,255,255,0.15);
+	border-radius: 12px;
+	font-size: 0.85em;
+	font-weight: 500;
+	margin-right: 12px;
+	transition: background-color 0.3s, color 0.3s;
+}
+
+.wp-block-spawn-chat__balance--warning {
+	background: #fff3cd;
+	color: #856404;
+}
+
+.wp-block-spawn-chat__balance--danger {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+/* ===== NO CREDITS / CREDIT PURCHASE ===== */
+.wp-block-spawn-chat__no-credits {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	text-align: center;
+	height: 100%;
+	min-height: 300px;
+}
+
+.wp-block-spawn-chat__no-credits-header {
+	margin-bottom: 30px;
+}
+
+.wp-block-spawn-chat__no-credits-header h2 {
+	font-size: 1.5em;
+	font-weight: bold;
+	margin: 0 0 8px;
+	color: var(--color-text, #212121);
+}
+
+.wp-block-spawn-chat__no-credits-header p {
+	font-size: 1em;
+	color: var(--color-text-light, #666);
+	margin: 0;
+}
+
+.wp-block-spawn-chat__credit-buttons {
+	display: flex;
+	gap: 16px;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+.wp-block-spawn-chat__credit-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px 28px;
+	background: var(--color-surface, #f5f5f5);
+	border: 2px solid var(--color-border, #ddd);
+	border-radius: 12px;
+	cursor: pointer;
+	transition: all 0.2s;
+	min-width: 120px;
+}
+
+.wp-block-spawn-chat__credit-btn:hover {
+	border-color: var(--color-primary);
+	background: var(--color-background, #fff);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.wp-block-spawn-chat__credit-btn-amount {
+	font-size: 1.5em;
+	font-weight: bold;
+	color: var(--color-text, #212121);
+}
+
+.wp-block-spawn-chat__credit-btn-desc {
+	font-size: 0.85em;
+	color: var(--color-text-light, #666);
+	margin-top: 4px;
+}
+
+.wp-block-spawn-chat__credit-btn-bonus {
+	color: #28a745;
+	font-weight: 500;
+}
+
+/* Inline credit buttons (credits depleted during chat) */
+.wp-block-spawn-chat__credit-buttons--inline {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border, #ddd);
+}
+
+/* Credits depleted message */
+.wp-block-spawn-chat__credits-depleted-msg {
+	text-align: center;
+}
+
+/* ===== PROVISIONING STATE ===== */
+.wp-block-spawn-chat__provisioning {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	text-align: center;
+	height: 100%;
+	min-height: 200px;
+}
+
+.wp-block-spawn-chat__provisioning p {
+	margin: 0 0 8px;
+	color: var(--color-text-light, #666);
+}
+
+.wp-block-spawn-chat__provisioning p:last-child {
+	margin-bottom: 0;
+}
+
