@@ -2,6 +2,14 @@
 /**
  * Chat REST API Controller.
  *
+ * NOTE: This controller is only used for proxy mode:
+ * - Admin chat (control plane OpenClaw)
+ * - Self-spawn mode (local OpenClaw on the same server)
+ *
+ * Customer chat now uses direct mode: the browser talks directly to the
+ * customer's VPS gateway over HTTPS. See blocks/chat/view.ts for the
+ * client-side direct mode implementation.
+ *
  * Handles chat sessions, messages, and history.
  *
  * @package Spawn
