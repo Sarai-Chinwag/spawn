@@ -153,7 +153,7 @@ class Admin_Controller {
 			'customer_region'     => 'us',
 			'stripe_customer'     => null,
 			'stripe_subscription' => null,
-			'billing_mode'        => 'comp',
+			'billing_type'        => 'comped',
 			'status'              => 'provisioning',
 			'credit_balance'      => $initial_credits,
 		) );
