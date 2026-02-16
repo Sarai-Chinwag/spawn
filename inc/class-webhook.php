@@ -574,8 +574,8 @@ class Webhook {
 			'renewed_at' => current_time( 'mysql' ),
 		) );
 
-		self::log( sprintf(
-			'Subscription renewed for customer %d (tier: %s).',
+		error_log( sprintf(
+			'[Spawn] Subscription renewed for customer %d (tier: %s).',
 			$customer['id'],
 			$customer['tier'] ?? 'starter'
 		) );

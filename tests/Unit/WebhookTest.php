@@ -354,13 +354,7 @@ class WebhookTest extends TestCase {
 			'stripe_subscription' => 'sub_renew',
 		] );
 
-		// BUG: Webhook::handle_invoice_paid calls self::log() which doesn't exist.
-		// Should be error_log(). Catching the Error to verify the rest of the flow works.
-		try {
-			Webhook::handle_invoice_paid( [ 'subscription' => 'sub_renew' ], (object) [] );
-		} catch ( \Error $e ) {
-			$this->assertStringContainsString( 'log', $e->getMessage() );
-		}
+		Webhook::handle_invoice_paid( [ 'subscription' => 'sub_renew' ], (object) [] );
 
 		$update_calls = array_filter( SpawnTestState::$db_calls, fn( $c ) => $c['method'] === 'update_customer' );
 		$this->assertCount( 1, $update_calls );
