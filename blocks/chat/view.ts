@@ -7,7 +7,26 @@
 import apiFetch from '@wordpress/api-fetch';
 import type { ApiError } from '../shared';
 
-// Chat-specific types
+export type SpawnChatState = 'unauthenticated' | 'no-credits' | 'chat' | 'credits-depleted' | 'provisioning';
+
+interface SpawnState {
+	isAuthenticated: boolean;
+	customerId: number;
+	creditBalance: number;
+	billingMode: 'managed' | 'byok';
+	billingType: 'paid' | 'comped';
+	username: string;
+	domain: string;
+	status: string;
+	serverReady: boolean;
+	loginUrl: string;
+	registerUrl: string;
+	lostPasswordUrl: string;
+	purchaseUrl: string;
+	brandName: string;
+	brandLogoUrl: string;
+}
+
 interface ChatContext {
 	customer_id: number;
 	domain: string;
@@ -38,6 +57,7 @@ interface ChatMessage {
 interface ChatSendResponse {
 	reply?: string;
 	error?: string;
+	code?: string;
 }
 
 interface SessionsResponse {
@@ -52,25 +72,34 @@ interface TitleResponse {
 	title?: string;
 }
 
+interface BalanceResponse {
+	balance: number;
+}
+
+interface PurchaseResponse {
+	session_id?: string;
+	checkout_url?: string;
+	error?: string;
+}
+
 interface SessionTitles {
 	[ key: string ]: string;
 }
 
-// API endpoints
 const API = {
 	send: '/spawn/v1/chat/send',
 	sessions: '/spawn/v1/chat/sessions',
 	history: ( key: string ) => `/spawn/v1/chat/sessions/${ key }/history?limit=50`,
 	generateTitle: '/spawn/v1/chat/generate-title',
+	balance: '/spawn/v1/credits/balance',
+	purchase: '/spawn/v1/credits/purchase',
 };
 
-// Storage keys
 const STORAGE = {
 	session: 'spawn_webchat_session',
 	titles: 'spawn_session_titles',
 };
 
-// Branded loading verbs
 const LOADING_VERBS = [
 	'Conjuring', 'Channeling', 'Manifesting', 'Divining', 'Meditating on',
 	'Brewing', 'Hatching', 'Nesting on', 'Perching on', 'Pondering',
@@ -79,7 +108,6 @@ const LOADING_VERBS = [
 	'Communing with',
 ];
 
-// Word bank for session titles
 const WORD_BANK = [
 	'curious', 'mystical', 'cosmic', 'enchanted', 'wandering',
 	'dreaming', 'starlit', 'moonlit', 'crystal', 'golden',
@@ -90,9 +118,6 @@ const WORD_BANK = [
 	'feather', 'sunflower', 'twilight', 'aurora', 'ember',
 ];
 
-/**
- * Extract text from message content.
- */
 function extractMessageText( content: string | ContentBlock[] ): string {
 	if ( typeof content === 'string' ) return content;
 	if ( Array.isArray( content ) ) {
@@ -104,65 +129,44 @@ function extractMessageText( content: string | ContentBlock[] ): string {
 	return String( content );
 }
 
-/**
- * Generate fallback session name.
- */
 function generateFallbackName(): string {
 	const adj = WORD_BANK[ Math.floor( Math.random() * 15 ) ];
 	const noun = WORD_BANK[ 15 + Math.floor( Math.random() * 15 ) ];
 	return `${ adj.toLowerCase() }-${ noun.toLowerCase() }`;
 }
 
-/**
- * Escape HTML entities.
- */
 function escapeHtml( text: string ): string {
 	const div = document.createElement( 'div' );
 	div.textContent = text;
 	return div.innerHTML;
 }
 
-/**
- * Escape attribute value.
- */
 function escapeAttr( text: string ): string {
 	return text.replace( /"/g, '&quot;' ).replace( /'/g, '&#39;' );
 }
 
-/**
- * Parse markdown to HTML.
- */
 function parseMarkdown( text: string ): string {
 	let html = escapeHtml( text );
 
-	// Code blocks
 	html = html.replace( /```(\w*)\n?([\s\S]*?)```/g, ( _, lang, code ) =>
 		`<pre><code class="language-${ lang }">${ code.trim() }</code></pre>`
 	);
 
-	// Inline code
 	html = html.replace( /`([^`]+)`/g, '<code>$1</code>' );
 
-	// Bold
 	html = html.replace( /\*\*([^*]+)\*\*/g, '<strong>$1</strong>' );
 	html = html.replace( /__([^_]+)__/g, '<strong>$1</strong>' );
 
-	// Italic
 	html = html.replace( /\*([^*]+)\*/g, '<em>$1</em>' );
 	html = html.replace( /_([^_]+)_/g, '<em>$1</em>' );
 
-	// Links
 	html = html.replace( /\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>' );
 
-	// Line breaks
 	html = html.replace( /\n/g, '<br>' );
 
 	return html;
 }
 
-/**
- * Format relative date.
- */
 function formatDate( dateStr: string ): string {
 	const date = new Date( dateStr );
 	const now = new Date();
@@ -179,18 +183,36 @@ function formatDate( dateStr: string ): string {
 	return date.toLocaleDateString( [], { month: 'short', day: 'numeric' } );
 }
 
-/**
- * Initialize chat blocks.
- */
 function init(): void {
 	document.querySelectorAll< HTMLElement >( '.wp-block-spawn-chat' ).forEach( initBlock );
 }
 
-/**
- * Initialize a single chat block.
- */
 function initBlock( block: HTMLElement ): void {
-	const context: ChatContext = JSON.parse( block.dataset.context || '{}' );
+	const stateJson = block.dataset.spawnState || '{}';
+	let spawnState: SpawnState;
+
+	try {
+		spawnState = JSON.parse( stateJson );
+	} catch {
+		spawnState = {
+			isAuthenticated: false,
+			customerId: 0,
+			creditBalance: 0,
+			billingMode: 'managed',
+			billingType: 'paid',
+			username: '',
+			domain: '',
+			status: '',
+			serverReady: true,
+			loginUrl: '',
+			registerUrl: '',
+			lostPasswordUrl: '',
+			purchaseUrl: '',
+			brandName: 'Spawn',
+			brandLogoUrl: '',
+		};
+	}
+
 	const messagesContainer = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__messages' );
 	const input = block.querySelector< HTMLTextAreaElement >( '.wp-block-spawn-chat__input' );
 	const sendBtn = block.querySelector< HTMLButtonElement >( '.wp-block-spawn-chat__send' );
@@ -199,17 +221,268 @@ function initBlock( block: HTMLElement ): void {
 	const sessionsContainer = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__sessions' );
 	const sidebar = block.querySelector< HTMLElement >( '.wp-block-spawn-chat__sidebar' );
 	const sidebarToggle = block.querySelector< HTMLButtonElement >( '.wp-block-spawn-chat__sidebar-toggle' );
+	const balanceSpan = block.querySelector< HTMLSpanElement >( '.wp-block-spawn-chat__balance' );
+
+	let currentState: SpawnChatState = determineState( spawnState );
+	let currentBalance = spawnState.creditBalance;
+
+	function determineState( state: SpawnState ): SpawnChatState {
+		if ( ! state.isAuthenticated ) {
+			return 'unauthenticated';
+		}
+		if ( ! state.serverReady ) {
+			return 'provisioning';
+		}
+		if ( state.billingMode === 'byok' || state.billingType === 'comped' || state.customerId === 0 ) {
+			return 'chat';
+		}
+		if ( state.creditBalance <= 0 ) {
+			return 'no-credits';
+		}
+		return 'chat';
+	}
+
+	function updateBalanceDisplay(): void {
+		if ( balanceSpan ) {
+			balanceSpan.textContent = `$${ currentBalance.toFixed( 2 ) }`;
+			balanceSpan.classList.remove( 'wp-block-spawn-chat__balance--warning', 'wp-block-spawn-chat__balance--danger' );
+			if ( currentBalance < 1 ) {
+				balanceSpan.classList.add( 'wp-block-spawn-chat__balance--danger' );
+			} else if ( currentBalance < 5 ) {
+				balanceSpan.classList.add( 'wp-block-spawn-chat__balance--warning' );
+			}
+		}
+	}
+
+	async function fetchBalance(): Promise< number > {
+		try {
+			const response = await apiFetch< BalanceResponse >( { path: API.balance } );
+			currentBalance = response.balance;
+			updateBalanceDisplay();
+			return currentBalance;
+		} catch {
+			return currentBalance;
+		}
+	}
+
+	function renderUnauthenticated(): void {
+		if ( ! messagesContainer || ! input || ! sendBtn ) return;
+
+		const brandLogo = spawnState.brandLogoUrl
+			? `<img src="${ escapeAttr( spawnState.brandLogoUrl ) }" alt="${ escapeAttr( spawnState.brandName ) }" width="48" height="48" class="wp-block-spawn-chat__login-logo-img" />`
+			: '';
+
+		messagesContainer.innerHTML = `
+			<div class="wp-block-spawn-chat__login">
+				<div class="wp-block-spawn-chat__login-header">
+					${ brandLogo }
+					<h2 class="wp-block-spawn-chat__login-title">${ escapeHtml( spawnState.brandName ) }</h2>
+					<p class="wp-block-spawn-chat__login-subtitle">Sign in to chat with your AI</p>
+				</div>
+				<form class="wp-block-spawn-chat__login-form" method="post" action="${ escapeAttr( spawnState.loginUrl ) }">
+					<input type="hidden" name="redirect_to" value="${ escapeAttr( window.location.href ) }" />
+					<div class="wp-block-spawn-chat__login-field">
+						<label for="user_login">Email</label>
+						<input type="text" name="log" id="user_login" required autocomplete="username" />
+					</div>
+					<div class="wp-block-spawn-chat__login-field">
+						<label for="user_pass">Password</label>
+						<input type="password" name="pwd" id="user_pass" required autocomplete="current-password" />
+					</div>
+					<button type="submit" class="wp-block-spawn-chat__login-submit">Sign In</button>
+				</form>
+				<div class="wp-block-spawn-chat__login-links">
+					<a href="${ escapeAttr( spawnState.registerUrl ) }">Create an account</a>
+					<span class="wp-block-spawn-chat__login-links-sep">|</span>
+					<a href="${ escapeAttr( spawnState.lostPasswordUrl ) }">Forgot password?</a>
+				</div>
+			</div>
+		`;
+
+		input.style.display = 'none';
+		sendBtn.style.display = 'none';
+		if ( newConvoBtn ) newConvoBtn.style.display = 'none';
+		if ( sessionsContainer ) sessionsContainer.innerHTML = '';
+	}
+
+	function renderNoCredits(): void {
+		if ( ! messagesContainer ) return;
+
+		messagesContainer.innerHTML = `
+			<div class="wp-block-spawn-chat__no-credits">
+				<div class="wp-block-spawn-chat__no-credits-header">
+					<h2>Add Credits</h2>
+					<p>Add credits to start chatting with your AI</p>
+				</div>
+				<div class="wp-block-spawn-chat__credit-buttons">
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="10">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$10</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">1,000 credits</span>
+					</button>
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="25">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$25</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">3,000 credits <span class="wp-block-spawn-chat__credit-btn-bonus">(17% bonus)</span></span>
+					</button>
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="50">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$50</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">7,500 credits <span class="wp-block-spawn-chat__credit-btn-bonus">(50% bonus)</span></span>
+					</button>
+				</div>
+			</div>
+		`;
+
+		messagesContainer.querySelectorAll< HTMLButtonElement >( '.wp-block-spawn-chat__credit-btn' ).forEach( ( btn ) => {
+			btn.addEventListener( 'click', async () => {
+				const amount = parseInt( btn.dataset.amount || '10', 10 );
+				try {
+					const response = await apiFetch< PurchaseResponse >( {
+						path: API.purchase,
+						method: 'POST',
+						data: { amount },
+					} );
+					if ( response.checkout_url ) {
+						window.location.href = response.checkout_url;
+					}
+				} catch ( error ) {
+					console.error( 'Purchase failed:', error );
+				}
+			} );
+		} );
+
+		if ( input ) input.style.display = 'none';
+		if ( sendBtn ) sendBtn.style.display = 'none';
+	}
+
+	function renderProvisioning(): void {
+		if ( ! messagesContainer ) return;
+
+		messagesContainer.innerHTML = `
+			<div class="wp-block-spawn-chat__provisioning">
+				<p>Your website is still being set up! This usually takes a few minutes.</p>
+				<p>I'll be fully operational once it's ready.</p>
+			</div>
+		`;
+
+		if ( input ) input.disabled = true;
+		if ( sendBtn ) sendBtn.disabled = true;
+	}
+
+	function renderCreditsDepleted(): void {
+		if ( ! messagesContainer ) return;
+
+		const existingMessage = messagesContainer.querySelector( '.wp-block-spawn-chat__credits-depleted-msg' );
+		if ( ! existingMessage ) {
+			const msgDiv = document.createElement( 'div' );
+			msgDiv.className = 'wp-block-spawn-chat__credits-depleted-msg';
+			msgDiv.innerHTML = `
+				<div class="chat-message chat-message--system">
+					<p>You've run out of credits</p>
+				</div>
+				<div class="wp-block-spawn-chat__credit-buttons wp-block-spawn-chat__credit-buttons--inline">
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="10">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$10</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">1,000 credits</span>
+					</button>
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="25">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$25</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">3,000 credits</span>
+					</button>
+					<button class="wp-block-spawn-chat__credit-btn" data-amount="50">
+						<span class="wp-block-spawn-chat__credit-btn-amount">$50</span>
+						<span class="wp-block-spawn-chat__credit-btn-desc">7,500 credits</span>
+					</button>
+				</div>
+			`;
+			messagesContainer.appendChild( msgDiv );
+
+			msgDiv.querySelectorAll< HTMLButtonElement >( '.wp-block-spawn-chat__credit-btn' ).forEach( ( btn ) => {
+				btn.addEventListener( 'click', async () => {
+					const amount = parseInt( btn.dataset.amount || '10', 10 );
+					try {
+						const response = await apiFetch< PurchaseResponse >( {
+							path: API.purchase,
+							method: 'POST',
+							data: { amount },
+						} );
+						if ( response.checkout_url ) {
+							window.location.href = response.checkout_url;
+						}
+					} catch ( error ) {
+						console.error( 'Purchase failed:', error );
+					}
+				} );
+			} );
+		}
+
+		if ( input ) input.disabled = true;
+		if ( sendBtn ) sendBtn.disabled = true;
+	}
+
+	function renderChat(): void {
+		if ( ! messagesContainer || ! input || ! sendBtn ) return;
+
+		input.style.display = '';
+		input.disabled = false;
+		sendBtn.style.display = '';
+		sendBtn.disabled = false;
+		if ( newConvoBtn ) newConvoBtn.style.display = '';
+
+		const depletedMsg = messagesContainer.querySelector( '.wp-block-spawn-chat__credits-depleted-msg' );
+		if ( depletedMsg ) {
+			const successMsg = document.createElement( 'div' );
+			successMsg.className = 'chat-message chat-message--system';
+			successMsg.innerHTML = '<p>Credits added! You can continue chatting.</p>';
+			messagesContainer.insertBefore( successMsg, depletedMsg );
+			depletedMsg.remove();
+		}
+
+		messagesContainer.scrollTop = messagesContainer.scrollHeight;
+	}
+
+	function renderState(): void {
+		switch ( currentState ) {
+			case 'unauthenticated':
+				renderUnauthenticated();
+				break;
+			case 'no-credits':
+				renderNoCredits();
+				break;
+			case 'provisioning':
+				renderProvisioning();
+				break;
+			case 'credits-depleted':
+				renderCreditsDepleted();
+				break;
+			case 'chat':
+				renderChat();
+				break;
+		}
+	}
+
+	renderState();
+	updateBalanceDisplay();
+
+	if ( currentState !== 'chat' ) {
+		return;
+	}
+
+	const context: ChatContext = {
+		customer_id: spawnState.customerId,
+		domain: spawnState.domain,
+		status: spawnState.status,
+		has_mobile: false,
+		is_admin: spawnState.customerId === 0,
+		username: spawnState.username,
+	};
 
 	if ( ! messagesContainer || ! input || ! sendBtn ) return;
 
-	// State
 	let isLoading = false;
 	let currentSessionKey = '';
 	let sessions: Session[] = [];
 	let verbInterval: ReturnType< typeof setInterval > | null = null;
 	let currentVerbIndex = 0;
 
-	// Session storage helpers
 	const storage = {
 		getSessionKey: (): string => {
 			try { return localStorage.getItem( STORAGE.session ) || ''; }
@@ -236,11 +509,9 @@ function initBlock( block: HTMLElement ): void {
 		},
 	};
 
-	// Generate session key
 	const generateSessionKey = (): string =>
 		`webchat-${ Date.now() }-${ Math.random().toString( 36 ).substr( 2, 9 ) }`;
 
-	// Get session title
 	const getSessionTitle = ( key: string, session: Session | null = null ): string => {
 		if ( session?.displayName && ! session.displayName.startsWith( 'webchat-' ) ) {
 			return session.displayName;
@@ -251,7 +522,6 @@ function initBlock( block: HTMLElement ): void {
 		return 'Conversation';
 	};
 
-	// Generate AI title
 	const generateSessionTitle = async ( sessionKey: string ): Promise< string > => {
 		const username = context.username || 'friend';
 		const wordBankSample = [ ...WORD_BANK ].sort( () => 0.5 - Math.random() ).slice( 0, 12 ).join( ', ' );
@@ -276,7 +546,6 @@ function initBlock( block: HTMLElement ): void {
 		return fallback;
 	};
 
-	// Update session indicator
 	const updateSessionIndicator = (): void => {
 		if ( sessionIndicator ) {
 			sessionIndicator.textContent = currentSessionKey
@@ -285,7 +554,6 @@ function initBlock( block: HTMLElement ): void {
 		}
 	};
 
-	// Render sessions list
 	const renderSessions = (): void => {
 		if ( ! sessionsContainer ) return;
 
@@ -317,7 +585,6 @@ function initBlock( block: HTMLElement ): void {
 		} );
 	};
 
-	// Load sessions
 	const loadSessions = async (): Promise< void > => {
 		if ( ! sessionsContainer ) return;
 
@@ -353,7 +620,6 @@ function initBlock( block: HTMLElement ): void {
 		}
 	};
 
-	// Select session
 	const selectSession = async ( key: string ): Promise< void > => {
 		currentSessionKey = key;
 		storage.setSessionKey( key );
@@ -376,7 +642,6 @@ function initBlock( block: HTMLElement ): void {
 		}
 	};
 
-	// Render message history
 	const renderHistory = ( messages: ChatMessage[] ): void => {
 		if ( messages.length === 0 ) {
 			messagesContainer.innerHTML = '';
@@ -395,7 +660,6 @@ function initBlock( block: HTMLElement ): void {
 		messagesContainer.scrollTop = messagesContainer.scrollHeight;
 	};
 
-	// Start new session
 	const startNewSession = (): void => {
 		currentSessionKey = generateSessionKey();
 		storage.setSessionKey( currentSessionKey );
@@ -404,7 +668,6 @@ function initBlock( block: HTMLElement ): void {
 		renderSessions();
 	};
 
-	// Add message to UI
 	const addMessage = ( role: string, content: string ): void => {
 		const msgDiv = document.createElement( 'div' );
 		msgDiv.className = `chat-message chat-message--${ role }`;
@@ -413,7 +676,6 @@ function initBlock( block: HTMLElement ): void {
 		messagesContainer.scrollTop = messagesContainer.scrollHeight;
 	};
 
-	// Typing indicator
 	const showTypingIndicator = (): void => {
 		currentVerbIndex = Math.floor( Math.random() * LOADING_VERBS.length );
 
@@ -446,7 +708,6 @@ function initBlock( block: HTMLElement ): void {
 		document.getElementById( 'typing-indicator' )?.remove();
 	};
 
-	// Loading state
 	const setLoading = ( loading: boolean ): void => {
 		isLoading = loading;
 		sendBtn.disabled = loading;
@@ -462,13 +723,11 @@ function initBlock( block: HTMLElement ): void {
 		}
 	};
 
-	// Auto-resize input
 	const autoResizeInput = (): void => {
 		input.style.height = 'auto';
 		input.style.height = `${ Math.min( input.scrollHeight, 150 ) }px`;
 	};
 
-	// Send message
 	const sendMessage = async (): Promise< void > => {
 		const text = input.value.trim();
 		if ( ! text || isLoading ) return;
@@ -495,22 +754,37 @@ function initBlock( block: HTMLElement ): void {
 				data: { message: text, sessionKey: currentSessionKey, context },
 			} );
 
+			if ( response.code === 'insufficient_credits' || ( response.error && ( response.error.toLowerCase().includes( 'credit' ) || response.error.toLowerCase().includes( 'insufficient' ) ) ) ) {
+				currentState = 'credits-depleted';
+				await fetchBalance();
+				renderState();
+				setLoading( false );
+				return;
+			}
+
 			if ( response.reply ) {
 				addMessage( 'assistant', response.reply );
+				await fetchBalance();
 			} else if ( response.error ) {
 				addMessage( 'system', `Error: ${ response.error }` );
 			}
 
 			loadSessions();
-		} catch {
-			addMessage( 'system', 'Failed to send message. Please try again.' );
+		} catch ( error: unknown ) {
+			const err = error as { code?: string; message?: string; status?: number };
+			if ( err.status === 402 || ( err.message && err.message.toLowerCase().includes( 'credit' ) ) ) {
+				currentState = 'credits-depleted';
+				await fetchBalance();
+				renderState();
+			} else {
+				addMessage( 'system', 'Failed to send message. Please try again.' );
+			}
 		}
 
 		setLoading( false );
 		input.focus();
 	};
 
-	// Event listeners
 	sendBtn.addEventListener( 'click', sendMessage );
 	newConvoBtn?.addEventListener( 'click', startNewSession );
 	input.addEventListener( 'keydown', ( e ) => {
@@ -527,9 +801,7 @@ function initBlock( block: HTMLElement ): void {
 		} );
 	}
 
-	// Initialize
 	loadSessions();
 }
 
-// Initialize on DOM ready
 document.addEventListener( 'DOMContentLoaded', init );

@@ -137,6 +137,26 @@ class Chat_Controller {
 			);
 		}
 
+		$is_admin = current_user_can( 'manage_options' );
+
+		$billing_mode = $customer['billing_mode'] ?? 'managed';
+		$billing_type = $customer['billing_type'] ?? 'paid';
+
+		if ( ! $is_admin && 'managed' === $billing_mode && 'comped' !== $billing_type ) {
+			$credit_balance = (float) ( $customer['credit_balance'] ?? 0 );
+			if ( $credit_balance <= 0 ) {
+				return new WP_Error(
+					'insufficient_credits',
+					__( 'Insufficient credits.', 'spawn' ),
+					array(
+						'status'      => 402,
+						'code'        => 'insufficient_credits',
+						'balance'     => $credit_balance,
+					)
+				);
+			}
+		}
+
 		if ( empty( $message ) ) {
 			return new WP_Error(
 				'empty_message',
