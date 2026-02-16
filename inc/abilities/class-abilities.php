@@ -118,6 +118,67 @@ class Abilities {
 			'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
 		) );
 
+		// Comp Customer (create free customer)
+		wp_register_ability( 'spawn/comp-customer', array(
+			'label'               => __( 'Comp Customer', 'spawn' ),
+			'description'         => __( 'Create a comped (free) customer with VPS but no Stripe subscription. Admin use only.', 'spawn' ),
+			'category'            => 'spawn',
+			'execute_callback'    => array( Ability_Comp_Customer::class, 'execute' ),
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'email' ),
+				'properties' => array(
+					'email'           => array(
+						'type'        => 'string',
+						'format'      => 'email',
+						'description' => 'Customer email address',
+					),
+					'tier'            => array(
+						'type'        => 'string',
+						'enum'        => \Spawn\Config::get_tier_ids(),
+						'default'     => 'starter',
+						'description' => 'Tier (starter, pro, business)',
+					),
+					'wants_website'  => array(
+						'type'        => 'boolean',
+						'default'     => true,
+						'description' => 'Whether customer wants a website',
+					),
+					'domain'         => array(
+						'type'        => 'string',
+						'description' => 'Optional domain for the customer',
+					),
+					'domain_type'    => array(
+						'type'        => 'string',
+						'enum'        => array( 'subdomain', 'register', 'byod' ),
+						'default'     => 'subdomain',
+						'description' => 'Domain type: subdomain, register, or byod',
+					),
+					'customer_region' => array(
+						'type'        => 'string',
+						'enum'        => array( 'us', 'eu' ),
+						'default'     => 'us',
+						'description' => 'Customer region (us or eu)',
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'success'              => array( 'type' => 'boolean' ),
+					'customer_id'          => array( 'type' => 'integer' ),
+					'email'               => array( 'type' => 'string' ),
+					'tier'                => array( 'type' => 'string' ),
+					'billing_type'       => array( 'type' => 'string' ),
+					'status'              => array( 'type' => 'string' ),
+					'domain'              => array( 'type' => 'string' ),
+					'domain_type'        => array( 'type' => 'string' ),
+					'provisioning_job_id' => array( 'type' => 'string' ),
+				),
+			),
+			'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+		) );
+
 		// Get Usage
 		wp_register_ability( 'spawn/get-usage', array(
 			'label'               => __( 'Get Usage', 'spawn' ),

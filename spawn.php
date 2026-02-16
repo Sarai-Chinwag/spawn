@@ -117,6 +117,7 @@ function activate(): void {
 	// Run column migrations for existing installations.
 	Database::migrate_column_names();
 	Database::migrate_remove_api_key_column();
+	Database::migrate_add_billing_type();
 
 	// Register user role.
 	User_Role::register_role();
