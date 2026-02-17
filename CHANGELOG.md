@@ -16,3 +16,8 @@
 - BYOK billing mode infrastructure
 - Proxy chat mode (direct-only now)
 - Chat storefront inner blocks (auth-gate, credit-balance, credit-purchase)
+
+## 0.9.1
+
+### Changed
+- Initial tracked release
