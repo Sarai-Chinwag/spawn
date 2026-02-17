@@ -13,7 +13,6 @@ interface SpawnState {
 	isAuthenticated: boolean;
 	customerId: number;
 	creditBalance: number;
-	billingMode: 'managed' | 'byok';
 	billingType: 'paid' | 'comped';
 	username: string;
 	domain: string;
@@ -27,7 +26,6 @@ interface SpawnState {
 	brandLogoUrl: string;
 	gatewayUrl: string;
 	gatewayToken: string;
-	chatMode: 'direct' | 'proxy';
 }
 
 interface ChatContext {
@@ -90,9 +88,6 @@ interface SessionTitles {
 }
 
 const API = {
-	send: '/spawn/v1/chat/send',
-	sessions: '/spawn/v1/chat/sessions',
-	history: ( key: string ) => `/spawn/v1/chat/sessions/${ key }/history?limit=50`,
 	generateTitle: '/spawn/v1/chat/generate-title',
 	balance: '/spawn/v1/credits/balance',
 	purchase: '/spawn/v1/credits/purchase',
@@ -201,7 +196,6 @@ function initBlock( block: HTMLElement ): void {
 			isAuthenticated: false,
 			customerId: 0,
 			creditBalance: 0,
-			billingMode: 'managed',
 			billingType: 'paid',
 			username: '',
 			domain: '',
@@ -215,7 +209,6 @@ function initBlock( block: HTMLElement ): void {
 			brandLogoUrl: '',
 			gatewayUrl: '',
 			gatewayToken: '',
-			chatMode: 'proxy',
 		};
 	}
 
@@ -239,7 +232,7 @@ function initBlock( block: HTMLElement ): void {
 		if ( ! state.serverReady ) {
 			return 'provisioning';
 		}
-		if ( state.billingMode === 'byok' || state.billingType === 'comped' || state.customerId === 0 ) {
+		if ( state.billingType === 'comped' || state.customerId === 0 ) {
 			return 'chat';
 		}
 		if ( state.creditBalance <= 0 ) {
@@ -599,28 +592,23 @@ function initBlock( block: HTMLElement ): void {
 		try {
 			let allSessions: Session[] = [];
 
-			if ( spawnState.chatMode === 'direct' ) {
-				const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': 'Bearer ' + spawnState.gatewayToken,
-					},
-					body: JSON.stringify( {
-						tool: 'sessions_list',
-						args: {},
-					} ),
-				} );
+			const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + spawnState.gatewayToken,
+				},
+				body: JSON.stringify( {
+					tool: 'sessions_list',
+					args: {},
+				} ),
+			} );
 
-				if ( response.ok ) {
-					const data = await response.json();
-					// Gateway /tools/invoke returns { ok, result: { content, details } }
-					const details = data.result?.details || data;
-					allSessions = details.sessions || [];
-				}
-			} else {
-				const response = await apiFetch< SessionsResponse | Session[] >( { path: API.sessions } );
-				allSessions = ( response as SessionsResponse ).sessions || ( response as Session[] ) || [];
+			if ( response.ok ) {
+				const data = await response.json();
+				// Gateway /tools/invoke returns { ok, result: { content, details } }
+				const details = data.result?.details || data;
+				allSessions = details.sessions || [];
 			}
 
 			sessions = allSessions
@@ -660,31 +648,26 @@ function initBlock( block: HTMLElement ): void {
 		try {
 			let messages: ChatMessage[] = [];
 
-			if ( spawnState.chatMode === 'direct' ) {
-				const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': 'Bearer ' + spawnState.gatewayToken,
+			const response = await fetch( spawnState.gatewayUrl + '/tools/invoke', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + spawnState.gatewayToken,
+				},
+				body: JSON.stringify( {
+					tool: 'sessions_history',
+					args: {
+						sessionKey: key,
+						limit: 50,
 					},
-					body: JSON.stringify( {
-						tool: 'sessions_history',
-						args: {
-							sessionKey: key,
-							limit: 50,
-						},
-					} ),
-				} );
+				} ),
+			} );
 
-				if ( response.ok ) {
-					const data = await response.json();
-					// Gateway /tools/invoke returns { ok, result: { content, details } }
-					const details = data.result?.details || data;
-					messages = details.messages || [];
-				}
-			} else {
-				const response = await apiFetch< HistoryResponse | ChatMessage[] >( { path: API.history( key ) } );
-				messages = ( response as HistoryResponse ).messages || ( response as ChatMessage[] ) || [];
+			if ( response.ok ) {
+				const data = await response.json();
+				// Gateway /tools/invoke returns { ok, result: { content, details } }
+				const details = data.result?.details || data;
+				messages = details.messages || [];
 			}
 
 			renderHistory( messages );
@@ -788,12 +771,10 @@ function initBlock( block: HTMLElement ): void {
 		const text = input.value.trim();
 		if ( ! text || isLoading ) return;
 
-		if ( spawnState.chatMode === 'direct' ) {
-			if ( spawnState.billingMode === 'managed' && spawnState.billingType !== 'comped' && currentBalance <= 0 ) {
-				currentState = 'credits-depleted';
-				renderState();
-				return;
-			}
+		if ( spawnState.billingType !== 'comped' && currentBalance <= 0 ) {
+			currentState = 'credits-depleted';
+			renderState();
+			return;
 		}
 
 		if ( ! currentSessionKey ) {
@@ -814,78 +795,30 @@ function initBlock( block: HTMLElement ): void {
 		try {
 			let response: ChatSendResponse;
 
-			if ( spawnState.chatMode === 'direct' ) {
-				const headers: Record< string, string > = {
-					'Content-Type': 'application/json',
-					'Authorization': 'Bearer ' + spawnState.gatewayToken,
-				};
+			const headers: Record< string, string > = {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer ' + spawnState.gatewayToken,
+			};
 
-				if ( currentSessionKey ) {
-					headers[ 'x-openclaw-session-key' ] = currentSessionKey;
-				}
-
-				const chatResponse = await fetch( spawnState.gatewayUrl + '/v1/chat/completions', {
-					method: 'POST',
-					headers,
-					body: JSON.stringify( {
-						model: 'openclaw:main',
-						messages: [
-							{
-								role: 'user',
-								content: text,
-							},
-						],
-					} ),
-				} );
-
-				if ( chatResponse.status === 402 || chatResponse.status === 403 ) {
-					currentState = 'credits-depleted';
-					await fetchBalance();
-					renderState();
-					setLoading( false );
-					return;
-				}
-
-				if ( ! chatResponse.ok ) {
-					const errorData = await chatResponse.json().catch( () => ( {} ) );
-					if ( chatResponse.status === 0 ) {
-						addMessage( 'system', 'Your agent is offline. It may be restarting.' );
-					} else {
-						addMessage( 'system', `Error: ${ errorData.error?.message || 'Failed to get response' }` );
-					}
-					setLoading( false );
-					input.focus();
-					return;
-				}
-
-				const chatData = await chatResponse.json();
-				const reply = chatData.choices?.[ 0 ]?.message?.content;
-
-				if ( reply ) {
-					addMessage( 'assistant', reply );
-					await fetchBalance();
-
-					if ( currentBalance <= 0 && spawnState.billingMode === 'managed' ) {
-						currentState = 'credits-depleted';
-						renderState();
-					}
-				} else {
-					addMessage( 'system', 'No response received from agent.' );
-				}
-
-				loadSessions();
-				setLoading( false );
-				input.focus();
-				return;
+			if ( currentSessionKey ) {
+				headers[ 'x-openclaw-session-key' ] = currentSessionKey;
 			}
 
-			response = await apiFetch< ChatSendResponse >( {
-				path: API.send,
+			const chatResponse = await fetch( spawnState.gatewayUrl + '/v1/chat/completions', {
 				method: 'POST',
-				data: { message: text, sessionKey: currentSessionKey, context },
+				headers,
+				body: JSON.stringify( {
+					model: 'openclaw:main',
+					messages: [
+						{
+							role: 'user',
+							content: text,
+						},
+					],
+				} ),
 			} );
 
-			if ( response.code === 'insufficient_credits' || ( response.error && ( response.error.toLowerCase().includes( 'credit' ) || response.error.toLowerCase().includes( 'insufficient' ) ) ) ) {
+			if ( chatResponse.status === 402 || chatResponse.status === 403 ) {
 				currentState = 'credits-depleted';
 				await fetchBalance();
 				renderState();
@@ -893,11 +826,31 @@ function initBlock( block: HTMLElement ): void {
 				return;
 			}
 
-			if ( response.reply ) {
-				addMessage( 'assistant', response.reply );
+			if ( ! chatResponse.ok ) {
+				const errorData = await chatResponse.json().catch( () => ( {} ) );
+				if ( chatResponse.status === 0 ) {
+					addMessage( 'system', 'Your agent is offline. It may be restarting.' );
+				} else {
+					addMessage( 'system', `Error: ${ errorData.error?.message || 'Failed to get response' }` );
+				}
+				setLoading( false );
+				input.focus();
+				return;
+			}
+
+			const chatData = await chatResponse.json();
+			const reply = chatData.choices?.[ 0 ]?.message?.content;
+
+			if ( reply ) {
+				addMessage( 'assistant', reply );
 				await fetchBalance();
-			} else if ( response.error ) {
-				addMessage( 'system', `Error: ${ response.error }` );
+
+				if ( currentBalance <= 0 && spawnState.billingType !== 'comped' ) {
+					currentState = 'credits-depleted';
+					renderState();
+				}
+			} else {
+				addMessage( 'system', 'No response received from agent.' );
 			}
 
 			loadSessions();

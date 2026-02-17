@@ -26,7 +26,6 @@ $is_authenticated = is_user_logged_in();
 $is_admin         = current_user_can( 'manage_options' );
 $customer_id      = 0;
 $credit_balance   = 0.0;
-$billing_mode     = 'managed';
 $billing_type     = 'paid';
 $username         = '';
 $domain           = '';
@@ -43,14 +42,12 @@ if ( $is_authenticated ) {
 	if ( $customer ) {
 		$customer_id     = (int) $customer['id'];
 		$credit_balance  = (float) $customer['credit_balance'];
-		$billing_mode     = $customer['billing_mode'] ?? 'managed';
 		$billing_type     = $customer['billing_type'] ?? 'paid';
 		$domain           = $customer['domain'] ?? '';
 		$status           = $customer['status'] ?? '';
 		$server_ready     = ! empty( $customer['server_ip'] ) && 'provisioning' !== $customer['status'];
 	} elseif ( $is_admin ) {
 		$customer_id   = 0;
-		$billing_mode   = 'managed';
 		$billing_type   = 'comped';
 		$domain         = Branding::get_subdomain_suffix();
 		$status         = 'admin';
@@ -65,19 +62,16 @@ $purchase_url    = rest_url( 'spawn/v1/credits/purchase' );
 
 $gateway_url  = '';
 $gateway_token = '';
-$chat_mode    = 'proxy';
 
 if ( ! empty( $customer['domain'] ) && 'active' === $customer['status'] ) {
 	$gateway_url  = 'https://' . $customer['domain'] . '/gateway';
 	$gateway_token = $customer['openclaw_token'] ?? '';
-	$chat_mode    = 'direct';
 }
 
 $spawn_state = array(
 	'isAuthenticated' => $is_authenticated,
 	'customerId'      => $customer_id,
 	'creditBalance'   => $credit_balance,
-	'billingMode'      => $billing_mode,
 	'billingType'      => $billing_type,
 	'username'         => $username,
 	'domain'           => $domain,
@@ -91,7 +85,6 @@ $spawn_state = array(
 	'brandLogoUrl'     => $brand_logo_url,
 	'gatewayUrl'       => $gateway_url,
 	'gatewayToken'     => $gateway_token,
-	'chatMode'         => $chat_mode,
 );
 ?>
 <div <?php echo $wrapper_attributes; ?> data-spawn-state="<?php echo esc_attr( wp_json_encode( $spawn_state ) ); ?>">
