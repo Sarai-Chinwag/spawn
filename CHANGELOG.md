@@ -1,4 +1,4 @@
-## Unreleased
+## [0.10.0] - 2026-02-17
 
 ### Added
 - Comp billing system: `billing_type` field, `spawn_billing_types` filter, `spawn_comp_customer` ability
