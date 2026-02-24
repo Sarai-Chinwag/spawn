@@ -1,0 +1,85 @@
+# =============================================================================
+# Spawn Multi-Tenant: Single Tenant Template
+# Duplicate and parameterize per customer.
+# =============================================================================
+
+version: "3.8"
+
+services:
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ${WP_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WP_DB_USER:-wp_user}
+      WORDPRESS_DB_PASSWORD: ${WP_DB_PASSWORD:?DB password required}
+      WORDPRESS_TABLE_PREFIX: wp_
+      # Agent runtime config
+      SPAWN_AGENT_RUNTIME: ${SPAWN_AGENT_RUNTIME:-}
+      SPAWN_AGENT_ENABLED: ${SPAWN_AGENT_ENABLED:-false}
+    volumes:
+      - wp_uploads:/var/www/html/wp-content/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: "${WP_CPU_LIMIT:-1.0}"
+          memory: ${WP_MEM_LIMIT:-512M}
+    networks:
+      - tenant_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${WP_DB_NAME:-wordpress}
+      MYSQL_USER: ${WP_DB_USER:-wp_user}
+      MYSQL_PASSWORD: ${WP_DB_PASSWORD:?DB password required}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB root password required}
+    volumes:
+      - db_data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: "${DB_CPU_LIMIT:-0.5}"
+          memory: ${DB_MEM_LIMIT:-256M}
+    networks:
+      - tenant_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # nginx sidecar for this tenant (serves static files + proxies PHP to FPM)
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - wp_uploads:/var/www/html/wp-content/uploads:ro
+    ports:
+      - "${TENANT_PORT:-8080}:80"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+    networks:
+      - tenant_net
+    depends_on:
+      - wordpress
+
+volumes:
+  wp_uploads:
+  db_data:
+
+networks:
+  tenant_net:
+    driver: bridge
