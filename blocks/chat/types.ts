@@ -36,6 +36,7 @@ export interface ChatContext {
 }
 
 export interface Session {
+	id?: string;
 	sessionKey?: string;
 	key?: string;
 	displayName?: string;

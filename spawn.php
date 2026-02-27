@@ -72,7 +72,7 @@ function init(): void {
 	Cron::init();
 	Templates::init();
 	Cleanup::init();
-	// Self-spawn removed — OpenClaw is installed externally via provisioner, not from wp-admin.
+	// Self-spawn removed — OpenCode is installed externally via provisioner, not from wp-admin.
 
 	// Admin settings.
 	if ( is_admin() ) {
@@ -118,6 +118,7 @@ function activate(): void {
 	Database::migrate_column_names();
 	Database::migrate_remove_api_key_column();
 	Database::migrate_add_billing_type();
+	Database::migrate_openclaw_to_opencode();
 
 	// Register user role.
 	User_Role::register_role();

@@ -81,7 +81,7 @@ class Database {
 			stripe_payment_method varchar(255) DEFAULT NULL,
 			server_id varchar(255) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
-			openclaw_token varchar(255) DEFAULT NULL,
+			opencode_password varchar(255) DEFAULT NULL,
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
@@ -129,7 +129,7 @@ class Database {
 			server_type varchar(50) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
 			server_location varchar(10) DEFAULT 'ash',
-			openclaw_token varchar(255) DEFAULT NULL,
+			opencode_password varchar(255) DEFAULT NULL,
 			has_wordpress tinyint(1) DEFAULT 0,
 			status varchar(50) DEFAULT 'pending',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP,
@@ -205,6 +205,50 @@ class Database {
 		}
 		if ( in_array( 'hetzner_server_id', $server_columns, true ) ) {
 			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `hetzner_server_id` `provider_server_id` varchar(255) DEFAULT NULL" );
+		}
+	}
+
+	/**
+	 * Migrate openclaw_token column and options to opencode_password.
+	 *
+	 * Renames openclaw_token → opencode_password in both customers and servers
+	 * tables, and migrates related WordPress options.
+	 */
+	public static function migrate_openclaw_to_opencode(): void {
+		global $wpdb;
+
+		$customers_table = self::get_table_name();
+		$servers_table   = self::get_servers_table_name();
+
+		// Customers table.
+		$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$customers_table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( in_array( 'openclaw_token', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `openclaw_token` `opencode_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+
+		// Servers table.
+		$server_columns = $wpdb->get_col( "SHOW COLUMNS FROM {$servers_table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( in_array( 'openclaw_token', $server_columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `openclaw_token` `opencode_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+
+		// Migrate WP options.
+		$old_url = get_option( 'spawn_openclaw_gateway_url', '' );
+		if ( ! empty( $old_url ) ) {
+			update_option( 'spawn_opencode_server_url', $old_url );
+			delete_option( 'spawn_openclaw_gateway_url' );
+		}
+
+		$old_token = get_option( 'spawn_openclaw_token', '' );
+		if ( ! empty( $old_token ) ) {
+			update_option( 'spawn_opencode_password', $old_token );
+			delete_option( 'spawn_openclaw_token' );
+		}
+
+		$old_local = get_option( 'spawn_local_openclaw_token', '' );
+		if ( ! empty( $old_local ) ) {
+			update_option( 'spawn_local_opencode_password', $old_local );
+			delete_option( 'spawn_local_openclaw_token' );
 		}
 	}
 
@@ -862,7 +906,7 @@ class Database {
 				'server_type'      => $data['server_type'] ?? null,
 				'server_ip'         => $data['server_ip'] ?? null,
 				'server_location'   => $data['server_location'] ?? 'ash',
-				'openclaw_token'    => $data['openclaw_token'] ?? null,
+				'opencode_password' => $data['opencode_password'] ?? null,
 				'has_wordpress'     => ! empty( $data['has_wordpress'] ) ? 1 : 0,
 				'status'            => $data['status'] ?? 'pending',
 			),

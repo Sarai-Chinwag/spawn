@@ -2,7 +2,7 @@
 
 ## Overview
 
-Self-spawn allows users to install OpenClaw directly on their existing WordPress server via the Spawn plugin. No external VPS provisioning needed - the plugin installs OpenClaw locally.
+Self-spawn allows users to install OpenCode directly on their existing WordPress server via the Spawn plugin. No external VPS provisioning needed - the plugin installs OpenCode locally.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ Self-spawn allows users to install OpenClaw directly on their existing WordPress
 ├─────────────────────────────────────────────────────────────┤
 │  SaaS Mode (existing)    │    Self-Spawn Mode (new)        │
 │  - Triggers vps-prov     │    - Detects environment        │
-│  - Remote provisioning   │    - Installs OpenClaw locally  │
+│  - Remote provisioning   │    - Installs OpenCode locally  │
 │  - Managed credits       │    - BYOK via wp-ai-client      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -21,7 +21,7 @@ Self-spawn allows users to install OpenClaw directly on their existing WordPress
 
 ### 1. Environment_Detector (`inc/class-environment-detector.php`)
 
-Checks if the server can run OpenClaw:
+Checks if the server can run OpenCode:
 
 ```php
 class Environment_Detector {
@@ -31,7 +31,7 @@ class Environment_Detector {
             'node_version'   => self::get_node_version(), // v18+ required
             'shell_access'   => self::check_shell(),     // Can run shell_exec?
             'is_vps'         => self::detect_vps(),      // VPS vs shared hosting
-            'writable_home'  => self::check_home_dir(),  // Can write to ~/.openclaw?
+            'writable_home'  => self::check_home_dir(),  // Can write to ~/.config/opencode?
             'systemd'        => self::check_systemd(),   // Can create service?
             'can_install'    => /* all checks pass */,
             'blockers'       => [ /* list of issues */ ],
@@ -42,13 +42,13 @@ class Environment_Detector {
 
 ### 2. WP_AI_Client_Bridge (`inc/class-wp-ai-client-bridge.php`)
 
-Reads credentials from wp-ai-client and maps to OpenClaw:
+Reads credentials from wp-ai-client and maps to OpenCode:
 
 ```php
 class WP_AI_Client_Bridge {
     const WP_AI_CLIENT_OPTION = 'wp_ai_client_provider_credentials';
     
-    // Provider ID -> OpenClaw env var
+    // Provider ID -> OpenCode env var
     const PROVIDER_MAP = [
         'anthropic' => 'ANTHROPIC_API_KEY',
         'openai'    => 'OPENAI_API_KEY',
@@ -57,7 +57,7 @@ class WP_AI_Client_Bridge {
     
     public static function get_credentials(): array;
     public static function has_any_credentials(): bool;
-    public static function get_openclaw_env(): array;
+    public static function get_opencode_env(): array;
     public static function is_wp_ai_client_active(): bool;
 }
 ```
@@ -72,8 +72,8 @@ class Self_Spawn {
     
     // Check current state
     public static function get_status(): array;
-    public static function is_openclaw_installed(): bool;
-    public static function is_openclaw_running(): bool;
+    public static function is_opencode_installed(): bool;
+    public static function is_opencode_running(): bool;
     
     // Installation
     public static function install(): array; // Returns success/error
@@ -136,14 +136,14 @@ New section in Spawn settings OR new submenu page:
 │                                                            │
 │ ──────────────────────────────────────────────────────     │
 │                                                            │
-│ OpenClaw Status: Not Installed                             │
+│ OpenCode Status: Not Installed                             │
 │                                                            │
-│ [Install OpenClaw]                                         │
+│ [Install OpenCode]                                         │
 │                                                            │
 │ OR if installed:                                           │
 │                                                            │
-│ OpenClaw Status: Running ✅                                │
-│ Gateway URL: http://127.0.0.1:18789                        │
+│ OpenCode Status: Running ✅                                │
+│ Server URL: http://127.0.0.1:4096                          │
 │                                                            │
 │ [Stop] [Restart] [Uninstall]                               │
 │                                                            │
@@ -152,28 +152,28 @@ New section in Spawn settings OR new submenu page:
 
 ## Installation Flow
 
-1. User clicks "Install OpenClaw"
+1. User clicks "Install OpenCode"
 2. Plugin checks environment (if not already checked)
 3. If blockers exist, show error with guidance
 4. Plugin executes installation:
    ```bash
-   # Install OpenClaw via npm
-   npm install -g openclaw
+   # Install OpenCode via npm
+   npm install -g opencode
    
    # Create config directory
-   mkdir -p ~/.openclaw
+   mkdir -p ~/.config/opencode
    
    # Write config with credentials from wp-ai-client
-   # -> ~/.openclaw/openclaw.json
+   # -> ~/.config/opencode/config.json
    
    # Create systemd service (if available)
    # OR run as background process
    
-   # Start OpenClaw
-   openclaw gateway start
+   # Start OpenCode server
+   opencode serve --port 4096
    ```
-5. Plugin verifies OpenClaw is running
-6. Plugin stores local gateway URL for chat block
+5. Plugin verifies OpenCode is running
+6. Plugin stores local server URL for chat block
 
 ## wp-ai-client Integration
 
@@ -211,15 +211,15 @@ The existing chat block needs to detect which mode we're in:
 
 ```php
 // In chat block render or API
-if (Self_Spawn::is_openclaw_installed() && Self_Spawn::is_openclaw_running()) {
-    // Use local OpenClaw
-    $gateway_url = 'http://127.0.0.1:18789';
+if (Self_Spawn::is_opencode_installed() && Self_Spawn::is_opencode_running()) {
+    // Use local OpenCode
+    $server_url = 'http://127.0.0.1:4096';
 } elseif ($customer = Database::get_customer_by_user()) {
-    // Use customer's remote OpenClaw (SaaS mode)
-    $gateway_url = 'https://' . $customer['domain'] . ':18789';
+    // Use customer's remote OpenCode (SaaS mode)
+    $server_url = 'http://' . $customer['server_ip'] . ':4096';
 } else {
     // Not configured
-    return 'Please configure OpenClaw first.';
+    return 'Please configure OpenCode first.';
 }
 ```
 
@@ -229,7 +229,7 @@ if (Self_Spawn::is_openclaw_installed() && Self_Spawn::is_openclaw_running()) {
 2. **Nonce verification**: All admin actions use nonces
 3. **Sanitization**: All shell commands are escaped
 4. **No arbitrary command execution**: Only predefined commands run
-5. **Credentials isolation**: wp-ai-client credentials stay in WP, copied to OpenClaw config
+5. **Credentials isolation**: wp-ai-client credentials stay in WP, copied to OpenCode config
 
 ## File Changes Summary
 
@@ -250,9 +250,9 @@ if (Self_Spawn::is_openclaw_installed() && Self_Spawn::is_openclaw_running()) {
 - [ ] Environment detection on VPS
 - [ ] Environment detection on shared hosting (should block)
 - [ ] wp-ai-client credential reading
-- [ ] OpenClaw installation
-- [ ] OpenClaw service start/stop/restart
+- [ ] OpenCode installation
+- [ ] OpenCode service start/stop/restart
 - [ ] Config generation with credentials
-- [ ] Chat block works with local OpenClaw
+- [ ] Chat block works with local OpenCode
 - [ ] Admin UI shows correct status
 - [ ] Error handling for failed installs

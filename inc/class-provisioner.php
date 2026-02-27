@@ -208,7 +208,7 @@ class Provisioner {
 		$domain               = $data['domain'] ?? '';
 		$server_ip            = $data['server_ip'] ?? $data['vps_ip'] ?? '';
 		$server_id            = $data['server_id'] ?? '';
-		$openclaw_token       = $data['openclaw_token'] ?? '';
+		$opencode_password    = $data['opencode_password'] ?? '';
 		$cloudflare_record_id = $data['cloudflare_record_id'] ?? '';
 		$wp_admin_password    = $data['wp_admin_password'] ?? '';
 		$success              = $data['success'] ?? false;
@@ -245,8 +245,8 @@ class Provisioner {
 				$update_data['provider_server_id'] = $server_id;
 			}
 
-			if ( ! empty( $openclaw_token ) ) {
-				$update_data['openclaw_token'] = $openclaw_token;
+			if ( ! empty( $opencode_password ) ) {
+				$update_data['opencode_password'] = $opencode_password;
 			}
 
 			if ( ! empty( $cloudflare_record_id ) ) {

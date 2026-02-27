@@ -28,7 +28,7 @@ class Admin {
 		add_action( 'admin_post_spawn_self_restart', array( __CLASS__, 'handle_self_restart' ) );
 		add_action( 'admin_post_spawn_self_uninstall', array( __CLASS__, 'handle_self_uninstall' ) );
 
-		// Self-spawn admin UI removed — OpenClaw installed externally.
+		// Self-spawn admin UI removed — OpenCode installed externally.
 	}
 
 	/**
@@ -84,9 +84,9 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_provisioner_url' );
 		register_setting( 'spawn_settings', 'spawn_provisioner_token' );
 
-		// OpenClaw settings (for admin chat with control plane).
-		register_setting( 'spawn_settings', 'spawn_openclaw_gateway_url' );
-		register_setting( 'spawn_settings', 'spawn_openclaw_token' );
+		// OpenCode settings (for admin chat with control plane).
+		register_setting( 'spawn_settings', 'spawn_opencode_server_url' );
+		register_setting( 'spawn_settings', 'spawn_opencode_password' );
 
 		// Branding settings.
 		register_setting( 'spawn_settings', 'spawn_subdomain_suffix' );
@@ -216,36 +216,36 @@ class Admin {
 			)
 		);
 
-		// OpenClaw section (admin chat with control plane).
+		// OpenCode section (admin chat with control plane).
 		add_settings_section(
-			'spawn_openclaw_section',
-			__( 'OpenClaw (Control Plane)', 'spawn' ),
+			'spawn_opencode_section',
+			__( 'OpenCode (Control Plane)', 'spawn' ),
 			function() {
-				echo '<p>' . esc_html__( 'Configure your OpenClaw gateway for admin chat. This lets you (the SaaS operator) chat with your own agent.', 'spawn' ) . '</p>';
+				echo '<p>' . esc_html__( 'Configure your OpenCode server for admin chat. This lets you (the SaaS operator) chat with your own agent.', 'spawn' ) . '</p>';
 			},
 			'spawn-settings'
 		);
 
 		add_settings_field(
-			'spawn_openclaw_gateway_url',
-			__( 'Gateway URL', 'spawn' ),
+			'spawn_opencode_server_url',
+			__( 'Server URL', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_openclaw_section',
+			'spawn_opencode_section',
 			array(
-				'name'        => 'spawn_openclaw_gateway_url',
-				'placeholder' => 'http://127.0.0.1:18789',
+				'name'        => 'spawn_opencode_server_url',
+				'placeholder' => 'http://127.0.0.1:4096',
 			)
 		);
 
 		add_settings_field(
-			'spawn_openclaw_token',
-			__( 'Auth Token', 'spawn' ),
+			'spawn_opencode_password',
+			__( 'Server Password', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_openclaw_section',
+			'spawn_opencode_section',
 			array(
-				'name' => 'spawn_openclaw_token',
+				'name' => 'spawn_opencode_password',
 				'type' => 'password',
 			)
 		);

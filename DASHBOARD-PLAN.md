@@ -25,7 +25,7 @@ CREATE TABLE {prefix}spawn_servers (
     hetzner_type VARCHAR(50),
     server_ip VARCHAR(45),
     server_location VARCHAR(10) DEFAULT 'ash',
-    openclaw_token VARCHAR(255),
+    opencode_password VARCHAR(255),
     has_wordpress TINYINT(1) DEFAULT 0,
     status VARCHAR(50) DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

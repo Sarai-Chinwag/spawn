@@ -191,7 +191,7 @@ Parameters:
 - `context` (object)
 
 ### GET /chat/sessions
-List chat sessions from the customer's OpenClaw gateway.
+List chat sessions from the customer's OpenCode server.
 
 ### GET /chat/sessions/{sessionKey}/history
 Return chat session history.

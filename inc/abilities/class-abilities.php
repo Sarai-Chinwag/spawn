@@ -502,7 +502,7 @@ class Abilities {
 			'permission_callback' => array( __CLASS__, 'check_customer_permission' ),
 		) );
 
-		// Self-spawn abilities removed — OpenClaw is installed externally via provisioner.
+		// Self-spawn abilities removed — OpenCode is installed externally via provisioner.
 
 		// ===== ADMIN DATA ABILITIES =====
 

@@ -22,7 +22,7 @@ Schema (selected fields):
 - `stripe_payment_method` varchar(255)
 - `server_id` varchar(255)
 - `server_ip` varchar(45)
-- `openclaw_token` varchar(255)
+- `opencode_password` varchar(255)
 - `status` varchar(50)
 - `credit_balance` decimal(10,2)
 - `auto_refill_enabled` tinyint(1)
