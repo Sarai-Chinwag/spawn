@@ -72,7 +72,7 @@ function init(): void {
 	Cron::init();
 	Templates::init();
 	Cleanup::init();
-	// Self-spawn removed — OpenCode is installed externally via provisioner, not from wp-admin.
+	// Self-spawn removed — agent is installed externally via provisioner, not from wp-admin.
 
 	// Admin settings.
 	if ( is_admin() ) {

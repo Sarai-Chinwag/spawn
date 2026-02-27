@@ -370,7 +370,7 @@ class Checkout_Controller {
 	public static function get_provisioning_progress( string $status, array $customer ): array {
 		$has_server_id = ! empty( $customer['provider_server_id'] ) || ! empty( $customer['server_id'] );
 		$has_server_ip = ! empty( $customer['server_ip'] );
-		$has_wordpress = ! empty( $customer['opencode_password'] );
+		$has_wordpress = ! empty( $customer['agent_password'] );
 		$is_active     = in_array( $status, array( 'active', 'ready' ), true );
 
 		$payment_done   = true;

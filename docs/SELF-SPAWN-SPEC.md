@@ -2,7 +2,7 @@
 
 ## Overview
 
-Self-spawn allows users to install OpenCode directly on their existing WordPress server via the Spawn plugin. No external VPS provisioning needed - the plugin installs OpenCode locally.
+Self-spawn allows users to install an AI agent (e.g. OpenCode) directly on their existing WordPress server via the Spawn plugin. No external VPS provisioning needed - the plugin installs the agent locally.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ Self-spawn allows users to install OpenCode directly on their existing WordPress
 ├─────────────────────────────────────────────────────────────┤
 │  SaaS Mode (existing)    │    Self-Spawn Mode (new)        │
 │  - Triggers vps-prov     │    - Detects environment        │
-│  - Remote provisioning   │    - Installs OpenCode locally  │
+│  - Remote provisioning   │    - Installs agent locally     │
 │  - Managed credits       │    - BYOK via wp-ai-client      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -210,16 +210,12 @@ Show notice if wp-ai-client not active:
 The existing chat block needs to detect which mode we're in:
 
 ```php
-// In chat block render or API
-if (Self_Spawn::is_opencode_installed() && Self_Spawn::is_opencode_running()) {
-    // Use local OpenCode
-    $server_url = 'http://127.0.0.1:4096';
-} elseif ($customer = Database::get_customer_by_user()) {
-    // Use customer's remote OpenCode (SaaS mode)
-    $server_url = 'http://' . $customer['server_ip'] . ':4096';
+// In chat block render or API — uses Agent_Factory for resolution
+$adapter = Agent_Factory::for_local(); // or for_customer($customer)
+if ($adapter) {
+    $server_url = $adapter->get_base_url();
 } else {
-    // Not configured
-    return 'Please configure OpenCode first.';
+    return 'Please configure your agent first.';
 }
 ```
 

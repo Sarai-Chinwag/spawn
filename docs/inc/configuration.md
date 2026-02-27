@@ -13,8 +13,9 @@ Describes Spawn plugin options used by provisioning, billing, domains, and auth.
 - `spawn_namecom_username` (string)
 - `spawn_namecom_token` (string)
 - `spawn_namecom_test_mode` (bool)
-- `spawn_opencode_server_url` (string) Control-plane OpenCode server URL.
-- `spawn_opencode_password` (string) Control-plane OpenCode server password.
+- `spawn_agent_type` (string) Agent runtime type (e.g. opencode). Default: opencode.
+- `spawn_agent_url` (string) Control-plane agent server URL.
+- `spawn_agent_password` (string) Control-plane agent server password.
 - `spawn_google_client_id` (string)
 - `spawn_google_client_secret` (string)
 - `spawn_cloudflare_api_token` (string)

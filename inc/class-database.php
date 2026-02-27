@@ -81,7 +81,7 @@ class Database {
 			stripe_payment_method varchar(255) DEFAULT NULL,
 			server_id varchar(255) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
-			opencode_password varchar(255) DEFAULT NULL,
+			agent_password varchar(255) DEFAULT NULL,
 			status varchar(50) NOT NULL DEFAULT 'pending',
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			renewed_at datetime DEFAULT NULL,
@@ -129,7 +129,7 @@ class Database {
 			server_type varchar(50) DEFAULT NULL,
 			server_ip varchar(45) DEFAULT NULL,
 			server_location varchar(10) DEFAULT 'ash',
-			opencode_password varchar(255) DEFAULT NULL,
+			agent_password varchar(255) DEFAULT NULL,
 			has_wordpress tinyint(1) DEFAULT 0,
 			status varchar(50) DEFAULT 'pending',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP,
@@ -209,10 +209,13 @@ class Database {
 	}
 
 	/**
-	 * Migrate openclaw_token column and options to opencode_password.
+	 * Migrate openclaw_token / opencode_password columns to agent_password.
 	 *
-	 * Renames openclaw_token → opencode_password in both customers and servers
-	 * tables, and migrates related WordPress options.
+	 * Handles both legacy paths:
+	 * - openclaw_token → agent_password (skipping opencode_password)
+	 * - opencode_password → agent_password
+	 *
+	 * Also migrates WP options to agent-agnostic names.
 	 */
 	public static function migrate_openclaw_to_opencode(): void {
 		global $wpdb;
@@ -220,35 +223,45 @@ class Database {
 		$customers_table = self::get_table_name();
 		$servers_table   = self::get_servers_table_name();
 
-		// Customers table.
+		// Customers table — handle both legacy column names.
 		$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$customers_table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if ( in_array( 'openclaw_token', $columns, true ) ) {
-			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `openclaw_token` `opencode_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `openclaw_token` `agent_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		} elseif ( in_array( 'opencode_password', $columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$customers_table} CHANGE `opencode_password` `agent_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		}
 
-		// Servers table.
+		// Servers table — handle both legacy column names.
 		$server_columns = $wpdb->get_col( "SHOW COLUMNS FROM {$servers_table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if ( in_array( 'openclaw_token', $server_columns, true ) ) {
-			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `openclaw_token` `opencode_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `openclaw_token` `agent_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		} elseif ( in_array( 'opencode_password', $server_columns, true ) ) {
+			$wpdb->query( "ALTER TABLE {$servers_table} CHANGE `opencode_password` `agent_password` varchar(255) DEFAULT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		}
 
-		// Migrate WP options.
-		$old_url = get_option( 'spawn_openclaw_gateway_url', '' );
-		if ( ! empty( $old_url ) ) {
-			update_option( 'spawn_opencode_server_url', $old_url );
-			delete_option( 'spawn_openclaw_gateway_url' );
+		// Migrate WP options — handle all legacy names → agent-agnostic.
+		$option_migrations = array(
+			// OpenClaw legacy.
+			'spawn_openclaw_gateway_url' => 'spawn_agent_url',
+			'spawn_openclaw_token'       => 'spawn_agent_password',
+			'spawn_local_openclaw_token' => 'spawn_local_agent_password',
+			// OpenCode legacy.
+			'spawn_opencode_server_url'  => 'spawn_agent_url',
+			'spawn_opencode_password'    => 'spawn_agent_password',
+			'spawn_local_opencode_password' => 'spawn_local_agent_password',
+		);
+
+		foreach ( $option_migrations as $old_key => $new_key ) {
+			$old_value = get_option( $old_key, '' );
+			if ( ! empty( $old_value ) && empty( get_option( $new_key, '' ) ) ) {
+				update_option( $new_key, $old_value );
+			}
+			delete_option( $old_key );
 		}
 
-		$old_token = get_option( 'spawn_openclaw_token', '' );
-		if ( ! empty( $old_token ) ) {
-			update_option( 'spawn_opencode_password', $old_token );
-			delete_option( 'spawn_openclaw_token' );
-		}
-
-		$old_local = get_option( 'spawn_local_openclaw_token', '' );
-		if ( ! empty( $old_local ) ) {
-			update_option( 'spawn_local_opencode_password', $old_local );
-			delete_option( 'spawn_local_openclaw_token' );
+		// Set default agent type if not already set.
+		if ( empty( get_option( 'spawn_agent_type', '' ) ) ) {
+			update_option( 'spawn_agent_type', 'opencode' );
 		}
 	}
 
@@ -906,7 +919,7 @@ class Database {
 				'server_type'      => $data['server_type'] ?? null,
 				'server_ip'         => $data['server_ip'] ?? null,
 				'server_location'   => $data['server_location'] ?? 'ash',
-				'opencode_password' => $data['opencode_password'] ?? null,
+				'agent_password'    => $data['agent_password'] ?? null,
 				'has_wordpress'     => ! empty( $data['has_wordpress'] ) ? 1 : 0,
 				'status'            => $data['status'] ?? 'pending',
 			),

@@ -64,7 +64,7 @@ class Ability_Get_Customer_Details {
 			'stripe_payment_method' => $customer['stripe_payment_method'],
 			'server_id'             => $customer['server_id'],
 			'server_ip'             => $customer['server_ip'],
-			'opencode_password'     => $customer['opencode_password'] ? '***' : null, // Redact password.
+			'agent_password'        => $customer['agent_password'] ? '***' : null, // Redact password.
 			'status'                => $customer['status'],
 			'created_at'            => $customer['created_at'],
 			'renewed_at'            => $customer['renewed_at'],
