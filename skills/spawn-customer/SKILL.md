@@ -104,15 +104,15 @@ Response:
 
 ## After Switching to BYOK
 
-When switching to BYOK, help the user configure their API key in OpenCode:
+When switching to BYOK, help the user configure their API key in the agent:
 
 1. Get their Anthropic API key from https://console.anthropic.com/
-2. Update OpenCode config:
+2. Update agent config:
    ```bash
-   # Edit ~/.config/opencode/config.json
+   # Edit the agent's config file
    # Set provider API key
    ```
-3. Restart OpenCode server
+3. Restart the agent server
 
 ## Notes
 

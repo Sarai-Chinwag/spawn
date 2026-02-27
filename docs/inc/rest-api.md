@@ -191,7 +191,7 @@ Parameters:
 - `context` (object)
 
 ### GET /chat/sessions
-List chat sessions from the customer's OpenCode server.
+List chat sessions from the customer's agent server.
 
 ### GET /chat/sessions/{sessionKey}/history
 Return chat session history.

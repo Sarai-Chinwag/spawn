@@ -28,7 +28,7 @@ class Admin {
 		add_action( 'admin_post_spawn_self_restart', array( __CLASS__, 'handle_self_restart' ) );
 		add_action( 'admin_post_spawn_self_uninstall', array( __CLASS__, 'handle_self_uninstall' ) );
 
-		// Self-spawn admin UI removed — OpenCode installed externally.
+		// Self-spawn admin UI removed — agent installed externally.
 	}
 
 	/**
@@ -84,9 +84,10 @@ class Admin {
 		register_setting( 'spawn_settings', 'spawn_provisioner_url' );
 		register_setting( 'spawn_settings', 'spawn_provisioner_token' );
 
-		// OpenCode settings (for admin chat with control plane).
-		register_setting( 'spawn_settings', 'spawn_opencode_server_url' );
-		register_setting( 'spawn_settings', 'spawn_opencode_password' );
+		// Agent settings (for admin chat with control plane).
+		register_setting( 'spawn_settings', 'spawn_agent_url' );
+		register_setting( 'spawn_settings', 'spawn_agent_password' );
+		register_setting( 'spawn_settings', 'spawn_agent_type' );
 
 		// Branding settings.
 		register_setting( 'spawn_settings', 'spawn_subdomain_suffix' );
@@ -216,36 +217,49 @@ class Admin {
 			)
 		);
 
-		// OpenCode section (admin chat with control plane).
+		// Agent section (control plane).
 		add_settings_section(
-			'spawn_opencode_section',
-			__( 'OpenCode (Control Plane)', 'spawn' ),
+			'spawn_agent_section',
+			__( 'Agent (Control Plane)', 'spawn' ),
 			function() {
-				echo '<p>' . esc_html__( 'Configure your OpenCode server for admin chat. This lets you (the SaaS operator) chat with your own agent.', 'spawn' ) . '</p>';
+				echo '<p>' . esc_html__( 'Configure your agent server for admin chat. This lets you (the SaaS operator) chat with your own agent.', 'spawn' ) . '</p>';
 			},
 			'spawn-settings'
 		);
 
 		add_settings_field(
-			'spawn_opencode_server_url',
+			'spawn_agent_type',
+			__( 'Agent Type', 'spawn' ),
+			array( __CLASS__, 'render_text_field' ),
+			'spawn-settings',
+			'spawn_agent_section',
+			array(
+				'name'        => 'spawn_agent_type',
+				'placeholder' => 'opencode',
+				'description' => __( 'Agent runtime type (e.g. opencode)', 'spawn' ),
+			)
+		);
+
+		add_settings_field(
+			'spawn_agent_url',
 			__( 'Server URL', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_opencode_section',
+			'spawn_agent_section',
 			array(
-				'name'        => 'spawn_opencode_server_url',
+				'name'        => 'spawn_agent_url',
 				'placeholder' => 'http://127.0.0.1:4096',
 			)
 		);
 
 		add_settings_field(
-			'spawn_opencode_password',
+			'spawn_agent_password',
 			__( 'Server Password', 'spawn' ),
 			array( __CLASS__, 'render_text_field' ),
 			'spawn-settings',
-			'spawn_opencode_section',
+			'spawn_agent_section',
 			array(
-				'name' => 'spawn_opencode_password',
+				'name' => 'spawn_agent_password',
 				'type' => 'password',
 			)
 		);

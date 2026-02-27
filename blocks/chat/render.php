@@ -64,8 +64,11 @@ $gateway_url  = '';
 $gateway_token = '';
 
 if ( ! empty( $customer['domain'] ) && 'active' === $customer['status'] ) {
-	$gateway_url  = 'https://' . $customer['domain'] . ':4096';
-	$gateway_token = $customer['opencode_password'] ?? '';
+	$adapter = \Spawn\Agent_Factory::for_customer( $customer );
+	if ( $adapter ) {
+		$gateway_url   = $adapter->get_server_url();
+		$gateway_token = $customer['agent_password'] ?? '';
+	}
 }
 
 $spawn_state = array(

@@ -12,8 +12,9 @@ Registered options:
 - `spawn_namecom_token`
 - `spawn_sweatpants_url`
 - `spawn_sweatpants_token`
-- `spawn_opencode_server_url`
-- `spawn_opencode_password`
+- `spawn_agent_type`
+- `spawn_agent_url`
+- `spawn_agent_password`
 - `spawn_google_client_id`
 - `spawn_google_client_secret`
 

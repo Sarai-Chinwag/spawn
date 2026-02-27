@@ -7,11 +7,12 @@
 
 namespace Spawn\Abilities;
 
+use Spawn\Agent_Factory;
 use Spawn\Database;
 use WP_Error;
 
 /**
- * Sends a message to a customer's AI agent via their OpenCode instance.
+ * Sends a message to a customer's AI agent via the configured agent adapter.
  */
 class Ability_Send_Message {
 
@@ -45,13 +46,12 @@ class Ability_Send_Message {
 			);
 		}
 
-		$server_url = 'http://' . $customer['server_ip'] . ':4096';
-		$password   = $customer['opencode_password'] ?? '';
+		$adapter = Agent_Factory::for_customer( $customer );
 
-		if ( empty( $password ) ) {
+		if ( ! $adapter ) {
 			return new WP_Error(
-				'no_password',
-				__( 'Customer OpenCode password not configured.', 'spawn' )
+				'no_agent',
+				__( 'Customer agent not configured.', 'spawn' )
 			);
 		}
 
@@ -66,84 +66,26 @@ class Ability_Send_Message {
 			! empty( $system_note ) ? "\nContext: $system_note" : ''
 		);
 
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		$headers = array(
-			'Content-Type'  => 'application/json',
-			'Authorization' => 'Basic ' . base64_encode( 'opencode:' . $password ),
-		);
-
 		// Create or reuse session.
 		$session_id = $session_key;
 		if ( empty( $session_id ) ) {
-			$session_response = wp_remote_post( $server_url . '/session', array(
-				'headers' => $headers,
-				'body'    => wp_json_encode( array() ),
-				'timeout' => 15,
-			) );
-
-			if ( is_wp_error( $session_response ) ) {
-				return new WP_Error(
-					'connection_failed',
-					__( 'Failed to connect to customer agent: ', 'spawn' ) . $session_response->get_error_message()
-				);
+			$result = $adapter->create_session();
+			if ( is_wp_error( $result ) ) {
+				return $result;
 			}
-
-			$session_body = json_decode( wp_remote_retrieve_body( $session_response ), true );
-			$session_id   = $session_body['id'] ?? '';
-
-			if ( empty( $session_id ) ) {
-				return new WP_Error( 'session_failed', __( 'Failed to create OpenCode session.', 'spawn' ) );
-			}
+			$session_id = $result;
 		}
 
-		$payload = array(
-			'parts' => array(
-				array(
-					'type' => 'text',
-					'text' => $message,
-				),
-			),
-		);
+		$result = $adapter->send_message( $session_id, $message, $system_prompt );
 
-		if ( ! empty( $system_prompt ) ) {
-			$payload['system'] = $system_prompt;
-		}
-
-		$response = wp_remote_post( $server_url . '/session/' . $session_id . '/message', array(
-			'headers' => $headers,
-			'body'    => wp_json_encode( $payload ),
-			'timeout' => 120,
-		) );
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error(
-				'connection_failed',
-				__( 'Failed to connect to customer agent: ', 'spawn' ) . $response->get_error_message()
-			);
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( $code >= 400 ) {
-			$error_msg = $body['error']['message'] ?? $body['error'] ?? "HTTP $code";
-			return new WP_Error( 'agent_error', "Agent error: $error_msg" );
-		}
-
-		// Extract text reply from OpenCode response parts.
-		$reply = null;
-		$parts = $body['parts'] ?? array();
-		foreach ( $parts as $part ) {
-			if ( isset( $part['type'] ) && 'text' === $part['type'] && ! empty( $part['content'] ) ) {
-				$reply = $part['content'];
-				break;
-			}
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		return array(
 			'success'     => true,
 			'customer_id' => (int) $customer['id'],
-			'reply'       => $reply,
+			'reply'       => $result['reply'] ?? null,
 		);
 	}
 

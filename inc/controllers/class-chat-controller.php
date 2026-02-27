@@ -3,14 +3,14 @@
  * Chat REST API Controller.
  *
  * NOTE: This controller is only used for proxy mode:
- * - Admin chat (control plane OpenCode server)
- * - Self-spawn mode (local OpenCode on the same server)
+ * - Admin chat (control plane agent server)
+ * - Self-spawn mode (local agent on the same server)
  *
  * Customer chat now uses direct mode: the browser talks directly to the
- * customer's VPS OpenCode server over HTTPS. See blocks/chat/view.ts for the
+ * customer's agent server over HTTPS. See blocks/chat/view.ts for the
  * client-side direct mode implementation.
  *
- * Handles chat sessions, messages, and history.
+ * Agent-agnostic: all agent communication goes through Agent_Factory / Agent_Adapter.
  *
  * @package Spawn
  */
@@ -20,6 +20,7 @@ namespace Spawn\Controllers;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
+use Spawn\Agent_Factory;
 use Spawn\Database;
 
 /**
@@ -111,153 +112,112 @@ class Chat_Controller {
 	}
 
 	/**
-	 * Build HTTP Basic auth headers for OpenCode server.
+	 * Resolve the appropriate agent adapter for the current request.
 	 *
-	 * @param string $password OpenCode server password.
-	 * @return array HTTP headers.
+	 * Priority: local agent > admin control plane > customer agent.
+	 *
+	 * @param array|null $customer Customer record (null for admin/local).
+	 * @return \Spawn\Agent_Adapter|null Adapter or null.
 	 */
-	private static function get_opencode_auth_headers( string $password ): array {
-		$headers = array(
-			'Content-Type' => 'application/json',
-		);
-
-		if ( ! empty( $password ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-			$headers['Authorization'] = 'Basic ' . base64_encode( 'opencode:' . $password );
+	private static function resolve_adapter( ?array $customer = null ): ?\Spawn\Agent_Adapter {
+		// Self-spawn mode: local agent installation (highest priority).
+		$local = Agent_Factory::for_local();
+		if ( $local ) {
+			return $local;
 		}
 
-		return $headers;
-	}
-
-	/**
-	 * Extract text reply from OpenCode response parts.
-	 *
-	 * OpenCode returns { info: {...}, parts: [{type: "text", content: "..."}] }.
-	 *
-	 * @param array $body Decoded response body.
-	 * @return string|null Extracted text or null.
-	 */
-	private static function extract_reply( array $body ): ?string {
-		// Direct parts array in response.
-		$parts = $body['parts'] ?? array();
-
-		foreach ( $parts as $part ) {
-			if ( isset( $part['type'] ) && 'text' === $part['type'] && ! empty( $part['content'] ) ) {
-				return $part['content'];
+		// Admin users chat with the control plane agent (if configured).
+		if ( current_user_can( 'manage_options' ) ) {
+			$control_plane = Agent_Factory::for_control_plane();
+			if ( $control_plane ) {
+				return $control_plane;
 			}
 		}
 
-		// Fallback: try nested under result.
-		if ( isset( $body['result']['parts'] ) ) {
-			foreach ( $body['result']['parts'] as $part ) {
-				if ( isset( $part['type'] ) && 'text' === $part['type'] && ! empty( $part['content'] ) ) {
-					return $part['content'];
-				}
-			}
+		// Customer agent.
+		if ( $customer ) {
+			return Agent_Factory::for_customer( $customer );
 		}
 
 		return null;
 	}
 
 	/**
-	 * Create a new session on an OpenCode server.
+	 * Build a system prompt based on context.
 	 *
-	 * @param string $server_url OpenCode server base URL.
-	 * @param string $password   OpenCode server password.
-	 * @return string|null Session ID or null on failure.
+	 * @param string     $mode     Chat mode ('local', 'control_plane', 'customer').
+	 * @param array|null $customer Customer record (for customer mode).
+	 * @param array      $context  Additional context from request.
+	 * @return string System prompt.
 	 */
-	private static function create_session( string $server_url, string $password ): ?string {
-		$response = wp_remote_post(
-			rtrim( $server_url, '/' ) . '/session',
-			array(
-				'headers' => self::get_opencode_auth_headers( $password ),
-				'body'    => wp_json_encode( array() ),
-				'timeout' => 15,
-			)
-		);
+	private static function build_system_prompt( string $mode, ?array $customer = null, array $context = array() ): string {
+		$current_user = wp_get_current_user();
+		$site_name    = get_bloginfo( 'name' );
+		$site_url     = home_url();
 
-		if ( is_wp_error( $response ) ) {
-			return null;
+		switch ( $mode ) {
+			case 'local':
+				return sprintf(
+					"[Spawn Web Chat - Self-Spawn Mode]\n" .
+					"Platform: WordPress (self-hosted agent)\n" .
+					"Site: %s (%s)\n" .
+					"User: %s <%s>\n" .
+					"Interface: Web chat block\n\n" .
+					'This is a local agent installation running on this server.',
+					$site_name,
+					$site_url,
+					$current_user->display_name ?: $current_user->user_login,
+					$current_user->user_email
+				);
+
+			case 'control_plane':
+				return sprintf(
+					"[Spawn Web Chat - Bootstrap Interface]\n" .
+					"Platform: WordPress\n" .
+					"Site: %s (%s)\n" .
+					"User: %s <%s>\n" .
+					"Interface: Web chat block (temporary)\n\n" .
+					"This is the Spawn plugin's web-based chat interface.",
+					$site_name,
+					$site_url,
+					$current_user->display_name ?: $current_user->user_login,
+					$current_user->user_email
+				);
+
+			case 'customer':
+			default:
+				return sprintf(
+					"[Spawn Web Chat - Bootstrap Interface]\n" .
+					"Platform: WordPress\n" .
+					"Customer: %s\n" .
+					"Site: %s\n" .
+					"Status: %s\n" .
+					"Mobile channel configured: %s\n\n" .
+					'This is the Spawn web chat. Help the user with their WordPress site.',
+					$customer['email'] ?? '',
+					$customer['domain'] ?? '',
+					$customer['status'] ?? '',
+					! empty( $context['has_mobile'] ) ? 'yes' : 'no'
+				);
 		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		return $body['id'] ?? null;
 	}
 
 	/**
-	 * Send a message to an OpenCode server session.
+	 * Determine chat mode and get adapter.
 	 *
-	 * @param string $server_url    OpenCode server base URL.
-	 * @param string $password      OpenCode server password.
-	 * @param string $session_id    Session ID.
-	 * @param string $message       User message.
-	 * @param string $system_prompt Optional system prompt.
-	 * @return WP_REST_Response Response.
+	 * @param array|null $customer Customer record.
+	 * @return string Chat mode ('local', 'control_plane', 'customer').
 	 */
-	private static function send_to_opencode(
-		string $server_url,
-		string $password,
-		string $session_id,
-		string $message,
-		string $system_prompt = ''
-	): WP_REST_Response {
-		$payload = array(
-			'parts' => array(
-				array(
-					'type' => 'text',
-					'text' => $message,
-				),
-			),
-		);
-
-		if ( ! empty( $system_prompt ) ) {
-			$payload['system'] = $system_prompt;
+	private static function detect_mode( ?array $customer = null ): string {
+		if ( Agent_Factory::is_local_running() ) {
+			return 'local';
 		}
 
-		$response = wp_remote_post(
-			rtrim( $server_url, '/' ) . '/session/' . $session_id . '/message',
-			array(
-				'headers' => self::get_opencode_auth_headers( $password ),
-				'body'    => wp_json_encode( $payload ),
-				'timeout' => 120,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_REST_Response( array(
-				'reply' => "I'm having trouble connecting right now. Try again in a moment!",
-			) );
+		if ( current_user_can( 'manage_options' ) && Agent_Factory::for_control_plane() ) {
+			return 'control_plane';
 		}
 
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( 401 === $code ) {
-			return new WP_REST_Response( array(
-				'reply' => 'Authentication failed. Check OpenCode server password in Settings → Spawn.',
-			) );
-		}
-
-		if ( $code >= 400 ) {
-			$error_msg = $body['error']['message'] ?? $body['error'] ?? "HTTP $code";
-			return new WP_REST_Response( array(
-				'reply' => "Something went wrong: $error_msg. Try again in a moment!",
-			) );
-		}
-
-		$reply = self::extract_reply( $body );
-
-		if ( empty( $reply ) ) {
-			return new WP_REST_Response( array(
-				'reply' => "I didn't get a response. Could you try again?",
-			) );
-		}
-
-		return new WP_REST_Response( array(
-			'reply'     => $reply,
-			'sessionId' => $session_id,
-		) );
+		return 'customer';
 	}
 
 	/**
@@ -272,19 +232,28 @@ class Chat_Controller {
 		$session_id = sanitize_text_field( $request->get_param( 'sessionId' ) );
 		$context    = $request->get_param( 'context' );
 
-		// Self-spawn mode: local OpenCode installation (highest priority).
-		if ( \Spawn\Local_OpenCode::is_running() ) {
-			return self::chat_with_local_opencode( $message, $session_id );
+		if ( empty( $message ) ) {
+			return new WP_Error(
+				'empty_message',
+				__( 'Message cannot be empty.', 'spawn' ),
+				array( 'status' => 400 )
+			);
 		}
 
-		// Admin users chat with the control plane OpenCode (if configured).
-		if ( current_user_can( 'manage_options' ) ) {
-			$server_url = get_option( 'spawn_opencode_server_url', '' );
-			if ( ! empty( $server_url ) ) {
-				return self::chat_with_control_plane( $message, $session_id );
+		// Try local or control plane first (no customer needed).
+		$mode    = self::detect_mode();
+		$adapter = null;
+
+		if ( 'local' === $mode || 'control_plane' === $mode ) {
+			$adapter = self::resolve_adapter();
+
+			if ( $adapter ) {
+				$system_prompt = self::build_system_prompt( $mode );
+				return self::send_with_adapter( $adapter, $session_id, $message, $system_prompt );
 			}
 		}
 
+		// Customer mode — need customer record.
 		$customer = Database::get_customer_by_user_id( $user_id );
 
 		if ( ! $customer ) {
@@ -295,8 +264,7 @@ class Chat_Controller {
 			);
 		}
 
-		$is_admin = current_user_can( 'manage_options' );
-
+		$is_admin     = current_user_can( 'manage_options' );
 		$billing_mode = $customer['billing_mode'] ?? 'managed';
 		$billing_type = $customer['billing_type'] ?? 'paid';
 
@@ -315,14 +283,6 @@ class Chat_Controller {
 			}
 		}
 
-		if ( empty( $message ) ) {
-			return new WP_Error(
-				'empty_message',
-				__( 'Message cannot be empty.', 'spawn' ),
-				array( 'status' => 400 )
-			);
-		}
-
 		// If server not ready, return placeholder.
 		if ( empty( $customer['server_ip'] ) || 'provisioning' === $customer['status'] ) {
 			return new WP_REST_Response( array(
@@ -330,123 +290,72 @@ class Chat_Controller {
 			) );
 		}
 
-		// Build system context for the AI.
-		$system_prompt = sprintf(
-			"[Spawn Web Chat - Bootstrap Interface]\n" .
-			"Platform: WordPress\n" .
-			"Customer: %s\n" .
-			"Site: %s\n" .
-			"Status: %s\n" .
-			"Mobile channel configured: %s\n\n" .
-			'This is the Spawn web chat. Help the user with their WordPress site.',
-			$customer['email'],
-			$customer['domain'],
-			$customer['status'],
-			! empty( $context['has_mobile'] ) ? 'yes' : 'no'
-		);
+		$adapter = Agent_Factory::for_customer( $customer );
 
-		$server_url = 'http://' . $customer['server_ip'] . ':4096';
-		$password   = $customer['opencode_password'] ?? '';
-
-		// Create session if none provided.
-		if ( empty( $session_id ) ) {
-			$session_id = self::create_session( $server_url, $password );
-			if ( ! $session_id ) {
-				return new WP_REST_Response( array(
-					'reply' => "I'm still getting configured. Try again in a moment!",
-				) );
-			}
-		}
-
-		return self::send_to_opencode( $server_url, $password, $session_id, $message, $system_prompt );
-	}
-
-	/**
-	 * Chat with local OpenCode (self-spawn mode).
-	 *
-	 * @param string $message    User message.
-	 * @param string $session_id Optional session ID.
-	 * @return WP_REST_Response Response.
-	 */
-	private static function chat_with_local_opencode( string $message, string $session_id = '' ): WP_REST_Response {
-		$server_url = \Spawn\Local_OpenCode::get_server_url();
-		$password   = get_option( 'spawn_local_opencode_password', '' );
-
-		$current_user = wp_get_current_user();
-		$site_name    = get_bloginfo( 'name' );
-		$site_url     = home_url();
-
-		$system_prompt = sprintf(
-			"[Spawn Web Chat - Self-Spawn Mode]\n" .
-			"Platform: WordPress (self-hosted OpenCode)\n" .
-			"Site: %s (%s)\n" .
-			"User: %s <%s>\n" .
-			"Interface: Web chat block\n\n" .
-			'This is a local OpenCode installation running on this server.',
-			$site_name,
-			$site_url,
-			$current_user->display_name ?: $current_user->user_login,
-			$current_user->user_email
-		);
-
-		// Create session if none provided.
-		if ( empty( $session_id ) ) {
-			$session_id = self::create_session( $server_url, $password );
-			if ( ! $session_id ) {
-				return new WP_REST_Response( array(
-					'reply' => 'Connection to local OpenCode failed. Is the server running?',
-				) );
-			}
-		}
-
-		return self::send_to_opencode( $server_url, $password, $session_id, $message, $system_prompt );
-	}
-
-	/**
-	 * Chat with control plane OpenCode (for admins).
-	 *
-	 * @param string $message    User message.
-	 * @param string $session_id Optional session ID.
-	 * @return WP_REST_Response Response.
-	 */
-	private static function chat_with_control_plane( string $message, string $session_id = '' ): WP_REST_Response {
-		$server_url = rtrim( get_option( 'spawn_opencode_server_url', '' ), '/' );
-		$password   = get_option( 'spawn_opencode_password', '' );
-
-		if ( empty( $server_url ) ) {
+		if ( ! $adapter ) {
 			return new WP_REST_Response( array(
-				'reply' => 'Control plane chat not configured. Set OpenCode server URL in Settings → Spawn.',
+				'reply' => "I'm still getting configured. Try again in a moment!",
 			) );
 		}
 
-		$current_user = wp_get_current_user();
-		$site_name    = get_bloginfo( 'name' );
-		$site_url     = home_url();
+		$system_prompt = self::build_system_prompt( 'customer', $customer, $context ?? array() );
+		return self::send_with_adapter( $adapter, $session_id, $message, $system_prompt );
+	}
 
-		$system_prompt = sprintf(
-			"[Spawn Web Chat - Bootstrap Interface]\n" .
-			"Platform: WordPress\n" .
-			"Site: %s (%s)\n" .
-			"User: %s <%s>\n" .
-			"Interface: Web chat block (temporary)\n\n" .
-			"This is the Spawn plugin's web-based chat interface.",
-			$site_name,
-			$site_url,
-			$current_user->display_name ?: $current_user->user_login,
-			$current_user->user_email
-		);
-
+	/**
+	 * Send a message using an adapter, handling session creation.
+	 *
+	 * @param \Spawn\Agent_Adapter $adapter       Agent adapter.
+	 * @param string               $session_id    Session ID (may be empty).
+	 * @param string               $message       User message.
+	 * @param string               $system_prompt System prompt.
+	 * @return WP_REST_Response Response.
+	 */
+	private static function send_with_adapter(
+		\Spawn\Agent_Adapter $adapter,
+		string $session_id,
+		string $message,
+		string $system_prompt
+	): WP_REST_Response {
 		// Create session if none provided.
 		if ( empty( $session_id ) ) {
-			$session_id = self::create_session( $server_url, $password );
-			if ( ! $session_id ) {
+			$result = $adapter->create_session();
+			if ( is_wp_error( $result ) ) {
 				return new WP_REST_Response( array(
-					'reply' => 'Connection to control plane failed. Is the OpenCode server running?',
+					'reply' => "I'm having trouble connecting right now. Try again in a moment!",
 				) );
 			}
+			$session_id = $result;
 		}
 
-		return self::send_to_opencode( $server_url, $password, $session_id, $message, $system_prompt );
+		$result = $adapter->send_message( $session_id, $message, $system_prompt );
+
+		if ( is_wp_error( $result ) ) {
+			$code = $result->get_error_code();
+
+			if ( 'agent_auth_failed' === $code ) {
+				return new WP_REST_Response( array(
+					'reply' => 'Authentication failed. Check agent password in Settings → Spawn.',
+				) );
+			}
+
+			return new WP_REST_Response( array(
+				'reply' => "Something went wrong: " . $result->get_error_message() . ". Try again in a moment!",
+			) );
+		}
+
+		$reply = $result['reply'] ?? null;
+
+		if ( empty( $reply ) ) {
+			return new WP_REST_Response( array(
+				'reply' => "I didn't get a response. Could you try again?",
+			) );
+		}
+
+		return new WP_REST_Response( array(
+			'reply'     => $reply,
+			'sessionId' => $result['session_id'] ?? $session_id,
+		) );
 	}
 
 	/**
@@ -456,37 +365,30 @@ class Chat_Controller {
 	 */
 	public static function list_sessions(): WP_REST_Response|WP_Error {
 		$user_id = get_current_user_id();
+		$adapter = self::resolve_adapter();
 
-		// Self-spawn mode: local OpenCode.
-		if ( \Spawn\Local_OpenCode::is_running() ) {
-			return self::fetch_sessions(
-				\Spawn\Local_OpenCode::get_server_url(),
-				get_option( 'spawn_local_opencode_password', '' )
-			);
-		}
+		if ( ! $adapter ) {
+			// Try customer adapter.
+			$customer = Database::get_customer_by_user_id( $user_id );
 
-		// Admin uses control plane.
-		if ( current_user_can( 'manage_options' ) ) {
-			$server_url = get_option( 'spawn_opencode_server_url', '' );
-			$password   = get_option( 'spawn_opencode_password', '' );
-
-			if ( empty( $server_url ) ) {
+			if ( ! $customer || empty( $customer['server_ip'] ) ) {
 				return new WP_REST_Response( array( 'sessions' => array() ) );
 			}
 
-			return self::fetch_sessions( $server_url, $password );
+			$adapter = Agent_Factory::for_customer( $customer );
 		}
 
-		$customer = Database::get_customer_by_user_id( $user_id );
-
-		if ( ! $customer || empty( $customer['server_ip'] ) ) {
+		if ( ! $adapter ) {
 			return new WP_REST_Response( array( 'sessions' => array() ) );
 		}
 
-		return self::fetch_sessions(
-			'http://' . $customer['server_ip'] . ':4096',
-			$customer['opencode_password'] ?? ''
-		);
+		$result = $adapter->list_sessions();
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response( array( 'sessions' => $result ) );
 	}
 
 	/**
@@ -500,40 +402,29 @@ class Chat_Controller {
 		$session_id = sanitize_text_field( $request->get_param( 'sessionId' ) );
 		$limit      = (int) $request->get_param( 'limit' );
 
-		// Self-spawn mode: local OpenCode.
-		if ( \Spawn\Local_OpenCode::is_running() ) {
-			return self::fetch_session_messages(
-				\Spawn\Local_OpenCode::get_server_url(),
-				get_option( 'spawn_local_opencode_password', '' ),
-				$session_id,
-				$limit
-			);
-		}
+		$adapter = self::resolve_adapter();
 
-		// Admin uses control plane.
-		if ( current_user_can( 'manage_options' ) ) {
-			$server_url = get_option( 'spawn_opencode_server_url', '' );
-			$password   = get_option( 'spawn_opencode_password', '' );
+		if ( ! $adapter ) {
+			$customer = Database::get_customer_by_user_id( $user_id );
 
-			if ( empty( $server_url ) ) {
+			if ( ! $customer || empty( $customer['server_ip'] ) ) {
 				return new WP_REST_Response( array( 'messages' => array() ) );
 			}
 
-			return self::fetch_session_messages( $server_url, $password, $session_id, $limit );
+			$adapter = Agent_Factory::for_customer( $customer );
 		}
 
-		$customer = Database::get_customer_by_user_id( $user_id );
-
-		if ( ! $customer || empty( $customer['server_ip'] ) ) {
+		if ( ! $adapter ) {
 			return new WP_REST_Response( array( 'messages' => array() ) );
 		}
 
-		return self::fetch_session_messages(
-			'http://' . $customer['server_ip'] . ':4096',
-			$customer['opencode_password'] ?? '',
-			$session_id,
-			$limit
-		);
+		$result = $adapter->get_messages( $session_id, $limit );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response( array( 'messages' => $result ) );
 	}
 
 	/**
@@ -563,94 +454,5 @@ class Chat_Controller {
 		return new WP_REST_Response( array(
 			'title' => $title,
 		) );
-	}
-
-	/**
-	 * Fetch sessions from an OpenCode server.
-	 *
-	 * @param string $server_url OpenCode server base URL.
-	 * @param string $password   OpenCode server password.
-	 * @return WP_REST_Response|WP_Error Response or error.
-	 */
-	private static function fetch_sessions( string $server_url, string $password ): WP_REST_Response|WP_Error {
-		$response = wp_remote_get(
-			rtrim( $server_url, '/' ) . '/session',
-			array(
-				'headers' => self::get_opencode_auth_headers( $password ),
-				'timeout' => 30,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error(
-				'opencode_error',
-				__( 'Failed to connect to OpenCode server', 'spawn' ),
-				array( 'status' => 502 )
-			);
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( $code >= 400 ) {
-			return new WP_Error(
-				'opencode_error',
-				$body['error'] ?? __( 'OpenCode request failed', 'spawn' ),
-				array( 'status' => $code )
-			);
-		}
-
-		return new WP_REST_Response( array( 'sessions' => $body ) );
-	}
-
-	/**
-	 * Fetch session messages from an OpenCode server.
-	 *
-	 * @param string $server_url OpenCode server base URL.
-	 * @param string $password   OpenCode server password.
-	 * @param string $session_id Session ID.
-	 * @param int    $limit      Max messages to return.
-	 * @return WP_REST_Response|WP_Error Response or error.
-	 */
-	private static function fetch_session_messages(
-		string $server_url,
-		string $password,
-		string $session_id,
-		int $limit
-	): WP_REST_Response|WP_Error {
-		$url = rtrim( $server_url, '/' ) . '/session/' . urlencode( $session_id ) . '/message';
-
-		if ( $limit > 0 ) {
-			$url .= '?limit=' . $limit;
-		}
-
-		$response = wp_remote_get(
-			$url,
-			array(
-				'headers' => self::get_opencode_auth_headers( $password ),
-				'timeout' => 30,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error(
-				'opencode_error',
-				__( 'Failed to connect to OpenCode server', 'spawn' ),
-				array( 'status' => 502 )
-			);
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( $code >= 400 ) {
-			return new WP_Error(
-				'opencode_error',
-				$body['error'] ?? __( 'OpenCode request failed', 'spawn' ),
-				array( 'status' => $code )
-			);
-		}
-
-		return new WP_REST_Response( array( 'messages' => $body ) );
 	}
 }
