@@ -348,7 +348,7 @@ class WebhookTest extends WP_UnitTestCase {
 			'domain'               => 'newsite.example.com',
 			'server_ip'            => '5.6.7.8',
 			'server_id'            => 'srv_1',
-			'openclaw_token'       => 'tok_abc',
+			'opencode_password'    => 'tok_abc',
 			'cloudflare_record_id' => 'cf_123',
 			'wp_admin_password'    => 'pass123',
 		] ) );

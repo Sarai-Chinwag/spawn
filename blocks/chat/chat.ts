@@ -197,15 +197,14 @@ function initBlock( block: HTMLElement ): void {
 			const allSessions = await loadSessions( spawnState.gatewayUrl, spawnState.gatewayToken );
 
 			sessions = allSessions
-				.filter( ( s ) => ( s.sessionKey || s.key || '' ).includes( 'webchat' ) )
 				.sort( ( a, b ) => new Date( b.updatedAt || 0 ).getTime() - new Date( a.updatedAt || 0 ).getTime() );
 
 			renderSessions( sessionsContainer, sessions, currentSessionKey, selectSession );
 
-			if ( savedKey && sessions.some( ( s ) => ( s.sessionKey || s.key ) === savedKey ) ) {
+			if ( savedKey && sessions.some( ( s ) => ( s.id || s.sessionKey || s.key ) === savedKey ) ) {
 				selectSession( savedKey );
 			} else if ( sessions.length > 0 && ! currentSessionKey ) {
-				selectSession( sessions[ 0 ].sessionKey || sessions[ 0 ].key || '' );
+				selectSession( sessions[ 0 ].id || sessions[ 0 ].sessionKey || sessions[ 0 ].key || '' );
 			} else if ( ! currentSessionKey ) {
 				startNewSession();
 			}
@@ -314,6 +313,15 @@ function initBlock( block: HTMLElement ): void {
 
 		try {
 			const result = await sendMessage( text, spawnState.gatewayUrl, spawnState.gatewayToken, currentSessionKey );
+
+			// Update session key if the server assigned a new session ID.
+			if ( result.sessionId && result.sessionId !== currentSessionKey ) {
+				currentSessionKey = result.sessionId;
+				storage.setSessionKey( currentSessionKey );
+				if ( sessionIndicator ) {
+					updateSessionIndicator( sessionIndicator, currentSessionKey );
+				}
+			}
 
 			if ( result.status === 402 || result.status === 403 ) {
 				currentState = 'credits-depleted';

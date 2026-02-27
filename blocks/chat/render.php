@@ -64,8 +64,8 @@ $gateway_url  = '';
 $gateway_token = '';
 
 if ( ! empty( $customer['domain'] ) && 'active' === $customer['status'] ) {
-	$gateway_url  = 'https://' . $customer['domain'] . '/gateway';
-	$gateway_token = $customer['openclaw_token'] ?? '';
+	$gateway_url  = 'https://' . $customer['domain'] . ':4096';
+	$gateway_token = $customer['opencode_password'] ?? '';
 }
 
 $spawn_state = array(

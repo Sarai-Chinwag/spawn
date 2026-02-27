@@ -174,7 +174,7 @@ export function renderSessions(
 	}
 
 	sessionsContainer.innerHTML = sessions.map( ( session ) => {
-		const key = session.sessionKey || session.key || '';
+		const key = session.id || session.sessionKey || session.key || '';
 		const title = getTitle( key, session );
 		const date = session.updatedAt ? formatDate( session.updatedAt ) : '';
 		const isActive = key === currentSessionKey;

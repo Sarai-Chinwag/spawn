@@ -53,97 +53,175 @@ export async function purchaseCredits( amount: number ): Promise< PurchaseRespon
 	return response;
 }
 
+/**
+ * Build HTTP Basic auth headers for OpenCode server.
+ */
+function getOpenCodeHeaders( password: string ): Record< string, string > {
+	const headers: Record< string, string > = {
+		'Content-Type': 'application/json',
+	};
+
+	if ( password ) {
+		headers.Authorization = 'Basic ' + btoa( 'opencode:' + password );
+	}
+
+	return headers;
+}
+
 export async function loadSessions( gatewayUrl: string, gatewayToken: string ): Promise< Session[] > {
-	const response = await fetch( gatewayUrl + '/tools/invoke', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': 'Bearer ' + gatewayToken,
-		},
-		body: JSON.stringify( {
-			tool: 'sessions_list',
-			args: {},
-		} ),
+	const response = await fetch( gatewayUrl + '/session', {
+		method: 'GET',
+		headers: getOpenCodeHeaders( gatewayToken ),
 	} );
 
 	if ( response.ok ) {
 		const data = await response.json();
-		// Gateway /tools/invoke returns { ok, result: { content, details } }
-		const details = data.result?.details || data;
-		return details.sessions || [];
+		// OpenCode GET /session returns an array of sessions directly.
+		return Array.isArray( data ) ? data : ( data.sessions || [] );
 	}
 	throw new Error( 'Failed to load sessions' );
 }
 
-export async function loadHistory( gatewayUrl: string, gatewayToken: string, sessionKey: string ): Promise< ChatMessage[] > {
-	const response = await fetch( gatewayUrl + '/tools/invoke', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': 'Bearer ' + gatewayToken,
-		},
-		body: JSON.stringify( {
-			tool: 'sessions_history',
-			args: {
-				sessionKey: sessionKey,
-				limit: 50,
-			},
-		} ),
+export async function loadHistory( gatewayUrl: string, gatewayToken: string, sessionId: string ): Promise< ChatMessage[] > {
+	const url = gatewayUrl + '/session/' + encodeURIComponent( sessionId ) + '/message?limit=50';
+
+	const response = await fetch( url, {
+		method: 'GET',
+		headers: getOpenCodeHeaders( gatewayToken ),
 	} );
 
 	if ( response.ok ) {
 		const data = await response.json();
-		// Gateway /tools/invoke returns { ok, result: { content, details } }
-		const details = data.result?.details || data;
-		return details.messages || [];
+		// OpenCode GET /session/:id/message returns an array of messages directly.
+		return Array.isArray( data ) ? data : ( data.messages || [] );
 	}
 	throw new Error( 'Failed to load history' );
+}
+
+/**
+ * Create a new session on the OpenCode server.
+ */
+export async function createSession( gatewayUrl: string, gatewayToken: string ): Promise< string | null > {
+	try {
+		const response = await fetch( gatewayUrl + '/session', {
+			method: 'POST',
+			headers: getOpenCodeHeaders( gatewayToken ),
+			body: JSON.stringify( {} ),
+		} );
+
+		if ( response.ok ) {
+			const data = await response.json();
+			return data.id || null;
+		}
+	} catch {
+		console.log( 'Failed to create OpenCode session' );
+	}
+	return null;
+}
+
+/**
+ * Extract text reply from OpenCode response parts.
+ *
+ * OpenCode returns { info: {...}, parts: [{type: "text", content: "..."}] }.
+ */
+function extractReply( body: Record< string, unknown > ): string | undefined {
+	const parts = ( body.parts || [] ) as Array< Record< string, string > >;
+
+	for ( const part of parts ) {
+		if ( part.type === 'text' && part.content ) {
+			return part.content;
+		}
+	}
+
+	// Fallback: try nested under result.
+	const result = body.result as Record< string, unknown > | undefined;
+	if ( result?.parts ) {
+		for ( const part of result.parts as Array< Record< string, string > > ) {
+			if ( part.type === 'text' && part.content ) {
+				return part.content;
+			}
+		}
+	}
+
+	return undefined;
+}
+
+/**
+ * Check if a session key is client-generated (not a real OpenCode session ID).
+ */
+function isClientGeneratedKey( key: string ): boolean {
+	return key.startsWith( 'webchat-' );
 }
 
 export async function sendMessage(
 	text: string,
 	gatewayUrl: string,
 	gatewayToken: string,
-	sessionKey?: string
-): Promise< { reply?: string; status: number; error?: string } > {
-	const headers: Record< string, string > = {
-		'Content-Type': 'application/json',
-		'Authorization': 'Bearer ' + gatewayToken,
-	};
+	sessionId?: string
+): Promise< { reply?: string; status: number; error?: string; sessionId?: string } > {
+	const messagePayload = JSON.stringify( {
+		parts: [
+			{
+				type: 'text',
+				text,
+			},
+		],
+	} );
 
-	if ( sessionKey ) {
-		headers[ 'x-openclaw-session-key' ] = sessionKey;
+	// Client-generated keys (webchat-xxx) don't exist on the OpenCode server.
+	// Create a real server-side session first.
+	if ( ! sessionId || isClientGeneratedKey( sessionId ) ) {
+		const newId = await createSession( gatewayUrl, gatewayToken );
+		if ( ! newId ) {
+			return {
+				status: 502,
+				error: 'Failed to create session',
+			};
+		}
+		sessionId = newId;
 	}
 
-	const response = await fetch( gatewayUrl + '/v1/chat/completions', {
+	let response = await fetch( gatewayUrl + '/session/' + encodeURIComponent( sessionId ) + '/message', {
 		method: 'POST',
-		headers,
-		body: JSON.stringify( {
-			model: 'openclaw:main',
-			messages: [
-				{
-					role: 'user',
-					content: text,
-				},
-			],
-		} ),
+		headers: getOpenCodeHeaders( gatewayToken ),
+		body: messagePayload,
 	} );
+
+	// If session not found (404), create a new one and retry.
+	if ( response.status === 404 ) {
+		const newId = await createSession( gatewayUrl, gatewayToken );
+		if ( ! newId ) {
+			return {
+				status: 502,
+				error: 'Failed to create session',
+			};
+		}
+		sessionId = newId;
+
+		response = await fetch( gatewayUrl + '/session/' + encodeURIComponent( sessionId ) + '/message', {
+			method: 'POST',
+			headers: getOpenCodeHeaders( gatewayToken ),
+			body: messagePayload,
+		} );
+	}
 
 	const status = response.status;
 
 	if ( ! response.ok ) {
-		const errorData = await response.json().catch( () => ( {} ) );
+		const errorData = await response.json().catch( () => ( {} as Record< string, unknown > ) );
+		const errorMsg = ( errorData.error as Record< string, string > )?.message || ( errorData.error as string ) || 'Failed to get response';
 		return {
 			status,
-			error: errorData.error?.message || 'Failed to get response',
+			error: errorMsg,
 		};
 	}
 
 	const data = await response.json();
-	const reply = data.choices?.[ 0 ]?.message?.content;
+	const reply = extractReply( data );
 
 	return {
 		status,
 		reply,
+		sessionId,
 	};
 }

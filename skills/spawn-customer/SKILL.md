@@ -104,15 +104,15 @@ Response:
 
 ## After Switching to BYOK
 
-When switching to BYOK, help the user configure their API key in OpenClaw:
+When switching to BYOK, help the user configure their API key in OpenCode:
 
 1. Get their Anthropic API key from https://console.anthropic.com/
-2. Update OpenClaw config:
+2. Update OpenCode config:
    ```bash
-   # Edit ~/.openclaw/config.yaml
-   # Set anthropicApiKey: sk-ant-...
+   # Edit ~/.config/opencode/config.json
+   # Set provider API key
    ```
-3. Restart OpenClaw gateway
+3. Restart OpenCode server
 
 ## Notes
 
