@@ -1,31 +1,33 @@
 {
-	"$schema": "https://schemas.wp.org/trunk/block.json",
-	"apiVersion": 3,
-	"name": "spawn/chat",
-	"version": "1.0.0",
-	"title": "Spawn Chat",
-	"category": "widgets",
-	"icon": "format-chat",
-	"description": "Chat interface to communicate with your AI.",
-	"supports": {
-		"html": false,
-		"align": ["wide", "full"]
-	},
-	"attributes": {
-		"fullpage": {
-			"type": "boolean",
-			"default": false
-		},
-		"sessionKey": {
-			"type": "string",
-			"default": ""
-		}
-	},
-
-	"textdomain": "spawn",
-	"editorScript": "file:./index.js",
-	"editorStyle": "file:./index.css",
-	"style": "file:./style-index.css",
-	"render": "file:./render.php",
-	"viewScript": "file:./view.js"
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "spawn/chat",
+  "title": "Spawn AI Chat",
+  "category": "spawn",
+  "icon": "format-chat",
+  "description": "AI-powered chat interface for Spawn customers",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "welcomeMessage": {
+      "type": "string",
+      "default": "Hi! I'm your Spawn AI assistant. How can I help you today?"
+    },
+    "placeholder": {
+      "type": "string",
+      "default": "Ask me anything..."
+    },
+    "showSessions": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "textdomain": "spawn",
+  "editorScript": "file:./index.tsx",
+  "viewScript": "file:./view.tsx",
+  "editorStyle": "file:./editor.css",
+  "style": "file:./style.css",
+  "render": "file:./render.php"
 }

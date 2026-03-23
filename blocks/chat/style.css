@@ -1,0 +1,254 @@
+/**
+ * Spawn Chat Block - Frontend Styles
+ *
+ * Custom styling for the Spawn-branded chat interface.
+ *
+ * @package Spawn\Blocks
+ */
+
+/* Import Extra-Chill Chat base styles. */
+@import '@extrachill/chat/css';
+
+/* ==========================================================================
+   Spawn Chat Container
+   ========================================================================== */
+
+.spawn-chat-container {
+	--spawn-primary: #4f46e5;
+	--spawn-primary-dark: #4338ca;
+	--spawn-bg: #ffffff;
+	--spawn-bg-secondary: #f9fafb;
+	--spawn-text: #111827;
+	--spawn-text-muted: #6b7280;
+	--spawn-border: #e5e7eb;
+	--spawn-radius: 16px;
+	--spawn-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+	/* Override Extra-Chill Chat variables with Spawn branding. */
+	--ec-chat-user-bg: var(--spawn-primary);
+	--ec-chat-user-color: #ffffff;
+	--ec-chat-assistant-bg: #f3f4f6;
+	--ec-chat-assistant-color: var(--spawn-text);
+	--ec-chat-border-radius: 12px;
+	--ec-chat-gap: 16px;
+	--ec-chat-max-width: 100%;
+	--ec-chat-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--ec-chat-font-size: 16px;
+	--ec-chat-line-height: 1.6;
+	--ec-chat-input-bg: var(--spawn-bg);
+	--ec-chat-input-border: 1px solid var(--spawn-border);
+	--ec-chat-input-focus-border: var(--spawn-primary);
+	--ec-chat-sessions-bg: var(--spawn-bg-secondary);
+	--ec-chat-sessions-width: 280px;
+
+	position: relative;
+	min-height: 500px;
+	max-height: 80vh;
+	background: var(--spawn-bg);
+	border: 1px solid var(--spawn-border);
+	border-radius: var(--spawn-radius);
+	box-shadow: var(--spawn-shadow);
+	overflow: hidden;
+}
+
+/* ==========================================================================
+   Welcome State
+   ========================================================================== */
+
+.spawn-chat-welcome {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 48px 24px;
+	text-align: center;
+	height: 100%;
+}
+
+.spawn-chat-logo {
+	width: 64px;
+	height: 64px;
+	margin-bottom: 24px;
+	background: linear-gradient(135deg, var(--spawn-primary) 0%, var(--spawn-primary-dark) 100%);
+	border-radius: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.spawn-chat-logo img {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+}
+
+.spawn-chat-welcome p {
+	font-size: 18px;
+	color: var(--spawn-text-muted);
+	margin: 0;
+	max-width: 400px;
+}
+
+/* ==========================================================================
+   State Messages (Login, Error, etc.)
+   ========================================================================== */
+
+.spawn-chat-login-prompt,
+.spawn-chat-error,
+.spawn-chat-no-site,
+.spawn-chat-no-credits {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 48px 24px;
+	text-align: center;
+	min-height: 300px;
+	background: var(--spawn-bg-secondary);
+	border: 1px solid var(--spawn-border);
+	border-radius: var(--spawn-radius);
+}
+
+.spawn-chat-login-prompt p,
+.spawn-chat-error p,
+.spawn-chat-no-site p,
+.spawn-chat-no-credits p {
+	font-size: 16px;
+	color: var(--spawn-text);
+	margin-bottom: 16px;
+}
+
+.spawn-chat-login-prompt .button,
+.spawn-chat-no-site .button,
+.spawn-chat-no-credits .button {
+	background: var(--spawn-primary);
+	color: #ffffff;
+	padding: 12px 24px;
+	border-radius: 8px;
+	text-decoration: none;
+	font-weight: 500;
+	transition: background-color 0.2s ease;
+}
+
+.spawn-chat-login-prompt .button:hover,
+.spawn-chat-no-site .button:hover,
+.spawn-chat-no-credits .button:hover {
+	background: var(--spawn-primary-dark);
+}
+
+.spawn-chat-error {
+	background: #fef2f2;
+	border-color: #fecaca;
+}
+
+.spawn-chat-error p {
+	color: #dc2626;
+}
+
+/* ==========================================================================
+   Credit Indicator
+   ========================================================================== */
+
+.spawn-chat-credits {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	padding: 8px 16px;
+	background: #ecfdf5;
+	color: #065f46;
+	border-radius: 20px;
+	font-size: 14px;
+	font-weight: 600;
+	z-index: 10;
+}
+
+.spawn-chat-credits.low {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.spawn-chat-credits.empty {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 768px) {
+	.spawn-chat-container {
+		--ec-chat-sessions-width: 0;
+		min-height: 400px;
+	}
+
+	.spawn-chat-container .ec-chat-sessions {
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 20;
+		transform: translateX(-100%);
+		transition: transform 0.3s ease;
+	}
+
+	.spawn-chat-container .ec-chat-sessions.open {
+		transform: translateX(0);
+	}
+
+	.spawn-chat-container .ec-chat-session-toggle {
+		display: flex;
+	}
+}
+
+/* ==========================================================================
+   Animation Overrides
+   ========================================================================== */
+
+.ec-chat-typing-indicator {
+	color: var(--spawn-text-muted);
+}
+
+.ec-chat-message {
+	animation: spawn-message-fade-in 0.3s ease-out;
+}
+
+@keyframes spawn-message-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ==========================================================================
+   Tool Message Styling
+   ========================================================================== */
+
+.ec-chat-tool-message {
+	background: #eff6ff;
+	border-left: 3px solid #3b82f6;
+	border-radius: 0 8px 8px 0;
+	padding: 12px 16px;
+	margin: 8px 0;
+	font-size: 14px;
+}
+
+.ec-chat-tool-message.success {
+	background: #f0fdf4;
+	border-left-color: #22c55e;
+}
+
+.ec-chat-tool-message.error {
+	background: #fef2f2;
+	border-left-color: #ef4444;
+}
+
+.ec-chat-tool-name {
+	font-weight: 600;
+	color: #1e40af;
+	margin-bottom: 4px;
+}

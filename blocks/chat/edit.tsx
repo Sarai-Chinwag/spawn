@@ -1,32 +1,110 @@
-import { useBlockProps } from '@wordpress/block-editor';
-import type { BlockEditProps } from '@wordpress/blocks';
+/**
+ * Spawn Chat Block - Editor Script
+ *
+ * Block editor interface for configuring the chat block.
+ *
+ * @package Spawn\Blocks
+ */
 
-interface ChatBlockAttributes {
-	fullpage: boolean;
-	sessionKey: string;
+import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
+import {
+	PanelBody,
+	TextControl,
+	ToggleControl,
+} from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+
+// Import styles.
+import './editor.css';
+
+interface EditProps {
+	attributes: {
+		welcomeMessage: string;
+		placeholder: string;
+		showSessions: boolean;
+	};
+	setAttributes: ( attrs: Partial< EditProps[ 'attributes' ] > ) => void;
 }
 
-export default function Edit( _props: BlockEditProps< ChatBlockAttributes > ): JSX.Element {
-	const blockProps = useBlockProps();
+export default function Edit( { attributes, setAttributes }: EditProps ) {
+	const blockProps = useBlockProps( {
+		className: 'spawn-chat-editor',
+	} );
 
 	return (
 		<div { ...blockProps }>
-			<div className="wp-block-spawn-chat__container" style={ { height: '300px' } }>
-				<div className="wp-block-spawn-chat__messages" style={ { flex: 1, padding: '15px', background: '#f5f5f5' } }>
-					<p style={ { textAlign: 'center', color: '#666' } }>
-						Chat interface will appear here for logged-in customers.
-					</p>
-				</div>
-				<div className="wp-block-spawn-chat__input-area" style={ { display: 'flex', gap: '10px', padding: '15px', borderTop: '2px solid #ddd' } }>
-					<input
-						type="text"
-						placeholder="Message your AI..."
-						disabled
-						style={ { flex: 1, padding: '10px', border: '2px solid #ddd', borderRadius: '8px' } }
+			<InspectorControls>
+				<PanelBody
+					title={ __( 'Chat Settings', 'spawn' ) }
+					initialOpen={ true }
+				>
+					<TextControl
+						label={ __( 'Welcome Message', 'spawn' ) }
+						help={ __(
+							'Shown when the chat is empty.',
+							'spawn'
+						) }
+						value={ attributes.welcomeMessage }
+						onChange={ ( value ) =>
+							setAttributes( { welcomeMessage: value } )
+						}
 					/>
-					<button disabled style={ { padding: '10px 15px', background: '#1fc5e2', color: '#fff', border: 'none', borderRadius: '8px' } }>
-						Send
-					</button>
+					<TextControl
+						label={ __( 'Placeholder Text', 'spawn' ) }
+						help={ __(
+							'Shown in the input field.',
+							'spawn'
+						) }
+						value={ attributes.placeholder }
+						onChange={ ( value ) =>
+							setAttributes( { placeholder: value } )
+						}
+					/>
+					<ToggleControl
+						label={ __( 'Show Session History', 'spawn' ) }
+						help={ __(
+							'Allow users to see and switch between past conversations.',
+							'spawn'
+						) }
+						checked={ attributes.showSessions }
+						onChange={ ( value ) =>
+							setAttributes( { showSessions: value } )
+						}
+					/>
+				</PanelBody>
+			</InspectorControls>
+
+			<div className="spawn-chat-preview">
+				<div className="spawn-chat-preview-header">
+					<div className="spawn-chat-preview-logo">🚀</div>
+					<span>{ __( 'Spawn AI Chat', 'spawn' ) }</span>
+				</div>
+				<div className="spawn-chat-preview-body">
+					<div className="spawn-chat-preview-welcome">
+						<p>{ attributes.welcomeMessage }</p>
+					</div>
+					<div className="spawn-chat-preview-messages">
+						<div className="spawn-chat-preview-message assistant">
+							<div className="spawn-chat-preview-avatar">🤖</div>
+							<div className="spawn-chat-preview-content">
+								<p>
+									{ __(
+										'This is a preview of how the chat will appear.',
+										'spawn'
+									) }
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div className="spawn-chat-preview-input">
+					<span className="spawn-chat-preview-placeholder">
+						{ attributes.placeholder }
+					</span>
+					<span className="spawn-chat-preview-send">➤</span>
+				</div>
+				<div className="spawn-chat-preview-notice">
+					{ __( 'Chat will be live on the frontend', 'spawn' ) }
 				</div>
 			</div>
 		</div>
